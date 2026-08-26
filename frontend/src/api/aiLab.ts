@@ -1,4 +1,4 @@
-import type { AiLabResult, AiLabStatus } from "@/types/aiLab";
+import type { AiLabMockCase, AiLabResult, AiLabStatus } from "@/types/aiLab";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -11,6 +11,8 @@ async function unpack<T>(response: Response): Promise<T> {
 }
 
 export const fetchAiLabStatus = () => fetch(`${apiBaseUrl}/ai-lab/status`).then(unpack<AiLabStatus>);
+export const fetchAiLabMockCases = () => fetch(`${apiBaseUrl}/ai-lab/mock-cases`).then(unpack<AiLabMockCase[]>);
+export const runAiLabMockCase = (mockCase: string) => fetch(`${apiBaseUrl}/ai-lab/mock-cases/${encodeURIComponent(mockCase)}`, { method: "POST" }).then(unpack<AiLabResult>);
 
 export function analyzeAiUpload(file: File, cameraId: string): Promise<AiLabResult> {
   const body = new FormData();

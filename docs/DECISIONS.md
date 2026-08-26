@@ -637,4 +637,6 @@ AI Lab 需要证明真实能力可接入，但固定 Scenario 必须可在无权
 - 仅当本地模型权重与 DashScope Key 均存在时显示 `REAL AI MODE`；
 - REAL 推理错误必须显式返回，禁止伪装为成功或 Mock；
 - AI Lab 输出只返回结构化感知与 Task Profile，不得自动创建事件、调度或控制机器人；
+- REAL / MOCK 必须经过同一 `ai-lab.v1` 输出契约，并由同一 Phase 3 Capability Engine / Scheduler 仅做非持久化预检；
+- Camera → SLAM 必须调用 Phase 2 `map_pixel_to_slam`，不得在 AI Lab 复制第二套坐标换算；
 - 日后找到 V1，只能替换适配器内部实现或提供权重 / Prompt 参考，不得改变 API 与模式边界。

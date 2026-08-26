@@ -4,7 +4,8 @@ import unittest
 from pathlib import Path
 
 from perception.config import get_runtime
-from perception.service import analyze_upload, media_kind
+from perception.models import TASK_PROFILE_FIELDS, perception_schema, validate_ai_result_schema
+from perception.service import analyze_mock_case, analyze_upload, media_kind
 
 
 class AiLabTests(unittest.TestCase):
@@ -33,6 +34,7 @@ class AiLabTests(unittest.TestCase):
             result = analyze_upload(image, image.name, "CAM-A1-01")
         self.assertEqual(result["mode"], "mock")
         self.assertEqual(result["pipeline"]["keyframes"], 1)
+        self.assertEqual(result["perception"]["need_clean"], True)
         self.assertEqual(result["task_profile"]["pollution_form"], "dry_debris")
         self.assertEqual(result["location"]["location"]["building"], "A")
         self.assertIn("separate", result["notes"][1])
@@ -54,6 +56,38 @@ class AiLabTests(unittest.TestCase):
             result = analyze_upload(image, image.name, "CAM-A2-01")
         self.assertIsNone(result["location"])
         self.assertIn("no four-point calibration", result["notes"][-1])
+
+    def test_ai_result_to_task_profile_contract_is_complete(self):
+        result = analyze_mock_case("heavy_milk_tea_spill")
+        contract = perception_schema()
+        self.assertTrue(set(contract["required_top_level"]).issubset(result))
+        self.assertTrue(set(contract["perception_fields"]).issubset(result["perception"]))
+        self.assertEqual(set(TASK_PROFILE_FIELDS), set(result["task_profile"]))
+        self.assertEqual(result["workflow_input"]["task_profile"], result["task_profile"])
+        self.assertEqual(result["workflow_input"]["location"]["map_id"], "A_1F")
+
+    def test_four_business_cases_reuse_phase_3_capability_and_scheduler(self):
+        expected = {
+            "outdoor_small_litter": ("ASSIGNED", "Robot A"),
+            "heavy_milk_tea_spill": ("ASSIGNED", "Robot B"),
+            "indoor_paper_cup": ("ASSIGNED", "Robot C"),
+            "oversized_box_or_bag": ("HUMAN_FALLBACK", None),
+        }
+        for case_name, (status, robot) in expected.items():
+            with self.subTest(case=case_name):
+                result = analyze_mock_case(case_name)
+                self.assertTrue(result["perception"]["need_clean"])
+                self.assertIsNotNone(result["workflow_input"])
+                self.assertEqual(result["scheduler_preview"]["status"], status)
+                self.assertEqual(result["scheduler_preview"]["selected_robot_name"], robot)
+
+    def test_mock_and_real_build_against_one_response_schema(self):
+        result = analyze_mock_case("indoor_paper_cup")
+        required = set(perception_schema()["required_top_level"])
+        self.assertTrue(required.issubset(result))
+        self.assertEqual(result["schema_version"], "ai-lab.v1")
+        real_shaped_result = result | {"mode": "real", "mode_label": "REAL AI MODE", "pipeline": result["pipeline"] | {"yolo": "yolo26n.pt", "vlm": "qwen-vl-max"}}
+        self.assertEqual(validate_ai_result_schema(real_shaped_result)["schema_version"], result["schema_version"])
 
 
 if __name__ == "__main__":

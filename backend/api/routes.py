@@ -5,7 +5,7 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from database.connection import get_transitions_after, list_events, read_snapshot
-from perception.service import RealInferenceError, ai_lab_status, analyze_upload, media_kind, save_upload
+from perception.service import RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
@@ -88,6 +88,24 @@ def get_camera_mapping(camera_id: str, u: float = Query(...), v: float = Query(.
 def get_ai_lab_status() -> dict:
     """Expose the resolved runtime mode without exposing secrets."""
     return ai_lab_status()
+
+
+@router.get("/ai-lab/schema", tags=["AI Lab"])
+def get_ai_lab_schema() -> dict:
+    return ai_lab_schema()
+
+
+@router.get("/ai-lab/mock-cases", tags=["AI Lab"])
+def get_ai_lab_mock_cases() -> list[dict[str, str]]:
+    return available_mock_cases()
+
+
+@router.post("/ai-lab/mock-cases/{case_name}", tags=["AI Lab"])
+def post_ai_lab_mock_case(case_name: str) -> dict:
+    try:
+        return analyze_mock_case(case_name)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 @router.post("/ai-lab/analyze", tags=["AI Lab"])

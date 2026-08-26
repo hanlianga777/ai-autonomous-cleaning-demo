@@ -53,4 +53,4 @@ def map_pixel_to_slam(camera_id: str, u: float, v: float) -> dict:
         raise CalibrationError("Mapped point is at infinity")
     x = (h11 * u + h12 * v + h13) / denominator
     y = (h21 * u + h22 * v + h23) / denominator
-    return {"camera_id": camera_id, "pixel": {"u": u, "v": v}, "location": {"building": camera["building"], "floor": camera["floor"], "zone": camera["zone"], "x": round(x, 3), "y": round(y, 3)}}
+    return {"camera_id": camera_id, "pixel": {"u": u, "v": v}, "location": {"building": camera["building"], "floor": camera["floor"], "zone": camera["zone"], "map_id": camera["map_id"], "x": round(x, 3), "y": round(y, 3)}}

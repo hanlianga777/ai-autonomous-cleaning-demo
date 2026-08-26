@@ -1239,7 +1239,7 @@ Phase 3｜Workflow + Scheduler 已完成。实现严格使用 Mock AI、确定�
 - Mock Robot Adapter、Mock Verification 与 SSE 状态流；
 - Dashboard 可运行稳定 Mock 事件、展示 Decision Trace 及 `Why Robot X?`。
 
-Phase 4 已完成：未等待 V1 代码，采用与业务工作流解耦的适配器实现了 YOLO、Qwen-VL 与 AI Lab；当前下一阶段为 **Phase 5｜Multi-view Perception Agent**，仍需用户明确授权后开始。
+Phase 4 已完成实现与兼容性验收：未等待 V1 代码，采用与业务工作流解耦的适配器实现 YOLO、Qwen-VL、AI Lab 及 `ai-lab.v1` 结果到 Phase 3 的非持久化预检。当前等待用户最终确认，**不得开始 Phase 5**。
 
 ---
 

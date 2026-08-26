@@ -16,15 +16,32 @@ export interface AiDetection {
   frame_index: number;
 }
 
+export interface AiLabMockCase { case: string; label: string; camera_id: string; }
+
+export interface AiLabWorkflowInput {
+  event_id: string; state: string; source: string; confidence: number; camera_id: string;
+  location: { building: string; floor: string; zone: string; map_id: string; x: number; y: number };
+  task_profile: AiLabResult["task_profile"];
+}
+
+export interface AiLabSchedulerPreview {
+  status: "ASSIGNED" | "HUMAN_FALLBACK" | "NOT_READY";
+  selected_robot_name?: string | null;
+  reason: string;
+}
+
 export interface AiLabResult {
+  schema_version: "ai-lab.v1";
   mode: "mock" | "real";
   mode_label: string;
   runtime_reason?: string;
   source: { filename: string; media_type: "image" | "video"; camera_id: string };
   pipeline: { yolo: string; vlm: string; keyframes: number };
   detections: AiDetection[];
-  location: { camera_id: string; pixel: { u: number; v: number }; location: { building: string; floor: string; zone: string; x: number; y: number } } | null;
-  vlm: { needs_cleaning: boolean; confidence: number; summary: string; raw: Record<string, unknown> };
+  location: { camera_id: string; pixel: { u: number; v: number }; location: { building: string; floor: string; zone: string; map_id: string; x: number; y: number } } | null;
+  perception: { need_clean: boolean; confidence: number; summary: string; raw: Record<string, unknown> };
   task_profile: { object_type: string; pollution_form: string; severity: string; estimated_area: number; surface: string; required_capabilities: string[]; priority: string; crowd_level: string };
   notes: string[];
+  workflow_input: AiLabWorkflowInput | null;
+  scheduler_preview: AiLabSchedulerPreview | null;
 }

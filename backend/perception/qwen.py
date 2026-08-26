@@ -13,7 +13,7 @@ from perception.models import normalize_task_profile
 from perception.yolo import RealInferenceError
 
 PROMPT = """You are a cleaning perception verifier. Return JSON only, with this schema:
-{"needs_cleaning": boolean, "confidence": number, "summary": string,
+{"need_clean": boolean, "confidence": number, "summary": string,
  "task_profile": {"object_type": string, "pollution_form": string, "severity": string,
  "estimated_area": number, "surface": string, "required_capabilities": [string],
  "priority": string, "crowd_level": string}}
@@ -54,4 +54,5 @@ def run_qwen_vl(image_path: Path, model: str) -> dict:
         raise RealInferenceError(f"Qwen-VL request failed: {error}") from error
     parsed = _parse_json(content)
     confidence = parsed.get("confidence", 0)
-    return {"needs_cleaning": bool(parsed.get("needs_cleaning")), "confidence": round(float(confidence), 4) if isinstance(confidence, (int, float)) else 0.0, "summary": str(parsed.get("summary", ""))[:500], "raw": parsed, "task_profile": normalize_task_profile(parsed.get("task_profile"))}
+    need_clean = parsed.get("need_clean", parsed.get("needs_cleaning", False))
+    return {"need_clean": bool(need_clean), "confidence": round(float(confidence), 4) if isinstance(confidence, (int, float)) else 0.0, "summary": str(parsed.get("summary", ""))[:500], "raw": parsed, "task_profile": normalize_task_profile(parsed.get("task_profile"))}

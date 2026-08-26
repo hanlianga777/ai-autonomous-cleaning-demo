@@ -191,7 +191,7 @@ Phase 3｜Workflow + Scheduler 已完成并通过自动化、API、SSE 与浏览
 - SSE 工作流事件流；
 - Dashboard Decision Trace 与 `Why Robot X?` 展开评分。
 
-Phase 4 已完成：未依赖 V1 源码重建了可选 REAL YOLO / Qwen-VL 适配器与独立 AI Lab。当前下一阶段为 **Phase 5｜Multi-view Perception Agent**；需用户明确授权后开始。
+Phase 4 已完成实现并通过兼容性自动化、API 与浏览器验收：未依赖 V1 源码重建可选 REAL YOLO / Qwen-VL 适配器、独立 AI Lab 与 `ai-lab.v1` 输出契约。**仍等待用户最终确认，不得开始 Phase 5。**
 
 ---
 
@@ -656,11 +656,11 @@ DONE
 
 Phase 4
 YOLO + Qwen-VL + AI Lab
-DONE
+IMPLEMENTED · AWAITING HUMAN ACCEPTANCE
 
 Phase 5
 Multi-view Agent
-NEXT
+BLOCKED UNTIL PHASE 4 ACCEPTANCE
 
 Phase 6
 Analytics + Optimization

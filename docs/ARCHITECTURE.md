@@ -820,6 +820,8 @@ AI Lab Upload (image / MP4)
 
 AI Lab 不创建 Cleaning Event，不执行 Scheduler，也不通过 Robot Adapter 控制设备。`AI_LAB_MODE=auto` 只在 `AI_LAB_YOLO_MODEL` 指向存在的本地权重且 `DASHSCOPE_API_KEY` 存在时启用 REAL；否则明确返回 `DEMO MOCK MODE`。MP4 的 REAL 流程取首、中、尾关键帧，并选择最高 YOLO confidence 的帧给 VLM。REAL 推理失败返回明确错误，不得伪造成功结果。
 
+REAL 与 MOCK 都必须返回 `ai-lab.v1`：`perception.need_clean`、`perception.confidence`、完整 Phase 3 `TaskProfile`、Phase 2 `map_pixel_to_slam` 产生的带 `map_id` 的位置、`workflow_input` 与 `scheduler_preview`。后两项仅用于兼容性预检，绝不在 AI Lab 中写入 Cleaning Event 或启动调度。
+
 ---
 
 # 20. UI 架构

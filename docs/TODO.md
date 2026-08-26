@@ -115,7 +115,7 @@
 
 # 三、当前最高优先级
 
-## Phase 5｜Multi-view Perception Agent
+## Phase 4｜AI Lab 兼容性验收（等待人工确认）
 
 ---
 
@@ -134,6 +134,11 @@
 - [x] MP4 上传（20 MB 上限）
 - [x] VLM JSON 与 Task Profile 展示
 - [x] 保持 AI Lab 与固定 Scenario / 调度执行分离
+- [x] `ai-lab.v1` REAL / MOCK 统一 Schema 与 `need_clean` 字段
+- [x] AI结果 → Phase 3 CleaningEvent / TaskProfile 兼容测试
+- [x] 4 个业务输入经原 Capability Engine / Scheduler 预检
+- [x] AI Lab 与 Phase 2 共用 `map_pixel_to_slam`，并补齐 `map_id`
+- [ ] 用户最终验收确认后，才可进入 Phase 5
 
 ---
 

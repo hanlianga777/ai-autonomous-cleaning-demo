@@ -17,7 +17,7 @@ class SpatialEngineTests(unittest.TestCase):
         first = map_pixel_to_slam("CAM-A1-01", 500, 400)
         second = map_pixel_to_slam("CAM-A1-01", 500, 400)
         self.assertEqual(first, second)
-        self.assertEqual(first["location"], {"building": "A", "floor": "1F", "zone": "Main Lobby", "x": 29.5, "y": 27.0})
+        self.assertEqual(first["location"], {"building": "A", "floor": "1F", "zone": "Main Lobby", "map_id": "A_1F", "x": 29.5, "y": 27.0})
 
 
 if __name__ == "__main__":

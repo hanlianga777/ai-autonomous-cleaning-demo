@@ -14,6 +14,7 @@
 - SQLite 工作流审计、SSE 事件流、Mock Robot Adapter、Mock Verification
 - 硬约束 Capability Engine、配置化软评分与可展开的 `Why Robot X?` 决策追踪
 - 独立 AI Lab：图片 / MP4 上传、YOLO 候选、三帧关键帧策略、Qwen-VL 受约束 JSON 与 Task Profile
+- `ai-lab.v1` 统一感知 Schema：`need_clean`、置信度、Task Profile、同源 Camera→SLAM 位置以及非持久化 Scheduler 预检
 - 真实 AI 适配器：配置本地 YOLO 权重与 DashScope Key 后启用 `REAL AI MODE`；否则明确降级为 `DEMO MOCK MODE`
 - `Apache ECharts` 已纳入前端依赖，供后续 Analytics 阶段使用
 
@@ -126,6 +127,8 @@ Phase 2 不包含机器人调度、任务状态机、YOLO/Qwen-VL、Agent 或 SS
 ## Phase 4｜YOLO + Qwen-VL + AI Lab
 
 - AI Lab 与固定 Scenario 分开；AI Lab 不自动创建事件或派发机器人
+- REAL / MOCK 共用 `ai-lab.v1` Schema；其中 `workflow_input` 是可直接交给 Phase 3 的 CleaningEvent seed，`scheduler_preview` 只做预检、不写库
+- 内置 4 个兼容性用例：室外小垃圾 → A、液体重污 → B、室内纸杯 → C、大纸箱/垃圾袋 → Human Fallback
 - 图片支持 JPG / JPEG / PNG / WEBP，视频支持 MP4；最大 20 MB
 - MP4 REAL 模式提取首、中、尾三个关键帧，选择最高置信度候选帧给 Qwen-VL
 - `backend/requirements-real-ai.txt` 是 REAL YOLO / MP4 的可选依赖；主启动脚本不下载模型或安装重型依赖
@@ -147,7 +150,7 @@ uvicorn main:app --reload --port 8000
 
 ## 下一阶段边界
 
-下一阶段为 **Phase 5｜Multi-view Perception Agent**。在用户明确授权前，不应接入 LangGraph、增加 Agent 自主决策或更改现有工作流边界。
+Phase 4 的兼容性验收已通过自动化、API 与浏览器验证，**仍等待用户最终确认**。在确认前不得进入 **Phase 5｜Multi-view Perception Agent**，也不得接入 LangGraph、增加 Agent 自主决策或更改现有工作流边界。
 
 ## 验证
 
