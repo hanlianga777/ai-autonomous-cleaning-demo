@@ -19,6 +19,11 @@ MOCK_CASES: dict[str, dict[str, Any]] = {
         "summary": "A large liquid beverage spill was confirmed on a tiled public lobby floor.",
         "task_profile": {"object_type": "beverage_spill", "pollution_form": "liquid", "severity": "high", "estimated_area": 3.5, "surface": "tile", "required_capabilities": ["wet_cleaning", "strong_suction", "scrubbing"], "priority": "high", "crowd_level": "high"},
     },
+    "low_confidence_milk_tea_spill": {
+        "label": "低置信度奶茶污渍 · Multi-view", "camera_id": "CAM-A1-01", "class_name": "beverage_spill", "center": (500, 400),
+        "summary": "The primary view suggests a beverage spill, but requires corroboration from adjacent cameras.",
+        "task_profile": {"object_type": "beverage_spill", "pollution_form": "liquid", "severity": "high", "estimated_area": 3.5, "surface": "tile", "required_capabilities": ["wet_cleaning", "strong_suction", "scrubbing"], "priority": "high", "crowd_level": "high"},
+    },
     "indoor_paper_cup": {
         "label": "室内纸杯/纸屑 · Robot C", "camera_id": "CAM-A1-01", "class_name": "paper_cup", "center": (500, 350),
         "summary": "A small paper cup and light dry debris were confirmed indoors.",
@@ -53,7 +58,7 @@ def _base_mock_result(filename: str, media_type: str, camera_id: str, case: dict
         "pipeline": {"yolo": "mock-yolo26n", "vlm": "mock-qwen-vl", "keyframes": 3 if media_type == "video" else 1},
         "detections": [{"class_name": case["class_name"], "confidence": 0.91, "bbox": bbox, "frame_index": 0}],
         "location": location,
-        "perception": {"need_clean": True, "confidence": 0.94, "summary": case["summary"], "raw": {"provider": "mock", "case": case["label"]}},
+        "perception": {"need_clean": True, "confidence": 0.67 if case["label"].startswith("低置信度") else 0.94, "summary": case["summary"], "raw": {"provider": "mock", "case": case["label"]}},
         "task_profile": case["task_profile"],
         "workflow_input": None, "scheduler_preview": None, "notes": notes,
     }

@@ -1,6 +1,6 @@
 # AI 自主清洁 Demo
 
-面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架**、**Phase 2｜Spatial Engine**、**Phase 3｜Workflow + Scheduler**、**Phase 4｜YOLO + Qwen-VL + AI Lab**、**Phase 5｜Multi-view Perception Agent**、**Phase 6｜Analytics + Optimization** 与 **Phase 7｜Interview UX**；主 Scenario 始终可在稳定、可复现的本地 Mock 模式下运行。
+面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1–7** 与 **Phase 8｜客户演示工作台产品化层**；主 Scenario 始终可在稳定、可复现的本地 Mock 模式下运行。
 
 ## 当前实现范围
 
@@ -18,8 +18,9 @@
 - 真实 AI 适配器：配置本地 YOLO 权重与 DashScope Key 后启用 `REAL AI MODE`；否则明确降级为 `DEMO MOCK MODE`
 - Optimization Center：30 天稳定 Mock 历史、Spatial Heatmap、时段分布、Robot Utilization、KPI 与受限 Optimization Agent
 - Interview UX：五个可用一级入口、四类 Scenario 启动卡、状态回放、跨楼栋连接器、Camera → SLAM 与 Before / After 验收讲解
+- 默认客户首页：自主清洁任务工作台，以现场、AI 判断、空间执行、当前任务、固定摄像头验收组织 Scenario 02
 
-尚未实现真实设备执行、真实长期运营数据接入与 REAL AI 实跑验证；当前范围仍为稳定可复现的 PoC Demo。
+尚未实现真实设备执行、真实长期运营数据接入与 REAL AI 实跑验证；Scenario 02 的四张经授权现场实拍图也尚待提供。当前范围仍为稳定可复现的 PoC Demo。
 
 ## 目录
 
@@ -99,6 +100,8 @@ npm run dev
 | `GET /api/events/stream` | SSE 工作流状态流 |
 | `GET /api/ai-lab/status` | 已解析的 REAL / MOCK 运行状态（不泄露密钥） |
 | `POST /api/ai-lab/analyze?camera_id=` | 上传图片 / MP4 并返回感知链路与 Task Profile |
+| `GET /api/workbench/scenario02/assets` | Scenario 02 的 Camera + Event + View 素材清单与缺失状态 |
+| `POST /api/workbench/scenario02/run` | 组合既有感知、多视角、调度、执行与验收结果供客户工作台播放 |
 
 ## 数据与模式说明
 
@@ -176,9 +179,17 @@ uvicorn main:app --reload --port 8000
 - 展示 Camera → SLAM 映射、Decision Trace、Why Robot X?、Before / After 验收摘要
 - 机器人编排页给出能力边界与跨楼栋路径的三句讲解线索
 
+## Phase 8｜客户演示工作台
+
+- 默认首页改为中文优先的“自主清洁任务工作台”；Phase 1–7 页面保留在技术后台与 AI 能力验证入口
+- Scenario 02 复用 `ai-lab.v1` 低置信度 Mock 结果、Phase 5 Multi-view Agent、Phase 2 `map_pixel_to_slam`、Phase 3 Scheduler / Verification；不新增第二套 AI 或坐标算法
+- 三栏呈现：固定摄像头现场、2D SLAM 空间与 Robot B 动画、当前清洁任务；技术 JSON、评分、工具调用收纳至详情
+- 引入 `sample_data/camera_events` 的 Camera + Event + View 素材契约和 `/api/workbench/scenario02/*` 产品化适配 API
+- 缺少真实素材时明确显示“待补充经授权现场实拍图”，不生成或伪造真实图片
+
 ## 下一阶段边界
 
-Phase 7 已完成并等待人工验收；未实现任何未授权的后续阶段。
+Phase 8 的逻辑与浏览器验收已完成；待补齐 Scenario 02 的四张经授权实拍图后，再进行客户视觉素材的最终验收。未进入 Phase 9。
 
 ## 验证
 

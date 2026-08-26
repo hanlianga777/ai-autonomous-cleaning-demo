@@ -13,6 +13,7 @@ from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
 from workflow.engine import WorkflowError, create_mock_event, evaluate_event, event_detail, run_event, run_scenario_02
 from workflow.fixtures import EVENT_TEMPLATES
+from workbench.service import run_scenario_02_workbench, scenario_02_assets
 
 router = APIRouter(prefix="/api", tags=["Demo API"])
 
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/api", tags=["Demo API"])
 @router.get("/health")
 def health_check() -> dict:
     status = ai_lab_status()
-    return {"status": "ok", "phase": 7, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
+    return {"status": "ok", "phase": 8, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
 
 
 @router.get("/park")
@@ -45,7 +46,7 @@ def get_dashboard() -> dict:
             "charging": sum(robot["status"] == "charging" for robot in robots),
             "average_battery": round(sum(robot["battery"] for robot in robots) / len(robots)),
         },
-        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 7 · Interview UX"},
+        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 8 · Customer Demo Workbench"},
     }
 
 
@@ -77,6 +78,16 @@ def get_analytics_task_history() -> list[dict]:
 @router.post("/optimization/recommend", tags=["Analytics + Optimization"])
 def post_optimization_recommendations() -> dict:
     return generate_recommendations()
+
+
+@router.get("/workbench/scenario02/assets", tags=["Customer Workbench"])
+def get_workbench_scenario_02_assets() -> dict:
+    return scenario_02_assets()
+
+
+@router.post("/workbench/scenario02/run", tags=["Customer Workbench"])
+def post_workbench_scenario_02_run() -> dict:
+    return run_scenario_02_workbench()
 
 
 @router.get("/robots/{robot_id}")

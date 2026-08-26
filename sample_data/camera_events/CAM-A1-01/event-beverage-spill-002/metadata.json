@@ -1,0 +1,10 @@
+{
+  "event_id": "event-beverage-spill-002",
+  "camera_id": "CAM-A1-01",
+  "building": "A",
+  "floor": "1F",
+  "zone": "Main Lobby",
+  "view_role": "primary",
+  "object_type": "beverage_spill",
+  "expected_robot": "ROBOT_B"
+}

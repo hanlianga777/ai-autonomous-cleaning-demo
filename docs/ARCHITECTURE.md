@@ -861,6 +861,19 @@ AI Event Center → 4 stable scenarios → deterministic workflow audit
 
 Phase 7 只消费既有 API 和审计数据；播放效果是前端对已完成 Mock 状态序列的可视化，绝不代表实时设备控制或遥测。五个一级页面将 Operations、Event、Orchestration、Optimization、AI Lab 组织为可在面试中顺序讲解的路径。
 
+## 19.5 Phase 8 Customer Demo Workbench
+
+```text
+Camera asset / upload
+→ Phase 4 ai-lab.v1 low-confidence perception
+→ Phase 5 Multi-view confirmation
+→ Phase 2 map_pixel_to_slam
+→ Phase 3 Capability + Scheduler + Robot Adapter + Verification
+→ customer-facing business timeline and Before / After
+```
+
+`workbench.service` 只组合上述已有结果，`/api/workbench/scenario02/assets` 只返回 Camera + Event + View 素材关系，`/api/workbench/scenario02/run` 返回既有感知、工作流和多视角审计结果。`/demo-assets` 只静态提供实际存在的受授权文件；没有素材时，前端显示缺失槽位，绝不返回伪造图片。
+
 ---
 
 # 20. UI 架构

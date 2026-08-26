@@ -210,6 +210,20 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 
 ---
 
+## Phase 8｜客户演示工作台产品化
+
+- [x] 默认首页重构为自主清洁任务工作台，原 Phase 1–7 页面移至技术后台 / AI 能力验证
+- [x] Scenario 02 三栏业务流：现场、空间执行、当前任务
+- [x] 复用 `ai-lab.v1`、Multi-view Agent、`map_pixel_to_slam`、Scheduler、Verification
+- [x] Camera + Event + View 的 `sample_data/camera_events` 素材目录与 metadata 契约
+- [x] 三视角证据、空间映射、Robot B 路线动画、清洁、固定摄像头验收、闭环 UI
+- [x] 技术详情按第二层 / 第三层收纳，不显示 Chain-of-Thought
+- [x] 浏览器验收 Scenario 02 的完整 Mock 流程
+- [ ] 提供并放入 4 张经授权 Scenario 02 现场实拍图：CAM-A1-01 `primary.jpg` / `after.jpg`、CAM-A1-02 / CAM-A1-03 `secondary.jpg`
+- [ ] 素材补齐后进行客户视觉素材最终验收；不得在此之前进入 Phase 9
+
+---
+
 # 五、固定 Demo Scenario
 
 - [ ] Scenario 01：Outdoor Autonomous / Robot A

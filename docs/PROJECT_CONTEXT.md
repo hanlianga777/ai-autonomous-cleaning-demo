@@ -1279,7 +1279,13 @@ Workflow + Scheduler。
 
 ## Phase 7
 
-已完成，等待人工验收。五个一级入口均可用；AI Event Center 可启动 4 个稳定 Scenario；Workflow 结果提供明确标注为 Mock 的 Robot / Elevator / Skybridge 状态回放、Camera → SLAM、Decision Trace、Why Robot X? 与 Before / After 验收摘要。该阶段只做呈现和讲解体验，不改变既有业务规则或声称真实设备遥测。
+已完成并验收。五个一级入口均可用；AI Event Center 可启动 4 个稳定 Scenario；Workflow 结果提供明确标注为 Mock 的 Robot / Elevator / Skybridge 状态回放、Camera → SLAM、Decision Trace、Why Robot X? 与 Before / After 验收摘要。该阶段只做呈现和讲解体验，不改变既有业务规则或声称真实设备遥测。
+
+## Phase 8
+
+客户演示工作台产品化层已完成：默认进入中文业务工作台，而非技术 Dashboard。优先实现 Scenario 02，按“发现现场问题 → AI 研判 → 空间定位 → 机器人调度 → 执行清洁 → 固定摄像头验收 → 任务闭环”组织信息。它只编排既有 Phase 4 `ai-lab.v1`、Phase 5 Multi-view、Phase 2 `map_pixel_to_slam`、Phase 3 Scheduler / Verification；不会新建 AI、坐标或调度实现。
+
+新增素材契约 `sample_data/camera_events/<camera>/<event>/`，metadata 只描述摄像头、事件与视角关系。当前缺少 Scenario 02 的主视角、两个补充视角和清洁后四张经授权实拍图；UI 以明确缺失槽位呈现，严禁用 AI / stock 图伪造“真实现场”。素材补齐后无需改代码即可由 `/demo-assets` 加载并完成最终视觉验收。
 
 ---
 
