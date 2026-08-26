@@ -807,6 +807,21 @@ flowchart TD
 
 ---
 
+## 19.1 Phase 4 AI Lab Runtime
+
+```text
+AI Lab Upload (image / MP4)
+→ runtime resolver
+→ REAL: local YOLO → selected keyframe → DashScope Qwen-VL JSON
+  or MOCK: stable local result
+→ Detection Candidate + Camera → SLAM location + Task Profile
+→ AI Lab response only
+```
+
+AI Lab 不创建 Cleaning Event，不执行 Scheduler，也不通过 Robot Adapter 控制设备。`AI_LAB_MODE=auto` 只在 `AI_LAB_YOLO_MODEL` 指向存在的本地权重且 `DASHSCOPE_API_KEY` 存在时启用 REAL；否则明确返回 `DEMO MOCK MODE`。MP4 的 REAL 流程取首、中、尾关键帧，并选择最高 YOLO confidence 的帧给 VLM。REAL 推理失败返回明确错误，不得伪造成功结果。
+
+---
+
 # 20. UI 架构
 
 一级导航：

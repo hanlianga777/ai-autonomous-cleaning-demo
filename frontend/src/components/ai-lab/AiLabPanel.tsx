@@ -1,0 +1,61 @@
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Braces, CheckCircle2, FileVideo, ImageUp, LoaderCircle, MapPin, ScanLine, ShieldCheck, Sparkles, Upload } from "lucide-react";
+
+import { analyzeAiUpload, fetchAiLabStatus } from "@/api/aiLab";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import type { AiLabResult, AiLabStatus } from "@/types/aiLab";
+
+const offlineStatus: AiLabStatus = { requested_mode: "mock", active_mode: "mock", mode_label: "DEMO MOCK MODE", real_ready: false, reason: "AI Lab API is offline; the page remains available but cannot receive uploads.", models: { yolo: "not configured", qwen_vl: "qwen-vl-max" }, accepted_media: { images: [".jpg", ".jpeg", ".png", ".webp"], videos: [".mp4"] }, max_upload_mb: 20 };
+
+export function AiLabPanel() {
+  const [status, setStatus] = useState<AiLabStatus>(offlineStatus);
+  const [online, setOnline] = useState(false);
+  const [cameraId, setCameraId] = useState("CAM-A1-01");
+  const [file, setFile] = useState<File>();
+  const [result, setResult] = useState<AiLabResult>();
+  const [error, setError] = useState("");
+  const [running, setRunning] = useState(false);
+  const [preview, setPreview] = useState("");
+
+  useEffect(() => { fetchAiLabStatus().then((next) => { setStatus(next); setOnline(true); }).catch(() => { setStatus(offlineStatus); setOnline(false); }); }, []);
+  useEffect(() => { if (!file || !file.type.startsWith("image/")) { setPreview(""); return; } const url = URL.createObjectURL(file); setPreview(url); return () => URL.revokeObjectURL(url); }, [file]);
+  const mediaLabel = useMemo(() => file?.type.startsWith("video/") ? "MP4 video" : file ? "Image" : "No file selected", [file]);
+
+  async function submit() {
+    if (!file) { setError("请选择一张图片或 MP4 文件后再运行。 "); return; }
+    setRunning(true); setError("");
+    try { setResult(await analyzeAiUpload(file, cameraId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "AI Lab 运行失败"); } finally { setRunning(false); }
+  }
+
+  return <section className="mt-5 space-y-5">
+    <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end">
+      <div><p className="section-kicker">Independent live test</p><h2 className="mt-1 text-xl font-semibold tracking-tight">AI Lab · 感知验证台</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">上传媒体，依次观察 YOLO 候选、视频关键帧、Qwen-VL 研判及可供后续流程使用的 Task Profile。这里不派发机器人，也不影响稳定 Scenario。</p></div>
+      <ModeBadge status={status} online={online} />
+    </div>
+    {!online && <div role="alert" className="flex items-center gap-2 border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800"><AlertTriangle size={15} />AI Lab API 暂不可用：页面框架与模式说明仍可查看；启动后端后即可上传并运行。</div>}
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+      <Card><CardHeader><p className="section-kicker">Input</p><h3 className="mt-1 text-base font-semibold">媒体与摄像头上下文</h3></CardHeader><CardContent className="space-y-4 p-5 pt-3">
+        <label className="group flex min-h-[210px] cursor-pointer flex-col items-center justify-center border border-dashed border-slate-300 bg-slate-50/70 px-5 text-center transition-colors hover:border-slate-500 hover:bg-slate-50">
+          <input className="sr-only" type="file" accept=".jpg,.jpeg,.png,.webp,.mp4,image/jpeg,image/png,image/webp,video/mp4" onChange={(event) => { setFile(event.target.files?.[0]); setResult(undefined); setError(""); }} />
+          {preview ? <img src={preview} alt="待分析预览" className="max-h-[178px] max-w-full object-contain" /> : file?.type.startsWith("video/") ? <FileVideo size={34} strokeWidth={1.35} className="text-slate-500" /> : <ImageUp size={34} strokeWidth={1.35} className="text-slate-500" />}
+          <span className="mt-3 text-sm font-medium text-slate-700">{file ? file.name : "选择图片或 MP4"}</span><span className="mt-1 text-[11px] text-slate-400">{file ? `${mediaLabel} · ${(file.size / 1024 / 1024).toFixed(2)} MB` : `JPG / PNG / WEBP / MP4 · 最大 ${status.max_upload_mb} MB`}</span>
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs text-slate-500">摄像头上下文<select value={cameraId} onChange={(event) => setCameraId(event.target.value)} className="mt-1.5 h-9 w-full border border-slate-200 bg-white px-2 text-xs text-slate-700"><option>CAM-A1-01</option><option>CAM-A2-01</option><option>CAM-B1-01</option><option>CAM-B2-01</option><option>CAM-OUT-01</option></select></label><div className="border-l-2 border-slate-200 pl-3 text-xs"><p className="text-slate-400">Resolved runtime</p><p className="mt-1 font-medium text-slate-700">{status.models.yolo}</p><p className="mt-1 text-[11px] text-slate-500">Qwen-VL · {status.models.qwen_vl}</p></div></div>
+        {error && <p role="alert" className="flex gap-2 border border-rose-200 bg-rose-50 p-3 text-xs leading-5 text-rose-800"><AlertTriangle size={15} className="mt-0.5 shrink-0" />{error}</p>}
+        <button onClick={() => void submit()} disabled={!online || running} className="flex h-10 w-full items-center justify-center gap-2 rounded-sm bg-slate-900 text-xs font-medium text-white hover:bg-slate-700 disabled:bg-slate-300"><ScanLine size={15} />{running ? <><LoaderCircle size={14} className="animate-spin" />正在执行感知链路</> : "运行 AI Lab 分析"}</button>
+      </CardContent></Card>
+      <PipelineCard status={status} />
+    </div>
+    {result ? <ResultView result={result} /> : <div className="border border-dashed border-slate-300 bg-white px-5 py-10 text-center"><Upload size={22} className="mx-auto text-slate-400" /><p className="mt-3 text-sm font-medium text-slate-600">等待一次独立 AI Lab 分析</p><p className="mt-1 text-xs text-slate-400">结果将展示检测候选、关键帧数量、VLM 结构化判断、SLAM 映射和 Task Profile。</p></div>}
+  </section>;
+}
+
+function ModeBadge({ status, online }: { status: AiLabStatus; online: boolean }) { const real = status.active_mode === "real"; return <div className={`border-l-2 px-3 py-1.5 ${real ? "border-emerald-500" : "border-amber-500"}`}><div className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${online ? (real ? "bg-emerald-500" : "bg-amber-500") : "bg-slate-400"}`} /><span className="text-xs font-semibold text-slate-800">{status.mode_label}</span></div><p className="mt-1 max-w-sm text-[11px] leading-4 text-slate-500">{status.reason}</p></div>; }
+
+function PipelineCard({ status }: { status: AiLabStatus }) { return <Card><CardHeader><p className="section-kicker">Pipeline boundary</p><h3 className="mt-1 text-base font-semibold">感知链路与运行模式</h3></CardHeader><CardContent className="p-5 pt-3"><div className="divide-y divide-slate-100 border-y border-slate-100">{[["01", "YOLO candidate", "检测对象、bbox 与 confidence"], ["02", "Keyframe selection", "MP4 取首、中、尾三个关键帧"], ["03", "Qwen-VL judgement", "仅输出约束 JSON，不直接控制设备"], ["04", "Task Profile", "供后续工作流使用，AI Lab 不自动创建事件"]].map(([index, title, detail]) => <div key={index} className="flex gap-4 py-3.5"><span className="font-mono text-xs text-slate-400">{index}</span><div><p className="text-xs font-semibold text-slate-700">{title}</p><p className="mt-1 text-[11px] text-slate-500">{detail}</p></div></div>)}</div><p className="mt-4 text-[11px] leading-5 text-slate-500">{status.active_mode === "real" ? "当前将调用本地 YOLO 权重与配置的 DashScope endpoint。" : "当前为本地固定 Mock；缺失模型权重或 API Key 时不会进行伪造的真实推理。"}</p></CardContent></Card>; }
+
+function ResultView({ result }: { result: AiLabResult }) { const profile = result.task_profile; return <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]"><Card><CardHeader className="flex flex-row items-start justify-between gap-4"><div><p className="section-kicker">Perception output</p><h3 className="mt-1 text-base font-semibold">候选与 VLM 研判</h3></div><Badge variant={result.mode === "real" ? "success" : "warning"}>{result.mode_label}</Badge></CardHeader><CardContent className="p-5 pt-2"><div className="grid gap-3 sm:grid-cols-3"><ResultFact label="YOLO" value={result.pipeline.yolo} /><ResultFact label="Keyframes" value={`${result.pipeline.keyframes}`} /><ResultFact label="VLM confidence" value={`${Math.round(result.vlm.confidence * 100)}%`} /></div><div className="mt-5 border-y border-slate-100 py-4"><p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Detection candidates</p>{result.detections.length ? <div className="space-y-2">{result.detections.map((detection, index) => <div key={`${detection.class_name}-${index}`} className="flex items-center justify-between border border-slate-200 px-3 py-2.5"><div><p className="text-xs font-semibold text-slate-700">{detection.class_name}</p><p className="mt-1 font-mono text-[10px] text-slate-400">[{detection.bbox.x1}, {detection.bbox.y1}] → [{detection.bbox.x2}, {detection.bbox.y2}] · frame {detection.frame_index}</p></div><span className="text-xs font-semibold text-slate-700">{Math.round(detection.confidence * 100)}%</span></div>)}</div> : <p className="text-xs text-slate-500">YOLO 未识别到候选对象；Qwen-VL 仍对所选关键帧给出研判。</p>}</div><div className="mt-4 flex gap-3"><ShieldCheck size={17} className={result.vlm.needs_cleaning ? "text-emerald-600" : "text-slate-400"} /><div><p className="text-xs font-semibold text-slate-700">{result.vlm.needs_cleaning ? "需要清洁" : "无需清洁"}</p><p className="mt-1 text-xs leading-5 text-slate-500">{result.vlm.summary}</p></div></div>{result.location && <div className="mt-4 flex gap-2 border-t border-slate-100 pt-4 text-xs text-slate-600"><MapPin size={15} className="text-slate-400" />{result.location.location.building} · {result.location.location.floor} · {result.location.location.zone} <span className="font-mono text-slate-400">({result.location.location.x}, {result.location.location.y})</span></div>}</CardContent></Card><div className="space-y-5"><Card><CardHeader><p className="section-kicker">Task Profile</p><h3 className="mt-1 text-sm font-semibold">结构化清洁语义</h3></CardHeader><CardContent className="grid grid-cols-2 gap-x-4 gap-y-3 p-5 pt-3 text-xs"><ProfileFact label="对象" value={profile.object_type} /><ProfileFact label="形态" value={profile.pollution_form} /><ProfileFact label="严重度" value={profile.severity} /><ProfileFact label="地面" value={profile.surface} /><ProfileFact label="面积" value={`${profile.estimated_area} m²`} /><ProfileFact label="优先级" value={profile.priority} /><div className="col-span-2 border-t border-slate-100 pt-3"><p className="text-[11px] text-slate-400">Required capabilities</p><div className="mt-1.5 flex flex-wrap gap-1">{profile.required_capabilities.map((item) => <span key={item} className="bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{item}</span>)}</div></div></CardContent></Card><Card><CardContent className="p-5"><p className="flex items-center gap-2 text-xs font-semibold text-slate-700"><Braces size={15} />VLM JSON boundary</p><pre className="mt-3 max-h-48 overflow-auto border border-slate-100 bg-slate-50 p-3 text-[10px] leading-5 text-slate-600">{JSON.stringify(result.vlm.raw, null, 2)}</pre><p className="mt-3 flex gap-2 text-[11px] leading-5 text-slate-500"><CheckCircle2 size={14} className="mt-0.5 shrink-0 text-slate-400" />{result.notes[0]}</p></CardContent></Card></div></div>; }
+
+function ResultFact({ label, value }: { label: string; value: string }) { return <div><p className="section-kicker">{label}</p><p className="mt-1 truncate text-xs font-medium text-slate-700" title={value}>{value}</p></div>; }
+function ProfileFact({ label, value }: { label: string; value: string }) { return <div><p className="text-[11px] text-slate-400">{label}</p><p className="mt-1 font-medium text-slate-700">{value}</p></div>; }

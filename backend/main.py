@@ -15,8 +15,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="AI Autonomous Cleaning Demo",
-    version="0.1.0",
-    description="Phase 3: deterministic workflow, scheduler and stable mock robot APIs.",
+    version="0.2.0",
+    description="Phase 4: perception adapters and an independent REAL / MOCK AI Lab.",
     lifespan=lifespan,
 )
 

@@ -1143,7 +1143,7 @@ Robot D 不参与上述 Scenario。
 
 V1 代码并未被当前 Codex 工作区自动发现。
 
-后续 Phase 4 再提供 / 迁移。
+Phase 4 已不等待该代码而完成可替换适配器实现；日后找到 V1 时仅作为模型权重、Prompt 或实现对照。
 
 ---
 
@@ -1239,7 +1239,7 @@ Phase 3｜Workflow + Scheduler 已完成。实现严格使用 Mock AI、确定�
 - Mock Robot Adapter、Mock Verification 与 SSE 状态流；
 - Dashboard 可运行稳定 Mock 事件、展示 Decision Trace 及 `Why Robot X?`。
 
-当前下一阶段为 **Phase 4｜YOLO + Qwen-VL + AI Lab**，仍需用户明确授权并提供/确认 V1 代码后开始。
+Phase 4 已完成：未等待 V1 代码，采用与业务工作流解耦的适配器实现了 YOLO、Qwen-VL 与 AI Lab；当前下一阶段为 **Phase 5｜Multi-view Perception Agent**，仍需用户明确授权后开始。
 
 ---
 
@@ -1265,9 +1265,7 @@ Workflow + Scheduler。
 
 ## Phase 4
 
-迁移 V1：
-
-YOLO + Qwen-VL + AI Lab。
+未依赖 V1 源码重建：可选 Ultralytics YOLO 本地适配器、DashScope Qwen-VL JSON 适配器、三关键帧 MP4 策略、独立 AI Lab 与明确 REAL / MOCK 模式。固定 Scenario 不调用该实时链路。
 
 ## Phase 5
 

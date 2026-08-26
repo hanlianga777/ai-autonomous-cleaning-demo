@@ -115,23 +115,25 @@
 
 # 三、当前最高优先级
 
-## Phase 4｜迁移真实 AI
+## Phase 5｜Multi-view Perception Agent
 
 ---
 
 # 四、后续 Phase 详细清单
 
-- [ ] 找回 / 提供 V1 代码
-- [ ] 迁移 YOLO26n
-- [ ] 迁移 Qwen-VL
-- [ ] 迁移关键帧逻辑
-- [ ] REAL MODE
-- [ ] MOCK MODE
-- [ ] AI Lab 页面
-- [ ] 图片上传
-- [ ] MP4 上传
-- [ ] VLM JSON
-- [ ] Task Profile
+## Phase 4｜YOLO + Qwen-VL + AI Lab
+
+- [x] 在未找到 V1 代码时，以适配器重建 YOLO / Qwen-VL 集成边界
+- [x] 可选 Ultralytics YOLO26n 本地权重适配器
+- [x] DashScope Qwen-VL OpenAI-compatible JSON 适配器
+- [x] MP4 首 / 中 / 尾关键帧逻辑
+- [x] `REAL AI MODE` 运行条件解析与明确错误返回
+- [x] `DEMO MOCK MODE` 稳定降级
+- [x] 独立 AI Lab 页面
+- [x] 图片上传（JPG / JPEG / PNG / WEBP）
+- [x] MP4 上传（20 MB 上限）
+- [x] VLM JSON 与 Task Profile 展示
+- [x] 保持 AI Lab 与固定 Scenario / 调度执行分离
 
 ---
 

@@ -619,3 +619,22 @@ Demo 不需要生产级分布式系统。
 **对后续开发的影响：**
 
 未经明确授权不得自动进入下一 Phase。
+
+---
+
+## 决策 21：缺少 V1 时保留可替换的 REAL / MOCK 感知适配器
+
+**最终决定：**
+
+Phase 4 不因 V1 源码缺失而阻塞。以独立 `perception` 模块重建本地 Ultralytics YOLO、DashScope Qwen-VL 与关键帧边界，同时保留稳定 Mock 实现。
+
+**原因：**
+
+AI Lab 需要证明真实能力可接入，但固定 Scenario 必须可在无权重、无 API Key、无网络的现场稳定演示。
+
+**对后续开发的影响：**
+
+- 仅当本地模型权重与 DashScope Key 均存在时显示 `REAL AI MODE`；
+- REAL 推理错误必须显式返回，禁止伪装为成功或 Mock；
+- AI Lab 输出只返回结构化感知与 Task Profile，不得自动创建事件、调度或控制机器人；
+- 日后找到 V1，只能替换适配器内部实现或提供权重 / Prompt 参考，不得改变 API 与模式边界。

@@ -1,10 +1,11 @@
 import asyncio
 import json
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from database.connection import get_transitions_after, list_events, read_snapshot
+from perception.service import RealInferenceError, ai_lab_status, analyze_upload, media_kind, save_upload
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
@@ -16,7 +17,8 @@ router = APIRouter(prefix="/api", tags=["Demo API"])
 
 @router.get("/health")
 def health_check() -> dict:
-    return {"status": "ok", "phase": 3, "mode": "DEMO MOCK MODE"}
+    status = ai_lab_status()
+    return {"status": "ok", "phase": 4, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
 
 
 @router.get("/park")
@@ -41,7 +43,7 @@ def get_dashboard() -> dict:
             "charging": sum(robot["status"] == "charging" for robot in robots),
             "average_battery": round(sum(robot["battery"] for robot in robots) / len(robots)),
         },
-        "system": {"mode": "DEMO MOCK MODE", "phase": "Phase 3 · Workflow + Scheduler"},
+        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 4 · Perception + AI Lab"},
     }
 
 
@@ -80,6 +82,29 @@ def get_camera_mapping(camera_id: str, u: float = Query(...), v: float = Query(.
         return map_pixel_to_slam(camera_id, u, v)
     except CalibrationError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.get("/ai-lab/status", tags=["AI Lab"])
+def get_ai_lab_status() -> dict:
+    """Expose the resolved runtime mode without exposing secrets."""
+    return ai_lab_status()
+
+
+@router.post("/ai-lab/analyze", tags=["AI Lab"])
+async def post_ai_lab_analyze(
+    file: UploadFile = File(...),
+    camera_id: str = Query("CAM-A1-01"),
+) -> dict:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="An upload filename is required.")
+    try:
+        media_kind(file.filename)
+        file_path = save_upload(file.filename, await file.read())
+        return analyze_upload(file_path, file.filename, camera_id)
+    except (ValueError, RealInferenceError) as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    finally:
+        await file.close()
 
 
 @router.get("/events", tags=["Workflow + Scheduler"])

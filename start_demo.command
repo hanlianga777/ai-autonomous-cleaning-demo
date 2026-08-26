@@ -25,6 +25,10 @@ start_backend() {
     python3 -m venv "$BACKEND_DIR/.venv"
     "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
   fi
+  if ! "$BACKEND_DIR/.venv/bin/python" -c "import multipart" >/dev/null 2>&1; then
+    echo "[backend]  installing required API upload support…"
+    "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
+  fi
   (
     cd "$BACKEND_DIR"
     nohup "$BACKEND_DIR/.venv/bin/uvicorn" main:app --host 127.0.0.1 --port 8000 >"$LOG_DIR/backend.log" 2>&1 &
@@ -60,7 +64,7 @@ start_frontend
 
 sleep 1
 echo
-echo "CleanOps Phase 3 is ready. API: http://localhost:8000/docs"
+echo "CleanOps Phase 4 is ready. API: http://localhost:8000/docs"
 if [[ "${DEMO_NO_OPEN:-}" != "1" ]]; then
   open "http://localhost:5173"
 fi

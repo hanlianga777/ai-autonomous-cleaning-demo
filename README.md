@@ -1,6 +1,6 @@
 # AI 自主清洁 Demo
 
-面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架**、**Phase 2｜Spatial Engine** 与 **Phase 3｜Workflow + Scheduler**；系统仍明确运行在稳定、可复现的本地 Mock 模式。
+面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架**、**Phase 2｜Spatial Engine**、**Phase 3｜Workflow + Scheduler** 与 **Phase 4｜YOLO + Qwen-VL + AI Lab**；主 Scenario 始终可在稳定、可复现的本地 Mock 模式下运行。
 
 ## 当前实现范围
 
@@ -13,9 +13,11 @@
 - 空间地图、路径规划与标定映射的前端可视化
 - SQLite 工作流审计、SSE 事件流、Mock Robot Adapter、Mock Verification
 - 硬约束 Capability Engine、配置化软评分与可展开的 `Why Robot X?` 决策追踪
+- 独立 AI Lab：图片 / MP4 上传、YOLO 候选、三帧关键帧策略、Qwen-VL 受约束 JSON 与 Task Profile
+- 真实 AI 适配器：配置本地 YOLO 权重与 DashScope Key 后启用 `REAL AI MODE`；否则明确降级为 `DEMO MOCK MODE`
 - `Apache ECharts` 已纳入前端依赖，供后续 Analytics 阶段使用
 
-尚未实现真实视觉模型、Agent、真实设备执行、Analytics 与 ECharts 图表；这些属于 Phase 4 及以后阶段。
+尚未实现 Multi-view Agent、真实设备执行、Analytics 与 ECharts 图表；这些属于 Phase 5 及以后阶段。
 
 ## 目录
 
@@ -26,6 +28,7 @@
 │   ├── data/mock_data.py         # 稳定 Mock 园区与机器人数据
 │   ├── database/connection.py    # SQLite 初始化与读取
 │   ├── spatial/                  # 地图、路径规划、四点标定
+│   ├── perception/               # REAL / MOCK YOLO、Qwen-VL、关键帧与 AI Lab 编排
 │   ├── workflow/                 # 事件状态机与 Mock 事件
 │   ├── scheduling/               # 能力约束与可解释评分
 │   ├── robots/                   # Unified Mock Robot Adapter
@@ -92,12 +95,14 @@ npm run dev
 | `POST /api/events/{event_id}/run` | 运行完整 Mock Workflow |
 | `POST /api/scheduler/evaluate?event_id=` | 输出可解释调度决策 |
 | `GET /api/events/stream` | SSE 工作流状态流 |
+| `GET /api/ai-lab/status` | 已解析的 REAL / MOCK 运行状态（不泄露密钥） |
+| `POST /api/ai-lab/analyze?camera_id=` | 上传图片 / MP4 并返回感知链路与 Task Profile |
 
 ## 数据与模式说明
 
 应用启动时会创建 `backend/ai_cleaning_demo.db`，并写入园区和机器人快照。该数据库文件是可再生的本地运行数据，不包含真实客户或设备数据。
 
-当前明确运行在 `DEMO MOCK MODE`。后续接入真实 YOLO/Qwen-VL 后，才会实现 REAL / MOCK 两种模式的切换。
+默认明确运行在 `DEMO MOCK MODE`。AI Lab 的 `AI_LAB_MODE=auto` 仅在本地权重与 `DASHSCOPE_API_KEY` 均配置时自动启用 `REAL AI MODE`；`AI_LAB_MODE=mock` 可强制稳定 Mock。REAL 管线失败时会明确返回错误，不会伪造成 Mock 或真实结果。
 
 ## Phase 2｜Spatial Engine
 
@@ -118,9 +123,31 @@ Phase 2 不包含机器人调度、任务状态机、YOLO/Qwen-VL、Agent 或 SS
 - Mock Robot Adapter 与 Mock Verification；不接真实机器人、不调用 AI
 - Dashboard 可运行 4 个稳定 Mock 事件，并展示 Decision Trace 与 `Why Robot X?`
 
+## Phase 4｜YOLO + Qwen-VL + AI Lab
+
+- AI Lab 与固定 Scenario 分开；AI Lab 不自动创建事件或派发机器人
+- 图片支持 JPG / JPEG / PNG / WEBP，视频支持 MP4；最大 20 MB
+- MP4 REAL 模式提取首、中、尾三个关键帧，选择最高置信度候选帧给 Qwen-VL
+- `backend/requirements-real-ai.txt` 是 REAL YOLO / MP4 的可选依赖；主启动脚本不下载模型或安装重型依赖
+
+### 配置 REAL AI MODE
+
+```bash
+cd backend
+source .venv/bin/activate
+pip install -r requirements-real-ai.txt
+export AI_LAB_MODE=real
+export AI_LAB_YOLO_MODEL=/absolute/path/to/yolo26n.pt
+export DASHSCOPE_API_KEY=your_dashscope_key
+# 可选：export DASHSCOPE_VL_MODEL=qwen-vl-max
+uvicorn main:app --reload --port 8000
+```
+
+未完成上述配置时无需阻塞开发或演示：AI Lab 与 Dashboard 都会明确显示 `DEMO MOCK MODE`。
+
 ## 下一阶段边界
 
-下一阶段为 **Phase 4｜YOLO + Qwen-VL + AI Lab**。在用户明确授权并提供/确认 V1 代码前，不应接入真实 AI 能力。
+下一阶段为 **Phase 5｜Multi-view Perception Agent**。在用户明确授权前，不应接入 LangGraph、增加 Agent 自主决策或更改现有工作流边界。
 
 ## 验证
 
