@@ -42,7 +42,7 @@ ROBOTS = [
         "short_name": "Robot B",
         "model": "HS-450",
         "role": "重度地面清洁",
-        "status": "charging",
+        "status": "idle",
         "battery": 64,
         "location": "A 栋 1F · 设备间",
         "zone": "A1 Service Bay",
@@ -68,4 +68,3 @@ ROBOTS = [
         "capabilities": ["干垃圾", "地毯", "低噪声"],
     },
 ]
-

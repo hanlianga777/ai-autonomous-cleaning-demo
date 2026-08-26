@@ -19,10 +19,10 @@ export const fallbackDashboard: DashboardData = {
   },
   robots: [
     { id: "robot-a", code: "R-A01", name: "Outdoor Sweeper", short_name: "Robot A", model: "OS-200", role: "室外道路清扫", status: "idle", battery: 88, location: "园区道路 · 东入口", zone: "Outdoor East Road", building: "OUTDOOR", floor: null, last_seen: "离线 Mock", capabilities: ["室外", "干垃圾", "道路清扫"] },
-    { id: "robot-b", code: "R-B02", name: "Heavy Scrubber", short_name: "Robot B", model: "HS-450", role: "重度地面清洁", status: "charging", battery: 64, location: "A 栋 1F · 设备间", zone: "A1 Service Bay", building: "A", floor: "1F", last_seen: "离线 Mock", capabilities: ["湿洗", "强吸力", "刷洗"] },
+    { id: "robot-b", code: "R-B02", name: "Heavy Scrubber", short_name: "Robot B", model: "HS-450", role: "重度地面清洁", status: "idle", battery: 64, location: "A 栋 1F · 设备间", zone: "A1 Service Bay", building: "A", floor: "1F", last_seen: "离线 Mock", capabilities: ["湿洗", "强吸力", "刷洗"] },
     { id: "robot-c", code: "R-C03", name: "Indoor Light Cleaner", short_name: "Robot C", model: "IL-120", role: "室内日常清洁", status: "idle", battery: 91, location: "B 栋 1F · 大堂西侧", zone: "B1 West Lobby", building: "B", floor: "1F", last_seen: "离线 Mock", capabilities: ["干垃圾", "地毯", "低噪声"] },
   ],
-  fleet: { available: 2, charging: 1, average_battery: 81 },
+  fleet: { available: 3, charging: 0, average_battery: 81 },
   system: { mode: "DEMO MOCK MODE", phase: "Phase 1 · Foundation" },
 };
 

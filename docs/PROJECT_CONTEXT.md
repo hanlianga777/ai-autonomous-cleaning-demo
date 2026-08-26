@@ -1229,7 +1229,17 @@ ECharts 已纳入依赖，但 Phase 1 尚未正式使用。
 - Camera Pixel → SLAM 重复调用结果稳定；
 - 前端 TypeScript / Vite 生产构建通过。
 
-当前下一阶段为 **Phase 3｜Workflow + Scheduler**，仍需用户明确授权后开始。
+Phase 3｜Workflow + Scheduler 已完成。实现严格使用 Mock AI、确定性业务规则与 Mock 设备接口；通过自动化测试、REST/SSE API 与浏览器页面验证。
+
+新增能力：
+
+- Cleaning Event、Task Profile、Assignment Candidate / Decision、Navigation Plan、Verification Result 与 Human Fallback Work Order；
+- SQLite 持久化事件与全部状态迁移；
+- 可解释 Hard Constraint + Soft Score，评分权重仅为 PoC Demo 配置；
+- Mock Robot Adapter、Mock Verification 与 SSE 状态流；
+- Dashboard 可运行稳定 Mock 事件、展示 Decision Trace 及 `Why Robot X?`。
+
+当前下一阶段为 **Phase 4｜YOLO + Qwen-VL + AI Lab**，仍需用户明确授权并提供/确认 V1 代码后开始。
 
 ---
 
@@ -1251,7 +1261,7 @@ Spatial Engine。
 
 Workflow + Scheduler。
 
-全部先用 Mock AI。
+已完成，全部使用稳定 Mock AI。
 
 ## Phase 4
 
@@ -1424,7 +1434,7 @@ UI 强调：
 1. V1 AI 代码尚未迁入。
 2. Phase 2 仅使用模拟 SLAM 地图，且当前只有 CAM-A1-01 配置四点标定。
 3. Camera → SLAM 真实生产底层数学实现细节尚未明确。
-4. Demo Scheduler 权重尚未经过真实数据标定。
+4. Demo Scheduler 权重已配置化，但尚未经过真实数据标定。
 5. Demo AI Confidence 阈值尚未经过验证集标定。
 6. 电梯 / Skybridge 当前均为 Mock。
 7. Human Fallback 当前仅规划为模拟工单。

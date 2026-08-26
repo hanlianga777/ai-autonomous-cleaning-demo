@@ -180,7 +180,18 @@ CORS 配置不一致。
 
 验证已通过：3 个 Python 空间单元测试，以及前端 TypeScript / Vite 生产构建。
 
-当前下一阶段为 **Phase 3｜Workflow + Scheduler**。未经用户明确授权，不得开始。
+Phase 3｜Workflow + Scheduler 已完成并通过自动化、API、SSE 与浏览器验证。
+
+已实现：
+
+- SQLite Cleaning Event / Transition / Assignment Decision / Human Work Order 审计；
+- Mock Event、确定性 State Machine、Mock Robot Adapter、Mock Verification；
+- Hard Constraint Capability Engine；
+- 配置化、可解释 Scheduler Soft Score；
+- SSE 工作流事件流；
+- Dashboard Decision Trace 与 `Why Robot X?` 展开评分。
+
+当前下一阶段为 **Phase 4｜YOLO + Qwen-VL + AI Lab**。仍需用户明确授权并提供或确认 V1 AI 代码后开始。
 
 ---
 
@@ -641,10 +652,11 @@ DONE
 
 Phase 3
 Workflow + Scheduler
-NEXT
+DONE
 
 Phase 4
 YOLO + Qwen-VL + AI Lab
+NEXT
 
 Phase 5
 Multi-view Agent

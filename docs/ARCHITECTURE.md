@@ -742,6 +742,35 @@ GET /api/health
 GET /api/dashboard
 ```
 
+当前已经实现的 Phase 2 / Phase 3 API：
+
+```text
+GET  /api/spatial/overview
+GET  /api/spatial/routes
+GET  /api/spatial/cameras/{camera_id}/map
+GET  /api/events
+GET  /api/events/{event_id}
+GET  /api/events/templates
+POST /api/events/mock/{template_name}
+POST /api/events/{event_id}/run
+POST /api/scheduler/evaluate?event_id=
+GET  /api/events/stream
+```
+
+Phase 3 Runtime:
+
+```text
+Mock Event
+→ Workflow State Machine
+→ SQLite Transition Audit + SSE
+→ Task Profile
+→ Hard Constraints
+→ Explainable Soft Score
+→ Mock Adapter / Navigation Plan
+→ Mock Verification
+→ CLOSED or Human Fallback Work Order
+```
+
 ---
 
 # 19. REAL / MOCK 降级

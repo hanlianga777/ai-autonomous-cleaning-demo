@@ -42,80 +42,84 @@
 
 ---
 
-# 二、当前最高优先级
+# 二、已完成
 
 ## Phase 3｜Workflow + Scheduler
 
 暂时全部使用 Mock AI。
 
-- [ ] CleaningEvent 数据结构
-- [ ] TaskProfile
-- [ ] RobotCapability
-- [ ] RobotState
-- [ ] AssignmentCandidate
-- [ ] AssignmentDecision
-- [ ] NavigationPlan
-- [ ] VerificationResult
-- [ ] HumanFallbackWorkOrder
+- [x] CleaningEvent 数据结构
+- [x] TaskProfile
+- [x] RobotCapability
+- [x] RobotState
+- [x] AssignmentCandidate
+- [x] AssignmentDecision
+- [x] NavigationPlan
+- [x] VerificationResult
+- [x] HumanFallbackWorkOrder
 
 ### Capability Engine
 
-- [ ] indoor / outdoor
-- [ ] surface
-- [ ] pollution type
-- [ ] required capability
-- [ ] elevator
-- [ ] skybridge
-- [ ] accessibility
-- [ ] battery
-- [ ] robot state
+- [x] indoor / outdoor
+- [x] surface
+- [x] pollution type
+- [x] required capability
+- [x] elevator
+- [x] skybridge
+- [x] accessibility
+- [x] battery
+- [x] robot state
 
 ### Scheduler
 
-- [ ] Hard Constraint Filtering
-- [ ] Soft Score
-- [ ] 权重配置文件
-- [ ] 候选机器人评分
-- [ ] Reject Reason
-- [ ] `Why Robot X?` 决策数据
+- [x] Hard Constraint Filtering
+- [x] Soft Score
+- [x] 权重配置文件
+- [x] 候选机器人评分
+- [x] Reject Reason
+- [x] `Why Robot X?` 决策数据
 
 ### Workflow State Machine
 
-- [ ] DETECTED
-- [ ] JUDGING
-- [ ] MULTI_VIEW
-- [ ] CONFIRMED
-- [ ] REJECTED
-- [ ] LOCATING
-- [ ] PROFILING
-- [ ] CAPABILITY_CHECK
-- [ ] SCHEDULING
-- [ ] ASSIGNED
-- [ ] NAVIGATING
-- [ ] WAITING_ELEVATOR
-- [ ] IN_ELEVATOR
-- [ ] SKYBRIDGE
-- [ ] ARRIVED
-- [ ] CLEANING
-- [ ] VERIFYING
-- [ ] RETRY
-- [ ] HUMAN_FALLBACK
-- [ ] CLOSED
-- [ ] FAILED
+- [x] DETECTED
+- [x] JUDGING
+- [x] MULTI_VIEW
+- [x] CONFIRMED
+- [x] REJECTED
+- [x] LOCATING
+- [x] PROFILING
+- [x] CAPABILITY_CHECK
+- [x] SCHEDULING
+- [x] ASSIGNED
+- [x] NAVIGATING
+- [x] WAITING_ELEVATOR
+- [x] IN_ELEVATOR
+- [x] SKYBRIDGE
+- [x] ARRIVED
+- [x] CLEANING
+- [x] VERIFYING
+- [x] RETRY
+- [x] HUMAN_FALLBACK
+- [x] CLOSED
+- [x] FAILED
 
 ### 运行机制
 
-- [ ] 每次状态变更保存 SQLite
-- [ ] SSE 推送前端
-- [ ] Mock Robot Adapter
-- [ ] Mock Verification
-- [ ] Human Fallback
+- [x] 每次状态变更保存 SQLite
+- [x] SSE 推送前端
+- [x] Mock Robot Adapter
+- [x] Mock Verification
+- [x] Human Fallback
 
 ---
 
-# 四、后续 Phase
+# 三、当前最高优先级
 
 ## Phase 4｜迁移真实 AI
+
+---
+
+# 四、后续 Phase 详细清单
 
 - [ ] 找回 / 提供 V1 代码
 - [ ] 迁移 YOLO26n

@@ -60,7 +60,7 @@ start_frontend
 
 sleep 1
 echo
-echo "CleanOps Phase 2 is ready. API: http://localhost:8000/docs"
+echo "CleanOps Phase 3 is ready. API: http://localhost:8000/docs"
 if [[ "${DEMO_NO_OPEN:-}" != "1" ]]; then
   open "http://localhost:5173"
 fi
