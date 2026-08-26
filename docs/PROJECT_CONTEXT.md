@@ -1241,7 +1241,7 @@ Phase 3｜Workflow + Scheduler 已完成。实现严格使用 Mock AI、确定�
 
 Phase 4 已正式验收通过：未等待 V1 代码，采用与业务工作流解耦的适配器实现 YOLO、Qwen-VL、AI Lab 及 `ai-lab.v1` 结果到 Phase 3 的非持久化预检。当前限制：**REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证**。
 
-Phase 5 已完成并等待人工验收：仅灰区事件触发 LangGraph Multi-view Perception Agent；它复用 Phase 2 Camera Coverage / Spatial 数据，工具面限定为 Camera Coverage、Frame Fetch、VLM，最多 2 个额外摄像头和 2 次 iteration。Scenario 02（A 栋 1F 疑似奶茶污渍）从 0.67 提升至 0.92，输出 `CONFIRM` 后交回原有 Capability Engine / Scheduler，选择 Robot B；前端仅公开 Tool Calls、Evidence、Selected Cameras、Final Confidence 与 Decision。
+Phase 5 已验收完成：仅灰区事件触发 LangGraph Multi-view Perception Agent；它复用 Phase 2 Camera Coverage / Spatial 数据，工具面限定为 Camera Coverage、Frame Fetch、VLM，最多 2 个额外摄像头和 2 次 iteration。Scenario 02（A 栋 1F 疑似奶茶污渍）从 0.67 提升至 0.92，输出 `CONFIRM` 后交回原有 Capability Engine / Scheduler，选择 Robot B；前端仅公开 Tool Calls、Evidence、Selected Cameras、Final Confidence 与 Decision。
 
 ---
 
@@ -1271,11 +1271,11 @@ Workflow + Scheduler。
 
 ## Phase 5
 
-已完成，等待人工验收。严格只在置信度灰区运行；不修改 Phase 3 Scheduler、Capability Engine 或 Robot-first + Human Fallback。
+已完成并验收。严格只在置信度灰区运行；不修改 Phase 3 Scheduler、Capability Engine 或 Robot-first + Human Fallback。
 
 ## Phase 6
 
-Analytics + Optimization Agent。
+已完成，等待人工验收。Analytics Engine 使用 30 天 / 300 条可复现 Mock 运营记录，输出 Spatial Heatmap、时段分布、热点、机器人利用率及 6 项运营 KPI。Optimization Agent 只读取 Heatmap、Robot Utilization、Task History，生成待机点、主动巡检与资源配置建议；它不改写视觉置信度、Capability Engine、Scheduler 或 Robot-first + Human Fallback，建议必须人工确认后才可成为运营配置。
 
 ## Phase 7
 
@@ -1438,7 +1438,7 @@ UI 强调：
 5. Demo AI Confidence 阈值尚未经过验证集标定。
 6. 电梯 / Skybridge 当前均为 Mock。
 7. Human Fallback 当前仅规划为模拟工单。
-8. Optimization Agent 尚无真实长期运营数据。
+8. Optimization Agent 当前使用稳定 Mock 长期运营数据，尚未接入真实长期运营数据。
 9. 多摄像头帧时间同步机制尚未最终确定。
 10. Robot B / C 能力参数目前主要作为 PoC Capability Profile，不应宣传成某真实厂商准确参数。
 11. Robot D 目前只有类型定义，不应扩展产品能力。

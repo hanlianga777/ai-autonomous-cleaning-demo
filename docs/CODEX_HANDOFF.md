@@ -193,7 +193,7 @@ Phase 3｜Workflow + Scheduler 已完成并通过自动化、API、SSE 与浏览
 
 Phase 4 已正式验收通过：未依赖 V1 源码重建可选 REAL YOLO / Qwen-VL 适配器、独立 AI Lab 与 `ai-lab.v1` 输出契约。当前限制：**REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。**
 
-Phase 5 已完成并等待人工验收：LangGraph Multi-view Perception Agent 仅在 0.55 ≤ confidence < 0.85 时触发；只可调用 Camera Coverage、Frame Fetch、VLM 三个工具，额外摄像头最多 2 个、iteration 最多 2 次。Scenario 02 从 A 栋 1F 的 0.67 疑似奶茶污渍，基于 Phase 2 覆盖数据选择两路摄像头并输出 0.92 / `CONFIRM`，再复用既有 Phase 3 Capability Engine / Scheduler 选择 Robot B。UI 仅显示可审计 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision，绝不显示 Chain-of-Thought。
+Phase 5 已验收完成：LangGraph Multi-view Perception Agent 仅在 0.55 ≤ confidence < 0.85 时触发；只可调用 Camera Coverage、Frame Fetch、VLM 三个工具，额外摄像头最多 2 个、iteration 最多 2 次。Scenario 02 从 A 栋 1F 的 0.67 疑似奶茶污渍，基于 Phase 2 覆盖数据选择两路摄像头并输出 0.92 / `CONFIRM`，再复用既有 Phase 3 Capability Engine / Scheduler 选择 Robot B。UI 仅显示可审计 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision，绝不显示 Chain-of-Thought。
 
 ---
 
@@ -662,10 +662,11 @@ DONE · REAL AI LIVE VALIDATION PENDING
 
 Phase 5
 Multi-view Agent
-DONE · AWAITING HUMAN ACCEPTANCE
+DONE
 
 Phase 6
 Analytics + Optimization
+DONE · AWAITING HUMAN ACCEPTANCE
 
 Phase 7
 Interview UX
@@ -752,6 +753,8 @@ Interview UX
 
 ## 本阶段完成内容
 
+Phase 6：30 天 / 300 条稳定 Mock 历史、确定性 Analytics Engine、Apache ECharts Optimization Center，以及只读取 Heatmap / Robot Utilization / Task History 的受限 Optimization Agent。建议不会自动下发，也不会修改既有能力、调度与人工兜底规则。
+
 ## 修改文件
 
 ## 新增 API / Data Model
@@ -764,6 +767,7 @@ Interview UX
 
 - REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。
 - Phase 5 只提供稳定 Mock 的 Scenario 02 多视角证据；真实摄像头取帧与真实 VLM 实跑属于后续接入验证，不改变其统一结构化边界。
+- Phase 6 的 30 天运营历史和 Optimization 建议均为确定性 Mock 数据；尚未接入真实设备 / 长期运营数据，建议不会自动下发为配置。
 
 ## 下一阶段建议
 

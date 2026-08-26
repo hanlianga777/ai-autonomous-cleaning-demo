@@ -115,7 +115,7 @@
 
 # 三、当前最高优先级
 
-## Phase 5｜Multi-view Perception Agent（等待人工确认）
+## Phase 5｜Multi-view Perception Agent（已验收）
 
 Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证**。
 
@@ -165,27 +165,28 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 
 ## Phase 6｜Analytics + Optimization
 
-- [ ] 生成 30 天模拟历史数据
-- [ ] Spatial Heatmap
-- [ ] Time Distribution
-- [ ] Top Hotspots
-- [ ] Robot Utilization
-- [ ] Autonomous Closure Rate
-- [ ] Human Intervention Rate
-- [ ] First-pass Success Rate
-- [ ] Average Response Time
-- [ ] Average Closure Time
-- [ ] Multi-view Recovery Rate
+- [x] 生成 30 天模拟历史数据
+- [x] Spatial Heatmap
+- [x] Time Distribution
+- [x] Top Hotspots
+- [x] Robot Utilization
+- [x] Autonomous Closure Rate
+- [x] Human Intervention Rate
+- [x] First-pass Success Rate
+- [x] Average Response Time
+- [x] Average Closure Time
+- [x] Multi-view Recovery Rate
 
 ### Optimization Agent
 
-- [ ] Heatmap Tool
-- [ ] Robot Utilization Tool
-- [ ] Task History Tool
-- [ ] Generate Optimization
-- [ ] 待机点优化建议
-- [ ] 主动巡检频率建议
-- [ ] 资源配置建议
+- [x] Heatmap Tool
+- [x] Robot Utilization Tool
+- [x] Task History Tool
+- [x] Generate Optimization
+- [x] 待机点优化建议
+- [x] 主动巡检频率建议
+- [x] 资源配置建议
+- [ ] Phase 6 人工验收确认后，才可进入 Phase 7
 
 ---
 

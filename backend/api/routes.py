@@ -5,6 +5,8 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from database.connection import get_transitions_after, list_events, read_snapshot
+from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
+from optimization.agent import generate_recommendations
 from perception.service import RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
@@ -18,7 +20,7 @@ router = APIRouter(prefix="/api", tags=["Demo API"])
 @router.get("/health")
 def health_check() -> dict:
     status = ai_lab_status()
-    return {"status": "ok", "phase": 5, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
+    return {"status": "ok", "phase": 6, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
 
 
 @router.get("/park")
@@ -43,8 +45,38 @@ def get_dashboard() -> dict:
             "charging": sum(robot["status"] == "charging" for robot in robots),
             "average_battery": round(sum(robot["battery"] for robot in robots) / len(robots)),
         },
-        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 5 · Multi-view Perception Agent"},
+        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 6 · Analytics + Optimization"},
     }
+
+
+@router.get("/analytics/overview", tags=["Analytics + Optimization"])
+def get_analytics_overview() -> dict:
+    return analytics_overview()
+
+
+@router.get("/analytics/heatmap", tags=["Analytics + Optimization"])
+def get_analytics_heatmap() -> list[dict]:
+    return heatmap()
+
+
+@router.get("/analytics/kpis", tags=["Analytics + Optimization"])
+def get_analytics_kpis() -> dict:
+    return kpis()
+
+
+@router.get("/analytics/robot-utilization", tags=["Analytics + Optimization"])
+def get_analytics_robot_utilization() -> list[dict]:
+    return robot_utilization()
+
+
+@router.get("/analytics/task-history", tags=["Analytics + Optimization"])
+def get_analytics_task_history() -> list[dict]:
+    return task_history()
+
+
+@router.post("/optimization/recommend", tags=["Analytics + Optimization"])
+def post_optimization_recommendations() -> dict:
+    return generate_recommendations()
 
 
 @router.get("/robots/{robot_id}")

@@ -716,8 +716,11 @@ POST /api/robots/{id}/cancel
 Analytics：
 
 ```text
+GET /api/analytics/overview
 GET /api/analytics/heatmap
 GET /api/analytics/kpis
+GET /api/analytics/robot-utilization
+GET /api/analytics/task-history
 POST /api/optimization/recommend
 ```
 
@@ -835,6 +838,18 @@ initial confidence
 ```
 
 该 LangGraph 图仅有三个可调用工具；iteration 上限为 2。审计 Trace 保留工具调用、证据、所选摄像头、最终置信度和最终决策，不保存或呈现 Chain-of-Thought。Scenario 02 的确认结果会回到既有 Capability Engine / Scheduler，未修改 Robot A/B/C 规则或 Robot-first + Human Fallback。
+
+## 19.3 Phase 6 Analytics + Optimization
+
+```text
+30-day deterministic Mock history (300 events)
+→ Analytics Engine: heatmap / time distribution / utilization / KPI
+→ Heatmap Tool + Robot Utilization Tool + Task History Tool
+→ Optimization recommendations
+→ human review before any operations configuration change
+```
+
+Analytics Engine 是确定性聚合，不是 Agent。Optimization Agent 的输出仅为待机点、主动巡检、资源配置建议；它不修改 YOLO / VLM confidence、Capability Engine、Scheduler 或 Robot-first + Human Fallback。前端仅在 Optimization Center 使用按需注册的 Apache ECharts 组件展示图表。
 
 ---
 

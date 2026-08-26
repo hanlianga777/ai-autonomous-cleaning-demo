@@ -1,0 +1,8 @@
+export interface AnalyticsKpis { period_days: number; total_events: number; autonomous_closure_rate: number; human_intervention_rate: number; first_pass_success_rate: number; average_response_time_minutes: number; average_closure_time_minutes: number; multi_view_recovery_rate: number; }
+export interface HeatmapPoint { zone_id: string; label: string; map_id: string; building: string; floor: string | null; x: number; y: number; count: number; high_severity_count: number; }
+export interface TimeBucket { hour: number; label: string; count: number; }
+export interface RobotUtilization { robot_id: string; robot_name: string; tasks: number; active_minutes: number; utilization: number; }
+export interface AnalyticsOverview { source: string; period: { days: number; ending: string }; kpis: AnalyticsKpis; heatmap: HeatmapPoint[]; time_distribution: TimeBucket[]; robot_utilization: RobotUtilization[]; top_hotspots: HeatmapPoint[]; }
+export interface OptimizationToolCall { tool: "Heatmap Tool" | "Robot Utilization Tool" | "Task History Tool"; top_hotspot?: HeatmapPoint; lowest_utilization?: RobotUtilization; points_considered?: number; robots_considered?: number; records_considered?: number; a1_evening_events?: number; }
+export interface OptimizationRecommendation { type: "STANDBY_POINT" | "PROACTIVE_PATROL" | "RESOURCE_CONFIGURATION"; priority: "high" | "medium" | "low"; title: string; rationale: string; expected_effect: string; }
+export interface OptimizationResult { source: string; tool_calls: OptimizationToolCall[]; recommendations: OptimizationRecommendation[]; guardrails: string[]; }
