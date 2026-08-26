@@ -666,10 +666,11 @@ DONE
 
 Phase 6
 Analytics + Optimization
-DONE · AWAITING HUMAN ACCEPTANCE
+DONE
 
 Phase 7
 Interview UX
+DONE · AWAITING HUMAN ACCEPTANCE
 ```
 
 每完成一个 Phase：
@@ -753,7 +754,7 @@ Interview UX
 
 ## 本阶段完成内容
 
-Phase 6：30 天 / 300 条稳定 Mock 历史、确定性 Analytics Engine、Apache ECharts Optimization Center，以及只读取 Heatmap / Robot Utilization / Task History 的受限 Optimization Agent。建议不会自动下发，也不会修改既有能力、调度与人工兜底规则。
+Phase 7：五个一级导航全部可用；AI Event Center 的四类 Scenario 启动卡；明确标注为 Mock 的 Robot / Elevator / Skybridge 任务回放；Camera → SLAM、Decision Trace、Why Robot X? 与 Before / After 验收摘要。此阶段不修改任何既有业务规则。
 
 ## 修改文件
 

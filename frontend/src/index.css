@@ -14,4 +14,13 @@
   .metric-value { @apply text-xl font-semibold tracking-tight text-slate-900; }
   .metric-label { @apply mt-0.5 text-[11px] text-slate-500; }
   .campus-grid { background-image: linear-gradient(#edf0f2 1px, transparent 1px), linear-gradient(90deg, #edf0f2 1px, transparent 1px); background-size: 22px 22px; }
+  .robot-marker { animation: robot-marker 1.2s ease-in-out infinite; }
+  .elevator-motion { animation: elevator-motion 1.1s ease-in-out infinite; display: inline-block; }
+  .skybridge-sweep { animation: skybridge-sweep 1.3s ease-in-out infinite; display: inline-block; }
+  .mapping-pulse { animation: mapping-pulse 1s ease-in-out infinite; display: inline-block; color: #2563eb; }
 }
+
+@keyframes robot-marker { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(3px); } }
+@keyframes elevator-motion { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(2px); } }
+@keyframes skybridge-sweep { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(3px); } }
+@keyframes mapping-pulse { 0%, 100% { transform: translateX(0); opacity: .45; } 50% { transform: translateX(3px); opacity: 1; } }

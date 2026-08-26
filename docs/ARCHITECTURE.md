@@ -851,6 +851,16 @@ initial confidence
 
 Analytics Engine 是确定性聚合，不是 Agent。Optimization Agent 的输出仅为待机点、主动巡检、资源配置建议；它不修改 YOLO / VLM confidence、Capability Engine、Scheduler 或 Robot-first + Human Fallback。前端仅在 Optimization Center 使用按需注册的 Apache ECharts 组件展示图表。
 
+## 19.4 Phase 7 Interview UX
+
+```text
+AI Event Center → 4 stable scenarios → deterministic workflow audit
+→ Decision Trace / Why Robot X? / Camera → SLAM / Before-After
+→ Mock mission playback: Robot / Elevator / Skybridge
+```
+
+Phase 7 只消费既有 API 和审计数据；播放效果是前端对已完成 Mock 状态序列的可视化，绝不代表实时设备控制或遥测。五个一级页面将 Operations、Event、Orchestration、Optimization、AI Lab 组织为可在面试中顺序讲解的路径。
+
 ---
 
 # 20. UI 架构

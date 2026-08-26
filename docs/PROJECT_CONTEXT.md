@@ -1275,11 +1275,11 @@ Workflow + Scheduler。
 
 ## Phase 6
 
-已完成，等待人工验收。Analytics Engine 使用 30 天 / 300 条可复现 Mock 运营记录，输出 Spatial Heatmap、时段分布、热点、机器人利用率及 6 项运营 KPI。Optimization Agent 只读取 Heatmap、Robot Utilization、Task History，生成待机点、主动巡检与资源配置建议；它不改写视觉置信度、Capability Engine、Scheduler 或 Robot-first + Human Fallback，建议必须人工确认后才可成为运营配置。
+已完成并验收。Analytics Engine 使用 30 天 / 300 条可复现 Mock 运营记录，输出 Spatial Heatmap、时段分布、热点、机器人利用率及 6 项运营 KPI。Optimization Agent 只读取 Heatmap、Robot Utilization、Task History，生成待机点、主动巡检与资源配置建议；它不改写视觉置信度、Capability Engine、Scheduler 或 Robot-first + Human Fallback，建议必须人工确认后才可成为运营配置。
 
 ## Phase 7
 
-Interview UX / UI 精修。
+已完成，等待人工验收。五个一级入口均可用；AI Event Center 可启动 4 个稳定 Scenario；Workflow 结果提供明确标注为 Mock 的 Robot / Elevator / Skybridge 状态回放、Camera → SLAM、Decision Trace、Why Robot X? 与 Before / After 验收摘要。该阶段只做呈现和讲解体验，不改变既有业务规则或声称真实设备遥测。
 
 ---
 

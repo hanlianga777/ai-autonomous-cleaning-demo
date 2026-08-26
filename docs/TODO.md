@@ -186,27 +186,27 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 - [x] 待机点优化建议
 - [x] 主动巡检频率建议
 - [x] 资源配置建议
-- [ ] Phase 6 人工验收确认后，才可进入 Phase 7
+- [x] Phase 6 已验收，可进入 Phase 7
 
 ---
 
 ## Phase 7｜Interview UX
 
-- [ ] Operations Dashboard
-- [ ] AI Event Center
-- [ ] Robot Orchestration
-- [ ] Optimization Center
-- [ ] AI Lab
-- [ ] Scenario Launcher
-- [ ] Robot Animation
-- [ ] Elevator Animation
-- [ ] Skybridge Animation
-- [ ] Camera → SLAM Animation
-- [ ] Decision Trace
-- [ ] Why Robot X
-- [ ] Before / After
-- [ ] Heatmap
-- [ ] KPI
+- [x] Operations Dashboard
+- [x] AI Event Center
+- [x] Robot Orchestration
+- [x] Optimization Center
+- [x] AI Lab
+- [x] Scenario Launcher
+- [x] Robot Animation（Mock 状态回放）
+- [x] Elevator Animation（Mock 状态回放）
+- [x] Skybridge Animation（Mock 状态回放）
+- [x] Camera → SLAM Animation
+- [x] Decision Trace
+- [x] Why Robot X
+- [x] Before / After
+- [x] Heatmap
+- [x] KPI
 
 ---
 

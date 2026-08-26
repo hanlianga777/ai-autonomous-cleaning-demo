@@ -7,16 +7,17 @@ import { SpatialOperations } from "@/components/spatial/SpatialOperations";
 import { WorkflowSchedulerPanel } from "@/components/workflow/WorkflowSchedulerPanel";
 import { MultiViewAgentPanel } from "@/components/multiview/MultiViewAgentPanel";
 import { AiLabPanel } from "@/components/ai-lab/AiLabPanel";
+import { RobotOrchestration } from "@/components/interview/RobotOrchestration";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { DashboardData } from "@/types/dashboard";
 
 const OptimizationCenter = lazy(async () => ({ default: (await import("@/components/analytics/OptimizationCenter")).OptimizationCenter }));
 
-const navItems: { icon: typeof LayoutDashboard; label: string; view?: "dashboard" | "ai-lab" | "optimization" }[] = [
+const navItems: { icon: typeof LayoutDashboard; label: string; view: "dashboard" | "ai-lab" | "optimization" | "event-center" | "orchestration" }[] = [
   { icon: LayoutDashboard, label: "运营总览", view: "dashboard" },
-  { icon: Activity, label: "事件中心" },
-  { icon: Bot, label: "机器人编排" },
+  { icon: Activity, label: "事件中心", view: "event-center" },
+  { icon: Bot, label: "机器人编排", view: "orchestration" },
   { icon: Sparkles, label: "优化中心", view: "optimization" },
   { icon: CircleHelp, label: "AI Lab", view: "ai-lab" },
 ];
@@ -24,7 +25,7 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view?: "dashboard
 function App() {
   const [dashboard, setDashboard] = useState<DashboardData>(fallbackDashboard);
   const [apiStatus, setApiStatus] = useState<"loading" | "online" | "offline">("loading");
-  const [view, setView] = useState<"dashboard" | "ai-lab" | "optimization">("dashboard");
+  const [view, setView] = useState<"dashboard" | "ai-lab" | "optimization" | "event-center" | "orchestration">("dashboard");
 
   useEffect(() => {
     fetchDashboard()
@@ -40,14 +41,14 @@ function App() {
           <div><p className="text-sm font-bold tracking-tight">CleanOps</p><p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Autonomous Cleaning</p></div>
         </div>
         <nav className="space-y-1 px-3 py-5">
-          {navItems.map(({ icon: Icon, label, view: itemView }) => <button key={label} onClick={() => itemView && setView(itemView)} aria-disabled={!itemView} title={itemView ? undefined : "将在后续阶段实现"} className={`flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-left text-sm transition-colors ${view === itemView ? "bg-slate-900 font-medium text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"} ${!itemView ? "cursor-default opacity-55" : ""}`}><Icon size={17} strokeWidth={1.7} />{label}</button>)}
+          {navItems.map(({ icon: Icon, label, view: itemView }) => <button key={label} onClick={() => setView(itemView)} className={`flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-left text-sm transition-colors ${view === itemView ? "bg-slate-900 font-medium text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={17} strokeWidth={1.7} />{label}</button>)}
         </nav>
         <div className="mt-auto border-t border-slate-100 p-4"><div className="flex items-center gap-2 text-xs text-slate-500"><Settings2 size={15} />系统设置</div></div>
       </aside>
 
       <main className="lg:ml-[238px]">
         <header className="flex h-[68px] items-center justify-between border-b border-slate-200 bg-white px-5 lg:px-8">
-          <div className="flex items-center gap-3"><button className="lg:hidden"><Menu size={20} /></button><div><p className="section-kicker">{view === "ai-lab" ? "Independent perception test" : view === "optimization" ? "Analytics + Optimization" : "Operations dashboard"}</p><h1 className="text-base font-semibold">{view === "ai-lab" ? "AI 感知验证" : view === "optimization" ? "运营优化中心" : "自主清洁运营总览"}</h1></div></div>
+          <div className="flex items-center gap-3"><button className="lg:hidden"><Menu size={20} /></button><div><p className="section-kicker">{view === "ai-lab" ? "Independent perception test" : view === "optimization" ? "Analytics + Optimization" : view === "event-center" ? "Scenario launcher + Decision trace" : view === "orchestration" ? "Fleet + route explainability" : "Operations dashboard"}</p><h1 className="text-base font-semibold">{view === "ai-lab" ? "AI 感知验证" : view === "optimization" ? "运营优化中心" : view === "event-center" ? "AI 事件中心" : view === "orchestration" ? "机器人编排" : "自主清洁运营总览"}</h1></div></div>
           <div className="flex items-center gap-3"><Badge variant="outline"><span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-amber-500" />{dashboard.system.mode}</Badge><button className="relative rounded-sm p-2 text-slate-500 hover:bg-slate-100"><Bell size={18} /><span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-500" /></button><button className="hidden items-center gap-1 text-xs font-medium text-slate-600 sm:flex">运营管理员<ChevronDown size={14} /></button></div>
         </header>
 
@@ -71,6 +72,8 @@ function App() {
           </>}
           {view === "ai-lab" && <AiLabPanel />}
           {view === "optimization" && <Suspense fallback={<div className="flex min-h-[420px] items-center justify-center text-sm text-slate-500">加载优化中心…</div>}><OptimizationCenter /></Suspense>}
+          {view === "event-center" && <WorkflowSchedulerPanel presentation="interview" />}
+          {view === "orchestration" && <RobotOrchestration robots={dashboard.robots} />}
         </div>
       </main>
     </div>

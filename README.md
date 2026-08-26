@@ -1,6 +1,6 @@
 # AI 自主清洁 Demo
 
-面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架**、**Phase 2｜Spatial Engine**、**Phase 3｜Workflow + Scheduler**、**Phase 4｜YOLO + Qwen-VL + AI Lab**、**Phase 5｜Multi-view Perception Agent** 与 **Phase 6｜Analytics + Optimization**；主 Scenario 始终可在稳定、可复现的本地 Mock 模式下运行。
+面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架**、**Phase 2｜Spatial Engine**、**Phase 3｜Workflow + Scheduler**、**Phase 4｜YOLO + Qwen-VL + AI Lab**、**Phase 5｜Multi-view Perception Agent**、**Phase 6｜Analytics + Optimization** 与 **Phase 7｜Interview UX**；主 Scenario 始终可在稳定、可复现的本地 Mock 模式下运行。
 
 ## 当前实现范围
 
@@ -17,8 +17,9 @@
 - `ai-lab.v1` 统一感知 Schema：`need_clean`、置信度、Task Profile、同源 Camera→SLAM 位置以及非持久化 Scheduler 预检
 - 真实 AI 适配器：配置本地 YOLO 权重与 DashScope Key 后启用 `REAL AI MODE`；否则明确降级为 `DEMO MOCK MODE`
 - Optimization Center：30 天稳定 Mock 历史、Spatial Heatmap、时段分布、Robot Utilization、KPI 与受限 Optimization Agent
+- Interview UX：五个可用一级入口、四类 Scenario 启动卡、状态回放、跨楼栋连接器、Camera → SLAM 与 Before / After 验收讲解
 
-尚未实现真实设备执行与生产运营数据接入；这些属于 Phase 7 及以后阶段。
+尚未实现真实设备执行、真实长期运营数据接入与 REAL AI 实跑验证；当前范围仍为稳定可复现的 PoC Demo。
 
 ## 目录
 
@@ -167,9 +168,17 @@ uvicorn main:app --reload --port 8000
 - Optimization Agent 只读取 Heatmap、Robot Utilization、Task History 三个聚合输入，输出待机点、主动巡检与资源配置建议
 - 建议不自动修改 YOLO / VLM confidence、Capability Engine、Scheduler 或 Robot-first + Human Fallback，须人工确认后才可转为运营配置
 
+## Phase 7｜Interview UX
+
+- 五个一级入口：运营总览、AI 事件中心、机器人编排、优化中心、AI Lab
+- AI 事件中心提供四个可直接运行的稳定 Scenario：Robot A、Robot B 多视角、Robot C 跨楼栋、Human Fallback
+- 工作流结果以状态回放呈现 Robot、Elevator、Skybridge；明确标为 Mock 状态，不宣称真实设备遥测
+- 展示 Camera → SLAM 映射、Decision Trace、Why Robot X?、Before / After 验收摘要
+- 机器人编排页给出能力边界与跨楼栋路径的三句讲解线索
+
 ## 下一阶段边界
 
-Phase 6 已完成并等待人工验收；在确认前不得进入 **Phase 7｜Interview UX / UI 精修**。
+Phase 7 已完成并等待人工验收；未实现任何未授权的后续阶段。
 
 ## 验证
 

@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api", tags=["Demo API"])
 @router.get("/health")
 def health_check() -> dict:
     status = ai_lab_status()
-    return {"status": "ok", "phase": 6, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
+    return {"status": "ok", "phase": 7, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
 
 
 @router.get("/park")
@@ -45,7 +45,7 @@ def get_dashboard() -> dict:
             "charging": sum(robot["status"] == "charging" for robot in robots),
             "average_battery": round(sum(robot["battery"] for robot in robots) / len(robots)),
         },
-        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 6 · Analytics + Optimization"},
+        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 7 · Interview UX"},
     }
 
 
