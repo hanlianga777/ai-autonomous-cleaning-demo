@@ -10,13 +10,14 @@ export function WorkflowSchedulerPanel() {
   const [templates, setTemplates] = useState<EventTemplate[]>([]); const [selectedTemplate, setSelectedTemplate] = useState("heavy_spill"); const [event, setEvent] = useState<WorkflowEvent>();
   const [selectedCandidate, setSelectedCandidate] = useState<AssignmentCandidate>(); const [error, setError] = useState(""); const [running, setRunning] = useState(false); const [streamState, setStreamState] = useState("等待事件流");
   const activeEventId = useRef<string | undefined>(undefined);
+  const refreshTimer = useRef<number | undefined>(undefined);
   useEffect(() => { fetchEventTemplates().then(setTemplates).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "无法加载 Mock 模板")); }, []);
   useEffect(() => { activeEventId.current = event?.event_id; }, [event?.event_id]);
   useEffect(() => {
     const source = new EventSource("/api/events/stream");
-    source.addEventListener("workflow", (message) => { const update = JSON.parse((message as MessageEvent).data) as { event_id:string; state:string }; setStreamState(`SSE · ${update.state}`); if (activeEventId.current === update.event_id) void fetchWorkflowEvent(update.event_id).then(setEvent); });
+    source.addEventListener("workflow", (message) => { const update = JSON.parse((message as MessageEvent).data) as { event_id:string; state:string }; setStreamState(`SSE · ${update.state}`); if (activeEventId.current === update.event_id) { if (refreshTimer.current) window.clearTimeout(refreshTimer.current); refreshTimer.current = window.setTimeout(() => { void fetchWorkflowEvent(update.event_id).then(setEvent); }, 120); } });
     source.onerror = () => setStreamState("事件流重连中");
-    return () => source.close();
+    return () => { source.close(); if (refreshTimer.current) window.clearTimeout(refreshTimer.current); };
   }, []);
   async function runMockWorkflow() { setRunning(true); setError(""); setSelectedCandidate(undefined); try { const created = await createMockEvent(selectedTemplate); const completed = await runWorkflow(created.event_id); setEvent(completed); setStreamState(`SSE · ${completed.state}`); } catch (reason) { setError(reason instanceof Error ? reason.message : "工作流执行失败"); } finally { setRunning(false); } }
   return <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
