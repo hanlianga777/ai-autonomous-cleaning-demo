@@ -26,16 +26,17 @@ class WorkflowState(StrEnum):
     VERIFYING = "VERIFYING"
     RETRY = "RETRY"
     HUMAN_FALLBACK = "HUMAN_FALLBACK"
+    HUMAN_REVIEW = "HUMAN_REVIEW"
     CLOSED = "CLOSED"
     FAILED = "FAILED"
 
 
-TERMINAL_STATES = {WorkflowState.CLOSED, WorkflowState.REJECTED, WorkflowState.FAILED}
+TERMINAL_STATES = {WorkflowState.CLOSED, WorkflowState.REJECTED, WorkflowState.HUMAN_REVIEW, WorkflowState.FAILED}
 
 ALLOWED_TRANSITIONS: dict[WorkflowState, set[WorkflowState]] = {
     WorkflowState.DETECTED: {WorkflowState.JUDGING},
     WorkflowState.JUDGING: {WorkflowState.CONFIRMED, WorkflowState.MULTI_VIEW, WorkflowState.REJECTED},
-    WorkflowState.MULTI_VIEW: {WorkflowState.CONFIRMED, WorkflowState.REJECTED},
+    WorkflowState.MULTI_VIEW: {WorkflowState.CONFIRMED, WorkflowState.REJECTED, WorkflowState.HUMAN_REVIEW},
     WorkflowState.CONFIRMED: {WorkflowState.LOCATING},
     WorkflowState.LOCATING: {WorkflowState.PROFILING},
     WorkflowState.PROFILING: {WorkflowState.CAPABILITY_CHECK},
@@ -58,7 +59,7 @@ def new_event(event_id: str, template: dict[str, Any]) -> dict[str, Any]:
     return {
         "event_id": event_id,
         "state": WorkflowState.DETECTED,
-        "source": "MOCK_PERCEPTION",
+        "source": template.get("source", "MOCK_PERCEPTION"),
         "confidence": template["confidence"],
         "camera_id": template["camera_id"],
         "location": template["location"],
@@ -68,4 +69,5 @@ def new_event(event_id: str, template: dict[str, Any]) -> dict[str, Any]:
         "navigation_plan": None,
         "verification": None,
         "human_fallback": None,
+        "multi_view_trace": None,
     }

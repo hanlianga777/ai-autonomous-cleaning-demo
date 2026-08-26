@@ -191,7 +191,9 @@ Phase 3｜Workflow + Scheduler 已完成并通过自动化、API、SSE 与浏览
 - SSE 工作流事件流；
 - Dashboard Decision Trace 与 `Why Robot X?` 展开评分。
 
-Phase 4 已完成实现并通过兼容性自动化、API 与浏览器验收：未依赖 V1 源码重建可选 REAL YOLO / Qwen-VL 适配器、独立 AI Lab 与 `ai-lab.v1` 输出契约。**仍等待用户最终确认，不得开始 Phase 5。**
+Phase 4 已正式验收通过：未依赖 V1 源码重建可选 REAL YOLO / Qwen-VL 适配器、独立 AI Lab 与 `ai-lab.v1` 输出契约。当前限制：**REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。**
+
+Phase 5 已完成并等待人工验收：LangGraph Multi-view Perception Agent 仅在 0.55 ≤ confidence < 0.85 时触发；只可调用 Camera Coverage、Frame Fetch、VLM 三个工具，额外摄像头最多 2 个、iteration 最多 2 次。Scenario 02 从 A 栋 1F 的 0.67 疑似奶茶污渍，基于 Phase 2 覆盖数据选择两路摄像头并输出 0.92 / `CONFIRM`，再复用既有 Phase 3 Capability Engine / Scheduler 选择 Robot B。UI 仅显示可审计 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision，绝不显示 Chain-of-Thought。
 
 ---
 
@@ -656,11 +658,11 @@ DONE
 
 Phase 4
 YOLO + Qwen-VL + AI Lab
-IMPLEMENTED · AWAITING HUMAN ACCEPTANCE
+DONE · REAL AI LIVE VALIDATION PENDING
 
 Phase 5
 Multi-view Agent
-BLOCKED UNTIL PHASE 4 ACCEPTANCE
+DONE · AWAITING HUMAN ACCEPTANCE
 
 Phase 6
 Analytics + Optimization
@@ -759,6 +761,9 @@ Interview UX
 ## 如何运行
 
 ## 当前限制
+
+- REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。
+- Phase 5 只提供稳定 Mock 的 Scenario 02 多视角证据；真实摄像头取帧与真实 VLM 实跑属于后续接入验证，不改变其统一结构化边界。
 
 ## 下一阶段建议
 

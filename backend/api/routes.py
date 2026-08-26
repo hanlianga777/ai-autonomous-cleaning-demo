@@ -9,7 +9,7 @@ from perception.service import RealInferenceError, ai_lab_schema, ai_lab_status,
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
-from workflow.engine import WorkflowError, create_mock_event, evaluate_event, event_detail, run_event
+from workflow.engine import WorkflowError, create_mock_event, evaluate_event, event_detail, run_event, run_scenario_02
 from workflow.fixtures import EVENT_TEMPLATES
 
 router = APIRouter(prefix="/api", tags=["Demo API"])
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api", tags=["Demo API"])
 @router.get("/health")
 def health_check() -> dict:
     status = ai_lab_status()
-    return {"status": "ok", "phase": 4, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
+    return {"status": "ok", "phase": 5, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
 
 
 @router.get("/park")
@@ -43,7 +43,7 @@ def get_dashboard() -> dict:
             "charging": sum(robot["status"] == "charging" for robot in robots),
             "average_battery": round(sum(robot["battery"] for robot in robots) / len(robots)),
         },
-        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 4 · Perception + AI Lab"},
+        "system": {"mode": ai_lab_status()["mode_label"], "phase": "Phase 5 · Multi-view Perception Agent"},
     }
 
 
@@ -123,6 +123,14 @@ async def post_ai_lab_analyze(
         raise HTTPException(status_code=400, detail=str(error)) from error
     finally:
         await file.close()
+
+
+@router.post("/multiview/scenario02/run", tags=["Multi-view Perception Agent"])
+def post_multiview_scenario_02() -> dict:
+    try:
+        return run_scenario_02()
+    except WorkflowError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.get("/events", tags=["Workflow + Scheduler"])

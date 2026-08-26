@@ -25,7 +25,7 @@ start_backend() {
     python3 -m venv "$BACKEND_DIR/.venv"
     "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
   fi
-  if ! "$BACKEND_DIR/.venv/bin/python" -c "import multipart" >/dev/null 2>&1; then
+  if ! "$BACKEND_DIR/.venv/bin/python" -c "import multipart, langgraph" >/dev/null 2>&1; then
     echo "[backend]  installing required API upload support…"
     "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
   fi
@@ -64,7 +64,7 @@ start_frontend
 
 sleep 1
 echo
-echo "CleanOps Phase 4 is ready. API: http://localhost:8000/docs"
+echo "CleanOps Phase 5 is ready. API: http://localhost:8000/docs"
 if [[ "${DEMO_NO_OPEN:-}" != "1" ]]; then
   open "http://localhost:5173"
 fi

@@ -1,6 +1,6 @@
 # AI 自主清洁 Demo
 
-面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架**、**Phase 2｜Spatial Engine**、**Phase 3｜Workflow + Scheduler** 与 **Phase 4｜YOLO + Qwen-VL + AI Lab**；主 Scenario 始终可在稳定、可复现的本地 Mock 模式下运行。
+面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架**、**Phase 2｜Spatial Engine**、**Phase 3｜Workflow + Scheduler**、**Phase 4｜YOLO + Qwen-VL + AI Lab** 与 **Phase 5｜Multi-view Perception Agent**；主 Scenario 始终可在稳定、可复现的本地 Mock 模式下运行。
 
 ## 当前实现范围
 
@@ -18,7 +18,7 @@
 - 真实 AI 适配器：配置本地 YOLO 权重与 DashScope Key 后启用 `REAL AI MODE`；否则明确降级为 `DEMO MOCK MODE`
 - `Apache ECharts` 已纳入前端依赖，供后续 Analytics 阶段使用
 
-尚未实现 Multi-view Agent、真实设备执行、Analytics 与 ECharts 图表；这些属于 Phase 5 及以后阶段。
+尚未实现真实设备执行、Analytics 与 ECharts 图表；这些属于 Phase 6 及以后阶段。
 
 ## 目录
 
@@ -148,9 +148,20 @@ uvicorn main:app --reload --port 8000
 
 未完成上述配置时无需阻塞开发或演示：AI Lab 与 Dashboard 都会明确显示 `DEMO MOCK MODE`。
 
+> 当前限制：REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。
+
+## Phase 5｜Multi-view Perception Agent
+
+- 仅在 `0.55 <= confidence < 0.85` 的灰区触发 LangGraph Agent
+- 工具面固定为 `Camera Coverage Tool`、`Frame Fetch Tool`、`VLM Tool`，最多选择 2 个额外摄像头、最多 2 次 iteration
+- 复用 Phase 2 `CAMERAS` Coverage 与 SLAM 坐标；不另建空间映射
+- 最终视觉决策仅为 `CONFIRM`、`REJECT` 或 `HUMAN_REVIEW`
+- Dashboard 提供 Scenario 02：A 栋 1F 疑似奶茶污渍（0.67）→ 多视角确认（0.92）→ 原有能力引擎 / Scheduler 选择 Robot B
+- UI 仅展示 Tool Calls、Evidence、Selected Cameras、Final Confidence 与 Decision，不暴露 Chain-of-Thought
+
 ## 下一阶段边界
 
-Phase 4 的兼容性验收已通过自动化、API 与浏览器验证，**仍等待用户最终确认**。在确认前不得进入 **Phase 5｜Multi-view Perception Agent**，也不得接入 LangGraph、增加 Agent 自主决策或更改现有工作流边界。
+Phase 5 已完成并等待人工验收；在确认前不得进入 **Phase 6｜Analytics + Optimization**。
 
 ## 验证
 

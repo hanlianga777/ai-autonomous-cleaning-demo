@@ -115,7 +115,9 @@
 
 # 三、当前最高优先级
 
-## Phase 4｜AI Lab 兼容性验收（等待人工确认）
+## Phase 5｜Multi-view Perception Agent（等待人工确认）
+
+Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证**。
 
 ---
 
@@ -138,24 +140,26 @@
 - [x] AI结果 → Phase 3 CleaningEvent / TaskProfile 兼容测试
 - [x] 4 个业务输入经原 Capability Engine / Scheduler 预检
 - [x] AI Lab 与 Phase 2 共用 `map_pixel_to_slam`，并补齐 `map_id`
-- [ ] 用户最终验收确认后，才可进入 Phase 5
+- [x] 用户最终验收确认，可进入 Phase 5
+- [ ] 使用真实 YOLO 权重和 Qwen-VL Key 完成 REAL MODE 实跑验证
 
 ---
 
 ## Phase 5｜Multi-view Perception Agent
 
-- [ ] 接入 LangGraph
-- [ ] Camera Coverage Tool
-- [ ] Frame Fetch Tool
-- [ ] VLM Tool
-- [ ] Agent Camera Selection
-- [ ] Max Additional Cameras = 2
-- [ ] Max Agent Iterations = 2
-- [ ] CONFIRM
-- [ ] REJECT
-- [ ] HUMAN_REVIEW
-- [ ] Decision Trace
-- [ ] 不显示 Chain-of-Thought
+- [x] 接入 LangGraph
+- [x] Camera Coverage Tool（复用 Phase 2 `CAMERAS` Coverage 数据）
+- [x] Frame Fetch Tool
+- [x] VLM Tool
+- [x] Agent Camera Selection
+- [x] Max Additional Cameras = 2
+- [x] Max Agent Iterations = 2
+- [x] CONFIRM
+- [x] REJECT
+- [x] HUMAN_REVIEW
+- [x] Decision Trace
+- [x] 不显示 Chain-of-Thought
+- [x] Scenario 02：低置信度奶茶污渍 → Multi-view CONFIRM → 原 Scheduler 选择 Robot B
 
 ---
 

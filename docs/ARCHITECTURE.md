@@ -822,6 +822,20 @@ AI Lab 不创建 Cleaning Event，不执行 Scheduler，也不通过 Robot Adapt
 
 REAL 与 MOCK 都必须返回 `ai-lab.v1`：`perception.need_clean`、`perception.confidence`、完整 Phase 3 `TaskProfile`、Phase 2 `map_pixel_to_slam` 产生的带 `map_id` 的位置、`workflow_input` 与 `scheduler_preview`。后两项仅用于兼容性预检，绝不在 AI Lab 中写入 Cleaning Event 或启动调度。
 
+## 19.2 Phase 5 Multi-view Perception Agent
+
+```text
+initial confidence
+→ gray zone only: 0.55 <= confidence < 0.85
+→ Camera Coverage Tool (Phase 2 CAMERAS / SLAM data)
+→ Frame Fetch Tool (at most two additional cameras)
+→ VLM Tool
+→ CONFIRM | REJECT | HUMAN_REVIEW
+→ existing Phase 3 workflow only after CONFIRM
+```
+
+该 LangGraph 图仅有三个可调用工具；iteration 上限为 2。审计 Trace 保留工具调用、证据、所选摄像头、最终置信度和最终决策，不保存或呈现 Chain-of-Thought。Scenario 02 的确认结果会回到既有 Capability Engine / Scheduler，未修改 Robot A/B/C 规则或 Robot-first + Human Fallback。
+
 ---
 
 # 20. UI 架构

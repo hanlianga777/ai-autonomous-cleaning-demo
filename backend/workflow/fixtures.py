@@ -13,6 +13,13 @@ EVENT_TEMPLATES = {
         "location": {"building": "A", "floor": "1F", "zone": "Main Lobby", "map_id": "A_1F", "x": 29.5, "y": 27.0},
         "task_profile": {"object_type": "beverage_spill", "pollution_form": "liquid", "severity": "high", "estimated_area": 3.5, "surface": "tile", "required_capabilities": ["wet_cleaning", "strong_suction", "scrubbing"], "priority": "high", "crowd_level": "high"},
     },
+    "multiview_heavy_spill": {
+        "label": "Scenario 02 · 多视角奶茶重污 · Robot B",
+        "template": "multiview_heavy_spill", "confidence": 0.67, "camera_id": "CAM-A1-01",
+        "location": {"building": "A", "floor": "1F", "zone": "Main Lobby", "map_id": "A_1F", "x": 29.5, "y": 27.0},
+        "task_profile": {"object_type": "beverage_spill", "pollution_form": "liquid", "severity": "high", "estimated_area": 3.5, "surface": "tile", "required_capabilities": ["wet_cleaning", "strong_suction", "scrubbing"], "priority": "high", "crowd_level": "high"},
+        "multi_view_scenario": "scenario02",
+    },
     "cross_building_debris": {
         "label": "跨楼栋纸杯 · Robot C",
         "template": "cross_building_debris", "confidence": 0.91, "camera_id": "CAM-A1-01",

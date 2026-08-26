@@ -1239,7 +1239,9 @@ Phase 3｜Workflow + Scheduler 已完成。实现严格使用 Mock AI、确定�
 - Mock Robot Adapter、Mock Verification 与 SSE 状态流；
 - Dashboard 可运行稳定 Mock 事件、展示 Decision Trace 及 `Why Robot X?`。
 
-Phase 4 已完成实现与兼容性验收：未等待 V1 代码，采用与业务工作流解耦的适配器实现 YOLO、Qwen-VL、AI Lab 及 `ai-lab.v1` 结果到 Phase 3 的非持久化预检。当前等待用户最终确认，**不得开始 Phase 5**。
+Phase 4 已正式验收通过：未等待 V1 代码，采用与业务工作流解耦的适配器实现 YOLO、Qwen-VL、AI Lab 及 `ai-lab.v1` 结果到 Phase 3 的非持久化预检。当前限制：**REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证**。
+
+Phase 5 已完成并等待人工验收：仅灰区事件触发 LangGraph Multi-view Perception Agent；它复用 Phase 2 Camera Coverage / Spatial 数据，工具面限定为 Camera Coverage、Frame Fetch、VLM，最多 2 个额外摄像头和 2 次 iteration。Scenario 02（A 栋 1F 疑似奶茶污渍）从 0.67 提升至 0.92，输出 `CONFIRM` 后交回原有 Capability Engine / Scheduler，选择 Robot B；前端仅公开 Tool Calls、Evidence、Selected Cameras、Final Confidence 与 Decision。
 
 ---
 
@@ -1269,7 +1271,7 @@ Workflow + Scheduler。
 
 ## Phase 5
 
-Multi-view Perception Agent。
+已完成，等待人工验收。严格只在置信度灰区运行；不修改 Phase 3 Scheduler、Capability Engine 或 Robot-first + Human Fallback。
 
 ## Phase 6
 

@@ -11,6 +11,7 @@ from database.connection import (
     save_human_work_order,
 )
 from data.mock_data import ROBOTS
+from perception.multiview.agent import run_multi_view_agent
 from robots.mock_adapters import MockRobotAdapter
 from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
@@ -72,7 +73,20 @@ def run_event(event_id: str) -> dict:
         raise WorkflowError("Only a newly detected mock event can be run automatically")
 
     _record(event, WorkflowState.JUDGING, {"mode": "MOCK", "message": "Mock confidence judgement completed", "confidence": event["confidence"]})
-    _record(event, WorkflowState.CONFIRMED, {"message": "Mock event confirmed; Phase 3 does not invoke Multi-view Agent"})
+    if event["template"] == "multiview_heavy_spill":
+        trace = run_multi_view_agent(event["confidence"], event["camera_id"], event["location"], "scenario02")
+        event["multi_view_trace"] = trace
+        save_event(event)
+        _record(event, WorkflowState.MULTI_VIEW, {"tool_calls": trace["tool_calls"], "evidence": trace["evidence"], "selected_cameras": trace["selected_cameras"], "final_confidence": trace["final_confidence"], "decision": trace["decision"], "iteration_count": trace["iteration_count"]})
+        if trace["decision"] == "REJECT":
+            _record(event, WorkflowState.REJECTED, {"message": "Multi-view evidence rejected the cleaning candidate", "final_confidence": trace["final_confidence"]})
+            return event_detail(event_id)
+        if trace["decision"] == "HUMAN_REVIEW":
+            _record(event, WorkflowState.HUMAN_REVIEW, {"message": "Multi-view evidence requires human visual review", "final_confidence": trace["final_confidence"]})
+            return event_detail(event_id)
+        _record(event, WorkflowState.CONFIRMED, {"message": "Multi-view evidence confirmed cleaning candidate", "final_confidence": trace["final_confidence"]})
+    else:
+        _record(event, WorkflowState.CONFIRMED, {"message": "Mock event confirmed; Multi-view Agent was not triggered outside the confidence gray zone"})
     _record(event, WorkflowState.LOCATING, {"location": event["location"], "message": "Phase 2 Camera → SLAM location accepted"})
     _record(event, WorkflowState.PROFILING, {"task_profile": event["task_profile"], "message": "Cleaning Task Profile created"})
     _record(event, WorkflowState.CAPABILITY_CHECK, {"message": "Applying deterministic hard constraints"})
@@ -118,3 +132,9 @@ def run_event(event_id: str) -> dict:
     save_event(event)
     _record(event, WorkflowState.CLOSED, verification)
     return event_detail(event_id)
+
+
+def run_scenario_02() -> dict:
+    """Stable Phase 5 demo entry point: gray-zone perception → Robot B workflow."""
+    event = create_mock_event("multiview_heavy_spill")
+    return run_event(event["event_id"])

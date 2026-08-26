@@ -5,6 +5,7 @@ import { fallbackDashboard, fetchDashboard } from "@/api/dashboard";
 import { RobotCard } from "@/components/RobotCard";
 import { SpatialOperations } from "@/components/spatial/SpatialOperations";
 import { WorkflowSchedulerPanel } from "@/components/workflow/WorkflowSchedulerPanel";
+import { MultiViewAgentPanel } from "@/components/multiview/MultiViewAgentPanel";
 import { AiLabPanel } from "@/components/ai-lab/AiLabPanel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -62,6 +63,7 @@ function App() {
           <SpatialOperations robots={dashboard.robots} />
 
           <WorkflowSchedulerPanel />
+          <MultiViewAgentPanel />
 
           <section className="mt-5"><div className="mb-3 flex items-center justify-between"><div><p className="section-kicker">Fleet</p><h2 className="mt-1 text-base font-semibold">机器人状态</h2></div><button className="text-xs font-medium text-slate-600 hover:text-slate-950">查看编排中心</button></div><div className="grid gap-4 xl:grid-cols-3">{dashboard.robots.map((robot) => <RobotCard key={robot.id} robot={robot} />)}</div></section>
           </>}
