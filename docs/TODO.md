@@ -1,6 +1,6 @@
 # TODO.md
 
-# AI 自主清洁 V2 Demo｜任务清单
+# AI 自主清洁 Demo｜任务清单
 
 ---
 
@@ -8,7 +8,7 @@
 
 ## Phase 1｜工程骨架
 
-- [x] 创建 `ai-cleaning-v2` 独立工程
+- [x] 创建 项目根目录 独立工程
 - [x] FastAPI 后端
 - [x] SQLite 初始化
 - [x] `/api/health`

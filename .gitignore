@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
-backend/ai_cleaning_v2.db
+backend/*.db
 frontend/node_modules/
 frontend/.npm-cache/
 frontend/dist/

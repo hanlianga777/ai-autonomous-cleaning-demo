@@ -18,7 +18,7 @@
 
 # 1. 这个项目是什么
 
-这是一个面向 **AI 解决方案专家岗位面试** 的 AI 自主清洁 V2 PoC。
+这是一个面向 **AI 解决方案专家岗位面试** 的 AI 自主清洁 PoC。
 
 核心场景：
 
@@ -84,7 +84,7 @@
 - 机器人任务调用；
 - 固摄验收闭环。
 
-## V2 PoC Enhancements
+## PoC Enhancements
 
 包括：
 
@@ -106,9 +106,9 @@
 
 # 3. 当前代码状态
 
-当前 V2 目录：
+当前工程目录：
 
-`ai-cleaning-v2`
+项目根目录
 
 Phase 1 已完成。
 
@@ -538,7 +538,7 @@ DEMO MOCK MODE
 - Streamlit；
 - post-clean verification。
 
-当前 V2 Workspace 尚未自动找到该代码。
+当前 Workspace 尚未自动找到该代码。
 
 Phase 4 再处理迁移。
 

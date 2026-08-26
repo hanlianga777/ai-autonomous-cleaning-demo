@@ -1,4 +1,4 @@
-# AI 自主清洁 V2 Demo
+# AI 自主清洁 Demo
 
 面向 AI 解决方案专家岗位展示的园区自主清洁闭环 PoC。目前已完成 **Phase 1｜工程骨架** 与 **Phase 2｜Spatial Engine**；系统仍明确运行在稳定、可复现的本地 Mock 模式。
 
@@ -18,7 +18,7 @@
 ## 目录
 
 ```text
-ai-cleaning-v2/
+./
 ├── backend/
 │   ├── api/routes.py             # Phase 1 REST endpoints
 │   ├── data/mock_data.py         # 稳定 Mock 园区与机器人数据
@@ -44,14 +44,14 @@ ai-cleaning-v2/
 
 ### macOS 一键启动（推荐）
 
-双击 [start_demo.command](/Users/zhanghaohan/Documents/ChatGPT/Agent项目/ai-cleaning-v2/start_demo.command)。它会自动准备缺失依赖、分别后台启动 FastAPI 与 Vite、避免重复占用 8000 / 5173 端口，并打开 Dashboard。终端会显示每项服务是已启动还是复用了既有服务。
+双击 `start_demo.command`。它会自动准备缺失依赖、分别后台启动 FastAPI 与 Vite、避免重复占用 8000 / 5173 端口，并打开 Dashboard。终端会显示每项服务是已启动还是复用了既有服务。
 
-双击 [stop_demo.command](/Users/zhanghaohan/Documents/ChatGPT/Agent项目/ai-cleaning-v2/stop_demo.command) 可停止由启动脚本创建的进程；它不会终止已在端口上运行、但并非本脚本启动的其他服务。
+双击 `stop_demo.command` 可停止由启动脚本创建的进程；它不会终止已在端口上运行、但并非本脚本启动的其他服务。
 
 ### 手动启动
 
 ```bash
-cd ai-cleaning-v2/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -61,7 +61,7 @@ uvicorn main:app --reload --port 8000
 另开终端：
 
 ```bash
-cd ai-cleaning-v2/frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -84,7 +84,7 @@ npm run dev
 
 ## 数据与模式说明
 
-应用启动时会创建 `backend/ai_cleaning_v2.db`，并写入园区和机器人快照。该数据库文件是可再生的本地运行数据，不包含真实客户或设备数据。
+应用启动时会创建 `backend/ai_cleaning_demo.db`，并写入园区和机器人快照。该数据库文件是可再生的本地运行数据，不包含真实客户或设备数据。
 
 当前明确运行在 `DEMO MOCK MODE`。后续接入真实 YOLO/Qwen-VL 后，才会实现 REAL / MOCK 两种模式的切换。
 

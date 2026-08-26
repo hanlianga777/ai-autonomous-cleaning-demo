@@ -12,7 +12,7 @@ from pathlib import Path
 
 from data.mock_data import PARK, ROBOTS
 
-DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_v2.db"
+DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_demo.db"
 
 
 def get_connection() -> sqlite3.Connection:
@@ -49,4 +49,3 @@ def read_snapshot(snapshot_key: str) -> dict | list:
     if row is None:
         raise KeyError(f"Snapshot '{snapshot_key}' is unavailable")
     return json.loads(row["payload"])
-
