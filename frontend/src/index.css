@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { --background: 210 20% 98%; --foreground: 222 47% 11%; --border: 214 20% 91%; --muted: 210 20% 96%; --muted-foreground: 215 16% 47%; --accent: 210 20% 96%; --accent-foreground: 222 47% 11%; }
+  * { @apply border-border; }
+  body { @apply m-0 bg-background font-sans text-foreground antialiased; }
+  button { font: inherit; }
+}
+
+@layer components {
+  .section-kicker { @apply text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400; }
+  .metric-value { @apply text-xl font-semibold tracking-tight text-slate-900; }
+  .metric-label { @apply mt-0.5 text-[11px] text-slate-500; }
+  .campus-grid { background-image: linear-gradient(#edf0f2 1px, transparent 1px), linear-gradient(90deg, #edf0f2 1px, transparent 1px); background-size: 22px 22px; }
+}

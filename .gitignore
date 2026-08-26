@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+backend/ai_cleaning_v2.db
+frontend/node_modules/
+frontend/.npm-cache/
+frontend/dist/
+.demo-logs/
+.demo-pids
