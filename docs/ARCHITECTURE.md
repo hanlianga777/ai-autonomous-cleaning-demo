@@ -874,6 +874,17 @@ Camera asset / upload
 
 `workbench.service` 只组合上述已有结果。`/api/workbench/scenarios` 返回四个 `Camera + Event + View` 素材关系，`/api/workbench/events/{event_id}/run` 返回既有感知、工作流和多视角审计，`/api/workbench/upload` 仅以 SHA-256 匹配四张受控清洁前原图后运行同一链路。`/demo-assets` 只静态提供实际存在的授权文件；没有素材时，前端显示缺失槽位，绝不返回伪造图片。大型纸箱是 Human Fallback，不具备清洁后图时只能展示人工工单与待回传验收。
 
+## 19.6 Operations Command Center Projection
+
+```text
+existing Workflow audit + Spatial robot positions + approved asset manifest
+→ operations.service (read-only DEMO_PLAYBACK projection)
+→ /api/operations/snapshot
+→ fleet command bar + work-order queue + SLAM mission map + audit UI
+```
+
+`operations.service` 是客户指挥台的组合读模型，不是新的 Workflow、Scheduler、Route Planner 或 Agent。它只能消费既有 `workbench.service` 的完整审计结果和 Phase 2 `ROBOT_POSITIONS`，并按已记录的状态检查点投影 Robot A/B/C 的**模拟**位置、状态、电量和活动描述。它不写入或改写既有调度决策；前端不再以 `setTimeout` 自行推进业务状态。`operations.v1` 的每个响应带有 `telemetry_mode: DEMO_PLAYBACK`，因此不应被描述为实时机器人遥测。
+
 ---
 
 # 20. UI 架构

@@ -674,7 +674,7 @@ DONE
 
 Phase 8
 Customer Demo Workbench
-IMPLEMENTED · VISUAL ASSET VALIDATION PENDING
+DONE · OPERATIONS COMMAND CENTER VERIFIED
 ```
 
 每完成一个 Phase：
@@ -758,7 +758,7 @@ IMPLEMENTED · VISUAL ASSET VALIDATION PENDING
 
 ## 本阶段完成内容
 
-Phase 8：默认进入中文客户工作台，现已用四组经授权素材完整编排 Scenario 01–04。上传仓库内任一清洁前原图会被 SHA-256 精确匹配并自动播放既有闭环：纸巾 → Robot A；三机位奶茶液污 → Multi-view（CAM-A1-02 / CAM-A1-04）→ Robot B；二楼易拉罐 → Robot C 的跨楼栋路线；大型纸箱 → Human Fallback。工作台通过 `/api/workbench/scenarios`、`/api/workbench/events/{event_id}/run`、`/api/workbench/upload` 调用，未改写任何引擎。
+Phase 8：默认进入中文客户任务指挥台。首屏常驻展示 A/B/C 的 `DEMO_PLAYBACK` 位置、状态、电量、活动、工单队列、SLAM 任务图、选中工单详情和完整审计；场景和上传只是创建工单入口。`/api/operations/snapshot` 和 `/api/operations/runs/{event_id}` 由 `operations.service` 投影既有 Workflow / Spatial / Workbench 结果，未新增第二套 AI、坐标、调度、路线或状态机。上传仓库内任一清洁前原图仍按 SHA-256 精确匹配：纸巾 → Robot A；三机位奶茶液污 → Multi-view（CAM-A1-02 / CAM-A1-04）→ Robot B；二楼易拉罐 → Robot C 的跨楼栋路线；大型纸箱 → Human Fallback。启动脚本会验证 `operations.v1`，避免复用会使前端 API 404 的旧后端。
 
 ## 修改文件
 

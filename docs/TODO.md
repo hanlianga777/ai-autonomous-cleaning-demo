@@ -225,6 +225,11 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 - [x] 展示 AI 研判、Camera → SLAM、Capability / Scheduler、路径、状态审计、Before / After 验收
 - [x] Scenario 04 明确展示人工工单与待回传验收，不伪造清洁后照片
 - [x] 素材化工作台 API、后端测试、前端构建与浏览器验收
+- [x] 修复旧 FastAPI 服务被复用导致 `/api/workbench/*` 404、前端只显示 `Not Found` 的启动兼容性问题
+- [x] 客户首屏改为运营指挥台：A/B/C 位置、状态、电量、活动、工单队列、SLAM 任务图、任务详情与审计常驻可见
+- [x] 新增 `operations.v1` 服务端 `DEMO_PLAYBACK` 读模型；不新增 Scheduler / 状态机 / 坐标映射，不以前端定时器伪造业务状态
+- [x] 离线 / 接口异常时保留完整指挥台框架和明确启动提示，不白屏
+- [x] 验收 `operations.v1`、四场景创建、受控图片上传匹配、26 个后端单元测试、前端生产构建与浏览器交互
 
 ---
 

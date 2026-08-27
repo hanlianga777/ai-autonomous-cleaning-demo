@@ -1287,6 +1287,10 @@ Workflow + Scheduler。
 
 已接入四组经授权素材，均存放在 `sample_data/camera_events/<camera>/<event>/`，metadata 只描述摄像头、事件与视角关系。清洁前原图以 SHA-256 精确匹配受控场景：室外纸巾 → Robot A；三机位奶茶液污 → Multi-view CONFIRM → Robot B；二楼易拉罐 → Robot C（电梯 + Skybridge 路线）；走廊大型纸箱 → `HUMAN_FALLBACK`。后者没有清洁后图，因此仅展示已创建的人工工单和“等待回传验收”，严禁伪造通过图。受控匹配是 `DEMO MOCK MODE` 的稳定演示适配；生产任意上传仍需后续 REAL AI 实跑验证。
 
+### Phase 8 指挥台修复（已完成）
+
+客户首屏已调整为“任务指挥台”，而不是以图片上传为中心的单工单播放器。`backend/operations/service.py` 作为唯一的 `operations.v1` 读模型，投影现有 Workflow 审计、Phase 2 机器人空间位置和四场景素材结果；它不会新建或修改 AI、Camera → SLAM、Capability Engine、Scheduler、Route Planner 或 Workflow。前端常驻展示 A/B/C 模拟位置、状态、电量、活动、工单队列、地图、任务详情和审计；场景 / 上传只负责新建演示工单。`DEMO_PLAYBACK` 是透明的模拟回放标识，绝不表示真实设备遥测。
+
 ---
 
 # 26. 开源项目参考

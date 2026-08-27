@@ -18,7 +18,8 @@
 - 真实 AI 适配器：配置本地 YOLO 权重与 DashScope Key 后启用 `REAL AI MODE`；否则明确降级为 `DEMO MOCK MODE`
 - Optimization Center：30 天稳定 Mock 历史、Spatial Heatmap、时段分布、Robot Utilization、KPI 与受限 Optimization Agent
 - Interview UX：五个可用一级入口、四类 Scenario 启动卡、状态回放、跨楼栋连接器、Camera → SLAM 与 Before / After 验收讲解
-- 默认客户首页：自主清洁任务工作台，已接入四组经授权 Demo 现场图；上传任一清洁前原图将自动匹配并播放完整业务闭环
+- 默认客户首页：自主清洁任务指挥台。首屏始终展示 Robot A/B/C 的位置、状态、电量、当前工单、6 张 SLAM 地图和业务审计；场景或上传图片只是创建演示工单的入口
+- `operations.v1` 服务端演示投影：把既有工作流审计投影为明确标注的 `DEMO PLAYBACK` 遥测，不新增第二套调度、坐标映射或状态机
 
 尚未实现真实设备执行、真实长期运营数据接入与 REAL AI 实跑验证。上传自动匹配仅面向仓库内四张受控清洁前原图；生产环境仍需由真实 YOLO / Qwen-VL 推理替代该 Demo 适配层。当前范围仍为稳定可复现的 PoC Demo。
 
@@ -56,7 +57,7 @@
 
 ### macOS 一键启动（推荐）
 
-双击 `start_demo.command`。它会自动准备缺失依赖、分别后台启动 FastAPI 与 Vite、避免重复占用 8000 / 5173 端口，并打开 Dashboard。终端会显示每项服务是已启动还是复用了既有服务。
+双击 `start_demo.command`。它会自动准备缺失依赖、分别后台启动 FastAPI 与 Vite、避免重复占用 8000 / 5173 端口，并在复用 8000 服务前验证 `operations.v1` API 契约；旧版后端不会被静默复用而造成空白工作台。终端会显示每项服务是已启动还是复用了既有服务。
 
 双击 `stop_demo.command` 可停止由启动脚本创建的进程；它不会终止已在端口上运行、但并非本脚本启动的其他服务。
 
@@ -105,6 +106,9 @@ npm run dev
 | `GET /api/workbench/scenarios` | 四组受控客户演示场景及其 Camera + Event + View 素材清单 |
 | `POST /api/workbench/events/{event_id}/run` | 运行所选场景的既有 AI、空间、调度、执行与验收链路 |
 | `POST /api/workbench/upload` | 上传受控清洁前原图，SHA-256 匹配场景后自动运行完整闭环 |
+| `GET /api/operations/snapshot` | `operations.v1` 指挥台读模型：三台机器人模拟遥测、当前工单与场景目录 |
+| `POST /api/operations/runs/{event_id}` | 创建一个既有 Scenario 的服务端可审计演示回放 |
+| `POST /api/operations/upload` | 上传受控清洁前原图并创建同一 `operations.v1` 演示回放 |
 
 ## 数据与模式说明
 
@@ -188,12 +192,13 @@ uvicorn main:app --reload --port 8000
 - 四组现场素材分别对应：室外纸巾 → Robot A、三机位奶茶污渍 → Robot B、多楼栋二楼易拉罐 → Robot C、大纸箱 → Human Fallback
 - 上传任一受控清洁前原图会以 SHA-256 确定性匹配事件，随后复用 `ai-lab.v1`、Phase 2 `map_pixel_to_slam`、Phase 3 Scheduler / Verification；不新增第二套 AI 或坐标算法
 - Scenario 02 在 0.67 置信度触发 Phase 5 Multi-view Agent，真实素材的 CAM-A1-02 与 CAM-A1-04 作为两个补充视角；UI 仅展示工具、证据、摄像头、置信度和决定
-- 三栏呈现：固定摄像头现场、2D SLAM 空间与任务路线、当前清洁任务；另有完整业务状态审计和 Before / After 验收
+- 指挥台首屏：三台机器人位置 / 状态 / 电量、工单队列、6 张 2D SLAM 地图、Camera Coverage、选中工单的 AI / 调度 / 路线 / 多视角 / 验收，以及完整业务审计
+- `operations.v1` 只将已完成的确定性工作流投影为服务端 `DEMO PLAYBACK`，前端不再用 `setTimeout` 伪造业务状态；所有位置与电量均明确标记为模拟回放，而非设备遥测
 - Scenario 04 没有提供清洁后图且应进入人工兜底，工作台明确展示待人工回传验收，不伪造 PASS 图
 
 ## 下一阶段边界
 
-Phase 8 的素材接入、四场景自动播放与浏览器验收已完成。未进入 Phase 9。
+Phase 8 的素材接入、四场景自动播放、指挥台读模型与浏览器验收已完成。未进入 Phase 9。
 
 ## 验证
 
