@@ -113,6 +113,10 @@ fi
 sleep 1
 echo
 echo "CleanOps customer demo is ready. API: http://localhost:8000/docs"
+AI_STATUS="$(curl --max-time 2 --silent --fail http://127.0.0.1:8000/api/system/ai-status 2>/dev/null || true)"
+if [[ -n "$AI_STATUS" ]]; then
+  echo "AI runtime: $AI_STATUS"
+fi
 if [[ "${DEMO_NO_OPEN:-}" != "1" ]]; then
   open "http://localhost:5173"
 fi

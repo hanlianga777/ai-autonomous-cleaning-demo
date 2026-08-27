@@ -7,6 +7,27 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def _load_project_env() -> None:
+    """Load local .env files without replacing explicit shell environment.
+
+    This intentionally tiny loader avoids a runtime dependency and keeps keys
+    on the local machine. Values are never returned, logged or committed.
+    """
+    root = Path(__file__).resolve().parents[2]
+    for path in (root / ".env", root / "backend" / ".env"):
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key:
+                os.environ.setdefault(key, value)
+
+
 @dataclass(frozen=True)
 class AiRuntime:
     requested_mode: str
@@ -25,7 +46,8 @@ def get_runtime() -> AiRuntime:
     supplied.  This prevents a configured-looking screen from pretending that
     an inference actually happened.
     """
-    requested = os.getenv("AI_LAB_MODE", "auto").strip().lower()
+    _load_project_env()
+    requested = os.getenv("AI_LAB_MODE", os.getenv("AI_MODE", "auto")).strip().lower()
     if requested not in {"auto", "mock", "real"}:
         requested = "auto"
     model = os.getenv("AI_LAB_YOLO_MODEL", "").strip() or None

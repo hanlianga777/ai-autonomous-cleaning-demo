@@ -16,6 +16,7 @@ from typing import Any
 from uuid import uuid4
 
 from data.mock_data import ROBOTS
+from database.connection import list_events
 from spatial.spatial_data import ROBOT_POSITIONS
 from workbench.service import list_scenario_assets, run_workbench_event, run_workbench_upload
 
@@ -67,6 +68,25 @@ def start_upload(filename: str, content: bytes) -> dict[str, Any]:
 def operations_snapshot(run_id: str | None = None) -> dict[str, Any]:
     run = _RUNS.get(run_id or _ACTIVE_RUN_ID or "")
     return _snapshot(run) if run else _idle_snapshot()
+
+
+def list_work_orders(limit: int = 50) -> list[dict[str, Any]]:
+    """Customer-readable index over persisted CleaningEvent records.
+
+    The underlying event remains the source of truth; this only hides internal
+    enum names and links an approved scenario image when one exists.
+    """
+    template_assets = {"outdoor_debris": "event-outdoor-tissue-001", "multiview_heavy_spill": "event-beverage-spill-002", "indoor_can": "event-indoor-can-003", "oversized_object_a2": "event-oversized-box-004"}
+    items = []
+    for event in list_events(limit):
+        manifest = None
+        event_id = template_assets.get(event.get("template"))
+        if event_id:
+            manifest = next((item for item in list_scenario_assets() if item["event_id"] == event_id), None)
+        before = next((asset for asset in manifest["assets"] if asset["role"] == "before"), None) if manifest else None
+        decision = event.get("assignment_decision") or {}
+        items.append({"event_id": event["event_id"], "created_at": event.get("created_at"), "updated_at": event.get("updated_at"), "state": event["state"], "location": event["location"], "task_profile": event["task_profile"], "robot_name": decision.get("selected_robot_name"), "image_url": before.get("url") if before else None, "scenario_event_id": event_id})
+    return items
 
 
 def _idle_snapshot() -> dict[str, Any]:

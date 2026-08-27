@@ -233,6 +233,24 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 
 ---
 
+## Phase 8R｜客户产品化 + Scenario 02 REAL AI 闭环
+
+- [x] 一级信息架构收敛为：自主清洁工作台、工单中心、运营分析；Phase 1–7 调试功能保留在高级模式
+- [x] CleaningEvent / Work Order 作为产品主对象；新增持久化工单列表读接口
+- [x] 默认工作台仅提供 Scenario 02 的快速创建入口；Scenario 01 / 03 / 04 暂停产品化扩展
+- [x] 摄像头优先、执行时转 SLAM、验收时转 Before / After 的业务界面
+- [x] 仅展示客户业务时间线；工作流枚举、能力约束、路线和原始模型信息收纳在技术详情
+- [x] `BusinessDetection` 业务类与 raw YOLO / VLM 类、置信度来源分离
+- [x] `.env.example`、本地 `.env` 自动加载、AI 状态 API、密钥与权重 Git 忽略
+- [ ] 配置本地 YOLO 权重并验证真实加载
+- [ ] 配置 `DASHSCOPE_API_KEY` 并验证 DashScope Qwen-VL 可达性
+- [ ] Scenario 02：REAL YOLO → REAL Qwen-VL → REAL Multi-view VLM → REAL post-clean AI verification → CLOSED
+- [ ] 浏览器 REAL E2E 验收（刷新后工单持久化、Console 0 error）
+
+在上述 REAL 验收通过前，禁止将 Phase 8R 标记为 Done，禁止继续产品化 Scenario 01 / 03 / 04 或进入 Phase 9。
+
+---
+
 # 五、固定 Demo Scenario
 
 - [x] Scenario 01：Outdoor Autonomous / Robot A

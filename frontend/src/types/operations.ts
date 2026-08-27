@@ -45,6 +45,18 @@ export interface OperationsSnapshot {
   catalog: DemoAssetManifest[];
 }
 
+export interface OperationsWorkOrderSummary {
+  event_id: string;
+  created_at: string | null;
+  updated_at: string | null;
+  state: string;
+  location: WorkflowEvent["location"];
+  task_profile: WorkflowEvent["task_profile"];
+  robot_name: string | null;
+  image_url: string | null;
+  scenario_event_id: string | null;
+}
+
 export interface OperationsMapProps {
   map: SpatialMap;
   fleet: FleetTelemetry[];

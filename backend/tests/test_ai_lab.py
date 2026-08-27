@@ -5,7 +5,7 @@ from pathlib import Path
 
 from perception.config import get_runtime
 from perception.models import TASK_PROFILE_FIELDS, perception_schema, validate_ai_result_schema
-from perception.service import analyze_mock_case, analyze_upload, media_kind
+from perception.service import analyze_mock_case, analyze_upload, media_kind, system_ai_status
 
 
 class AiLabTests(unittest.TestCase):
@@ -88,6 +88,17 @@ class AiLabTests(unittest.TestCase):
         self.assertEqual(result["schema_version"], "ai-lab.v1")
         real_shaped_result = result | {"mode": "real", "mode_label": "REAL AI MODE", "pipeline": result["pipeline"] | {"yolo": "yolo26n.pt", "vlm": "qwen-vl-max"}}
         self.assertEqual(validate_ai_result_schema(real_shaped_result)["schema_version"], result["schema_version"])
+
+    def test_business_detection_keeps_business_class_separate_from_raw_model_evidence(self):
+        result = analyze_mock_case("low_confidence_milk_tea_spill")
+        detection = result["business_detections"][0]
+        self.assertEqual(detection["business_class"], "liquid")
+        self.assertEqual(detection["confidence_source"], "MOCK")
+        self.assertIn("raw_yolo_class", detection)
+        self.assertIn("vlm_class", detection)
+        status = system_ai_status()
+        self.assertEqual(status["camera_to_slam"]["mode"], "REAL_CALCULATION")
+        self.assertEqual(status["robot"]["mode"], "SIMULATION")
 
 
 if __name__ == "__main__":

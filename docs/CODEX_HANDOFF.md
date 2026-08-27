@@ -672,9 +672,9 @@ Phase 7
 Interview UX
 DONE
 
-Phase 8
-Customer Demo Workbench
-DONE · OPERATIONS COMMAND CENTER VERIFIED
+Phase 8R
+Customer Productization + Scenario 02 REAL AI
+IN PROGRESS · REAL PREREQUISITES MISSING
 ```
 
 每完成一个 Phase：
@@ -758,7 +758,7 @@ DONE · OPERATIONS COMMAND CENTER VERIFIED
 
 ## 本阶段完成内容
 
-Phase 8：默认进入中文客户任务指挥台。首屏常驻展示 A/B/C 的 `DEMO_PLAYBACK` 位置、状态、电量、活动、工单队列、SLAM 任务图、选中工单详情和完整审计；场景和上传只是创建工单入口。`/api/operations/snapshot` 和 `/api/operations/runs/{event_id}` 由 `operations.service` 投影既有 Workflow / Spatial / Workbench 结果，未新增第二套 AI、坐标、调度、路线或状态机。上传仓库内任一清洁前原图仍按 SHA-256 精确匹配：纸巾 → Robot A；三机位奶茶液污 → Multi-view（CAM-A1-02 / CAM-A1-04）→ Robot B；二楼易拉罐 → Robot C 的跨楼栋路线；大型纸箱 → Human Fallback。启动脚本会验证 `operations.v1`，避免复用会使前端 API 404 的旧后端。
+Phase 8R：GitHub 是唯一项目事实源。未来 Codex 必须先读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`，不得靠聊天上下文重设架构。客户一级页面只保留自主清洁工作台、工单中心、运营分析；技术能力收纳于高级模式。CleaningEvent 是核心业务对象；默认仅产品化 Scenario 02。新增 `BusinessDetection` 以业务类和 raw YOLO / VLM 证据分离，新增本地 `.env` 加载、`.env.example`、权重 / 密钥 Git 忽略及 `/api/system/ai-status`。本机目前没有 `.env`、YOLO 权重或 DashScope Key，故只能明确为 MOCK，REAL Scenario 02 和 REAL 验收均未完成，禁止声称成功或进入下一阶段。
 
 ## 修改文件
 

@@ -14,6 +14,7 @@ from perception.yolo import RealInferenceError
 
 PROMPT = """You are a cleaning perception verifier. Return JSON only, with this schema:
 {"need_clean": boolean, "confidence": number, "summary": string,
+ "business_class": "liquid|can|leaf|large_object|small_litter|unknown", "business_confidence": number,
  "task_profile": {"object_type": string, "pollution_form": string, "severity": string,
  "estimated_area": number, "surface": string, "required_capabilities": [string],
  "priority": string, "crowd_level": string}}
@@ -55,4 +56,4 @@ def run_qwen_vl(image_path: Path, model: str) -> dict:
     parsed = _parse_json(content)
     confidence = parsed.get("confidence", 0)
     need_clean = parsed.get("need_clean", parsed.get("needs_cleaning", False))
-    return {"need_clean": bool(need_clean), "confidence": round(float(confidence), 4) if isinstance(confidence, (int, float)) else 0.0, "summary": str(parsed.get("summary", ""))[:500], "raw": parsed, "task_profile": normalize_task_profile(parsed.get("task_profile"))}
+    return {"need_clean": bool(need_clean), "confidence": round(float(confidence), 4) if isinstance(confidence, (int, float)) else 0.0, "summary": str(parsed.get("summary", ""))[:500], "business_class": str(parsed.get("business_class", "unknown")).strip().lower(), "business_confidence": parsed.get("business_confidence", confidence), "raw": parsed, "task_profile": normalize_task_profile(parsed.get("task_profile"))}

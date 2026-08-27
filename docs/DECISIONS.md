@@ -682,3 +682,25 @@ Phase 8 默认进入中文业务工作台。它通过产品化适配层编排 `a
 - 真实机器人遥测可替换投影输入，但不得改变前端读模型边界；
 - `start_demo.command` 必须验证 `operations.v1`，禁止复用会使前端 API 404 的旧后端；
 - 未知上传图片仍然明确失败，不得伪造成识别成功。
+
+---
+
+## 决策 24：Phase 8R 以工单为核心，先只产品化 Scenario 02
+
+**最终决定：**
+
+客户一级导航收敛为“自主清洁工作台、工单中心、运营分析”；Phase 1–7 的技术页面保留在高级模式。`CleaningEvent / Work Order` 是系统主对象，Scenario 只用于快速创建工单。本轮仅产品化 Scenario 02，Scenario 01 / 03 / 04 不删除但等待 Scenario 02 验收后再处理。
+
+默认客户界面只使用业务语言和七步时间线；Capability、路线、原始 JSON、Agent 工具调用、标定与 Scheduler 权重只在二级技术详情出现。
+
+**REAL / MOCK 边界：**
+
+- YOLO 与 Qwen-VL 只有真实配置且成功返回时才标记 `REAL`；失败必须报错，禁止降级伪装；
+- 机器人、电梯、Skybridge 明确为后端驱动的 `SIMULATION`；
+- Multi-view 是保留的唯一感知 Agent，Scheduler、Camera → SLAM、Heatmap 均不是 Agent；
+- post-clean 不能因图片文件存在自动 PASS，必须由视觉 AI 再判断后才允许 `VERIFYING → CLOSED`；
+- `.env` 与模型权重不进入 Git。`/api/system/ai-status` 只报告无密钥的配置真相。
+
+**业务类决策：**
+
+客户统一使用 `liquid / can / leaf / large_object / small_litter`。它们不是 stock YOLO 的原生类别承诺；`BusinessDetection` 必须同时保留 raw YOLO、VLM 与置信度来源，禁止为液体、树叶或大件伪造 YOLO bbox / confidence。

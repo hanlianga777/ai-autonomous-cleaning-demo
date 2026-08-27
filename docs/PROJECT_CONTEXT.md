@@ -1291,6 +1291,14 @@ Workflow + Scheduler。
 
 客户首屏已调整为“任务指挥台”，而不是以图片上传为中心的单工单播放器。`backend/operations/service.py` 作为唯一的 `operations.v1` 读模型，投影现有 Workflow 审计、Phase 2 机器人空间位置和四场景素材结果；它不会新建或修改 AI、Camera → SLAM、Capability Engine、Scheduler、Route Planner 或 Workflow。前端常驻展示 A/B/C 模拟位置、状态、电量、活动、工单队列、地图、任务详情和审计；场景 / 上传只负责新建演示工单。`DEMO_PLAYBACK` 是透明的模拟回放标识，绝不表示真实设备遥测。
 
+## Phase 8R｜产品化重构 + Scenario 02 REAL AI 闭环
+
+Phase 8R 将客户默认体验收敛为三层信息架构：一级仅保留“自主清洁工作台、工单中心、运营分析”；高级模式保留 Phase 1–7 的技术后台、AI Lab、原始审计与调度解释。`CleaningEvent / Work Order` 是产品核心，Scenario 仅用于快速创建工单。本轮客户默认只产品化 Scenario 02（A 栋 1F 大堂液体污渍 → Robot B）；Scenario 01 / 03 / 04 保留现有技术能力，不继续扩展产品界面，等待该场景验收。
+
+客户业务分类固定为 `liquid`、`can`、`leaf`、`large_object`、`small_litter`。它们与原始 YOLO 类别分离：`BusinessDetection` 同时保存业务类、置信度来源、原始 YOLO 类和 VLM 类；通用 YOLO 没有稳定证据时，不得伪造液体、树叶或大件的 YOLO 框。Camera → SLAM 仍只调用 `spatial.calibration.map_pixel_to_slam`；Scheduler 与 Heatmap 均不是 Agent；机器人、电梯、Skybridge 仍为后端驱动的 Simulation。
+
+REAL AI 接入边界已补齐：根目录 `.env.example` 描述本地 YOLO 权重与 DashScope Key，配置由本地 `.env` 自动读取且被 Git 忽略；`GET /api/system/ai-status` 只报告无密钥的运行状态。当前机器未配置 `.env`、YOLO 权重和 `DASHSCOPE_API_KEY`，因此 **Scenario 02 REAL YOLO + Qwen-VL + post-clean verification 的实跑验收尚未完成**；默认只明确运行 MOCK，不能写成 REAL 通过。
+
 ---
 
 # 26. 开源项目参考

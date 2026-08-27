@@ -885,6 +885,23 @@ existing Workflow audit + Spatial robot positions + approved asset manifest
 
 `operations.service` 是客户指挥台的组合读模型，不是新的 Workflow、Scheduler、Route Planner 或 Agent。它只能消费既有 `workbench.service` 的完整审计结果和 Phase 2 `ROBOT_POSITIONS`，并按已记录的状态检查点投影 Robot A/B/C 的**模拟**位置、状态、电量和活动描述。它不写入或改写既有调度决策；前端不再以 `setTimeout` 自行推进业务状态。`operations.v1` 的每个响应带有 `telemetry_mode: DEMO_PLAYBACK`，因此不应被描述为实时机器人遥测。
 
+## 19.7 Phase 8R Product + REAL AI Boundary
+
+```text
+Camera demo asset / real camera frame
+→ local YOLO (raw class + box + confidence, REAL or MOCK)
+→ DashScope Qwen-VL (business class + Task Profile, REAL or MOCK)
+→ Multi-view Perception Agent only in confidence gray zone
+→ BusinessDetection (business class separated from raw labels)
+→ existing map_pixel_to_slam
+→ existing Capability Engine + Scheduler
+→ persisted CleaningEvent
+→ Mock Robot Simulation
+→ post-clean camera → AI verification → VERIFYING → CLOSED
+```
+
+`BusinessDetection` is a presentation / audit record, not a detector. Its `business_class` must be one of `liquid / can / leaf / large_object / small_litter`; it retains `raw_yolo_class`, `raw_yolo_confidence`, `vlm_class`, `vlm_confidence` and `confidence_source`. No layer is permitted to synthesize a YOLO box or confidence for a class unsupported by the actual model. `GET /api/system/ai-status` reads local configuration only and does not make an unprompted cloud request. The root `.env` is never committed; REAL mode requires both the configured local weight file and `DASHSCOPE_API_KEY`.
+
 ---
 
 # 20. UI 架构

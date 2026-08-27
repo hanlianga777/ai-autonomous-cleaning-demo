@@ -12,6 +12,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const fetchOperationsSnapshot = (runId?: string) => request<OperationsSnapshot>(`/operations/snapshot${runId ? `?run_id=${encodeURIComponent(runId)}` : ""}`);
+export const fetchOperationsWorkOrders = () => request<import("@/types/operations").OperationsWorkOrderSummary[]>("/operations/work-orders?limit=12");
 export const startOperationsRun = (eventId: string) => request<OperationsSnapshot>(`/operations/runs/${encodeURIComponent(eventId)}`, { method: "POST" });
 
 export async function startOperationsUpload(file: File): Promise<OperationsSnapshot> {

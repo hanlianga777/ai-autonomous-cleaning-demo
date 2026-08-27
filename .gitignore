@@ -9,3 +9,8 @@ frontend/dist/
 .demo-logs/
 .demo-pids
 backend/.runtime/
+.env
+backend/.env
+*.pt
+*.onnx
+*.engine

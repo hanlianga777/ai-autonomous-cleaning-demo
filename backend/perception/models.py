@@ -63,7 +63,7 @@ def perception_schema() -> dict[str, Any]:
     """Public contract used identically by REAL and MOCK response builders."""
     return {
         "schema_version": AI_RESULT_SCHEMA_VERSION,
-        "required_top_level": ["schema_version", "mode", "mode_label", "source", "pipeline", "detections", "location", "perception", "task_profile", "workflow_input", "scheduler_preview", "notes"],
+        "required_top_level": ["schema_version", "mode", "mode_label", "source", "pipeline", "detections", "business_detections", "location", "perception", "task_profile", "workflow_input", "scheduler_preview", "notes"],
         "perception_fields": ["need_clean", "confidence", "summary", "raw"],
         "task_profile_fields": list(TASK_PROFILE_FIELDS),
         "workflow_contract": "Phase 3 CleaningEvent seed; returned only as a preview and never persisted or dispatched by AI Lab.",

@@ -109,12 +109,27 @@ npm run dev
 | `GET /api/operations/snapshot` | `operations.v1` 指挥台读模型：三台机器人模拟遥测、当前工单与场景目录 |
 | `POST /api/operations/runs/{event_id}` | 创建一个既有 Scenario 的服务端可审计演示回放 |
 | `POST /api/operations/upload` | 上传受控清洁前原图并创建同一 `operations.v1` 演示回放 |
+| `GET /api/operations/work-orders` | 从 SQLite CleaningEvent 生成的客户工单中心索引 |
+| `GET /api/system/ai-status` | 无密钥的 YOLO / Qwen-VL / Simulation 真实运行状态 |
 
 ## 数据与模式说明
 
 应用启动时会创建 `backend/ai_cleaning_demo.db`，并写入园区和机器人快照。该数据库文件是可再生的本地运行数据，不包含真实客户或设备数据。
 
 默认明确运行在 `DEMO MOCK MODE`。AI Lab 的 `AI_LAB_MODE=auto` 仅在本地权重与 `DASHSCOPE_API_KEY` 均配置时自动启用 `REAL AI MODE`；`AI_LAB_MODE=mock` 可强制稳定 Mock。REAL 管线失败时会明确返回错误，不会伪造成 Mock 或真实结果。
+
+## Phase 8R｜客户产品层与 REAL AI 前置配置
+
+客户默认导航只显示“自主清洁工作台、工单中心、运营分析”。技术后台、AI Lab、Scheduler 与原始审计保留在“高级模式 / 技术详情”。客户默认只产品化 Scenario 02；Scenario 01 / 03 / 04 保留原有技术能力，等待 Scenario 02 验收。
+
+复制 [.env.example](.env.example) 为项目根目录的 `.env`，填入本机模型位置和 DashScope Key。`.env` 与模型权重已被 Git 忽略，启动脚本会打印不含密钥的 AI 状态。
+
+```bash
+cp .env.example .env
+# 编辑 .env：填写 AI_LAB_YOLO_MODEL 与 DASHSCOPE_API_KEY
+```
+
+没有这两项时系统会明确使用 Mock；不会伪造 REAL AI 结果。当前仓库尚未在本机完成 REAL Scenario 02 实跑验收。
 
 ## Phase 2｜Spatial Engine
 

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from uuid import uuid4
 
 from perception.config import get_runtime
+from perception.business_detection import business_detection
 from perception.keyframes import extract_keyframes
 from perception.integration import scheduler_preview
 from perception.mock import list_mock_cases, mock_analysis, mock_case_analysis
@@ -23,6 +25,24 @@ MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 def ai_lab_status() -> dict:
     runtime = get_runtime()
     return {"requested_mode": runtime.requested_mode, "active_mode": runtime.active_mode, "mode_label": runtime.label, "real_ready": runtime.ready, "reason": runtime.reason, "models": {"yolo": runtime.yolo_model or "not configured", "qwen_vl": runtime.qwen_model}, "accepted_media": {"images": sorted(IMAGE_SUFFIXES), "videos": sorted(VIDEO_SUFFIXES)}, "max_upload_mb": MAX_UPLOAD_BYTES // (1024 * 1024)}
+
+
+def system_ai_status() -> dict:
+    """Configuration truth only; this endpoint never calls a cloud model."""
+    runtime = get_runtime()
+    yolo_path = Path(runtime.yolo_model).expanduser() if runtime.yolo_model else None
+    return {
+        "contract": "system-ai-status.v1",
+        "overall_mode": runtime.active_mode,
+        "reason": runtime.reason,
+        "yolo": {"mode": "REAL" if runtime.active_mode == "real" else "MOCK", "model": yolo_path.name if yolo_path else None, "loaded": bool(yolo_path and yolo_path.is_file() and runtime.active_mode == "real"), "weights_path": str(yolo_path) if yolo_path else None},
+        "qwen_vl": {"mode": "REAL" if runtime.active_mode == "real" else "MOCK", "model": runtime.qwen_model, "api_key_configured": bool(os.environ.get("DASHSCOPE_API_KEY", "").strip()), "reachable": "not_checked"},
+        "multiview_agent": {"mode": "REAL_LOGIC", "max_additional_cameras": 2, "max_iterations": 2},
+        "camera_to_slam": {"mode": "REAL_CALCULATION", "implementation": "spatial.calibration.map_pixel_to_slam"},
+        "scheduler": {"mode": "REAL_ALGORITHM", "implementation": "Phase 3 deterministic capability + score"},
+        "robot": {"mode": "SIMULATION"},
+        "verification": {"mode": "REAL" if runtime.active_mode == "real" else "MOCK"},
+    }
 
 
 def ai_lab_schema() -> dict:
@@ -94,7 +114,7 @@ def analyze_upload(file_path: Path, original_filename: str, camera_id: str) -> d
             "mode": "real", "mode_label": "REAL AI MODE", "source": {"filename": original_filename, "media_type": media_type, "camera_id": camera_id},
             "pipeline": {"yolo": Path(runtime.yolo_model or "").name, "vlm": runtime.qwen_model, "keyframes": len(frames)},
             "detections": detections, "location": location,
-            "perception": {key: value for key, value in vlm.items() if key != "task_profile"}, "task_profile": task_profile,
+            "perception": {key: value for key, value in vlm.items() if key not in {"task_profile", "business_class", "business_confidence"}}, "business_detections": business_detection(vlm, detections), "task_profile": task_profile,
             "workflow_input": None, "scheduler_preview": None,
             "notes": ["REAL mode executed local YOLO and DashScope Qwen-VL.", "AI Lab output is intentionally separate from the Scenario workflow."],
         }

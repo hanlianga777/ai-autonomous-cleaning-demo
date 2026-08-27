@@ -56,12 +56,14 @@ def _base_mock_result(filename: str, media_type: str, camera_id: str, case: dict
     notes = ["Stable local Mock result; no model or cloud API was called.", "AI Lab output is intentionally separate from the Scenario workflow."]
     if location is None:
         notes.append("This camera has no four-point calibration in the Phase 2 dataset, so no SLAM coordinate is asserted.")
+    detections = [{"class_name": case["class_name"], "confidence": 0.91, "bbox": bbox, "frame_index": 0}]
     return {
         "schema_version": AI_RESULT_SCHEMA_VERSION,
         "mode": "mock", "mode_label": "DEMO MOCK MODE",
         "source": {"filename": filename, "media_type": media_type, "camera_id": camera_id},
         "pipeline": {"yolo": "mock-yolo26n", "vlm": "mock-qwen-vl", "keyframes": 3 if media_type == "video" else 1},
-        "detections": [{"class_name": case["class_name"], "confidence": 0.91, "bbox": bbox, "frame_index": 0}],
+        "detections": detections,
+        "business_detections": [{"bbox": bbox, "business_class": "liquid" if case["task_profile"]["pollution_form"] == "liquid" else "large_object" if case["task_profile"]["pollution_form"] == "large_object" else "can" if case["task_profile"]["object_type"] == "aluminum_can" else "small_litter", "display_confidence": 0.91, "confidence_source": "MOCK", "raw_yolo_class": case["class_name"], "raw_yolo_confidence": 0.91, "vlm_class": None, "vlm_confidence": None}],
         "location": location,
         "perception": {"need_clean": True, "confidence": 0.67 if case["label"].startswith("低置信度") else 0.94, "summary": case["summary"], "raw": {"provider": "mock", "case": case["label"]}},
         "task_profile": case["task_profile"],

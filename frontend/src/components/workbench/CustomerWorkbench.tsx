@@ -3,9 +3,10 @@ import { CircleAlert, RefreshCw, ScanLine } from "lucide-react";
 
 import { fetchOperationsSnapshot, startOperationsRun, startOperationsUpload } from "@/api/operations";
 import { fetchSpatialOverview } from "@/api/spatial";
+import { BusinessTimeline } from "@/components/operations/BusinessTimeline";
+import { AiRuntimeStrip } from "@/components/operations/AiRuntimeStrip";
 import { FleetCommandBar } from "@/components/operations/FleetCommandBar";
-import { SpatialMissionMap } from "@/components/operations/SpatialMissionMap";
-import { AuditTimeline, WorkOrderDetail } from "@/components/operations/WorkOrderDetail";
+import { MissionSurface } from "@/components/operations/MissionSurface";
 import { WorkOrderQueue } from "@/components/operations/WorkOrderQueue";
 import { Badge } from "@/components/ui/badge";
 import type { OperationsSnapshot } from "@/types/operations";
@@ -91,22 +92,22 @@ export function CustomerWorkbench() {
     }
   }
 
-  return <section className="mx-auto max-w-[1840px] space-y-4">
+  return <section className="mx-auto max-w-[1680px] space-y-4">
     <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
-      <div><p className="section-kicker">Autonomous cleaning · operations command center</p><h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">自主清洁任务指挥台</h2><p className="mt-1 text-xs text-slate-500">以机器人、工单与空间执行为主视图；场景选择和上传图片只用于创建一张新的演示工单。</p></div>
+      <div><p className="section-kicker">Autonomous cleaning</p><h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">自主清洁工作台</h2><p className="mt-1 text-xs text-slate-500">固定摄像头发现问题，AI 确认后自动调度机器人处理；所有过程围绕一张清洁工单展开。</p></div>
       <div className="flex items-center gap-2"><Badge variant="outline"><span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />DEMO PLAYBACK</Badge><button onClick={() => void refresh(snapshot.run_id)} disabled={busy} className="flex h-9 items-center gap-1.5 border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:text-slate-400"><RefreshCw size={13} className={busy ? "animate-spin" : ""} />刷新状态</button></div>
     </header>
 
     <p className="border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600"><ScanLine size={13} className="mr-1.5 inline text-slate-500" />当前展示的是服务端产生的受控 <strong>DEMO PLAYBACK</strong>，用于透明地演示既有 AI Lab、Phase 2 空间映射、Phase 3 Scheduler、Phase 5 Multi-view 与验收闭环；不是实时设备遥测，也不会把未配置的模型 Key 伪装为真实调用。</p>
+    <AiRuntimeStrip />
     {error && <div role="alert" className="flex items-start justify-between gap-3 border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700"><span><CircleAlert size={14} className="mr-1.5 inline align-[-2px]" />{error}</span><button onClick={() => void refresh()} className="shrink-0 font-semibold underline">重试</button></div>}
 
-    <FleetCommandBar fleet={snapshot.fleet} />
-    <div className="grid gap-4 2xl:grid-cols-[minmax(270px,0.25fr)_minmax(560px,0.5fr)_minmax(330px,0.3fr)]">
+    <div className="border-y border-slate-200 py-3"><FleetCommandBar fleet={snapshot.fleet} /></div>
+    <div className="grid gap-4 xl:grid-cols-[minmax(250px,0.28fr)_minmax(480px,0.44fr)_minmax(250px,0.28fr)]">
       <WorkOrderQueue snapshot={snapshot} onRun={(eventId) => void runScenario(eventId)} onUpload={() => inputRef.current?.click()} />
-      <SpatialMissionMap spatial={spatial} mapId={mapId} onMapChange={setMapId} fleet={snapshot.fleet} activeWorkOrder={snapshot.active_work_order} />
-      <WorkOrderDetail workOrder={snapshot.active_work_order} />
+      <MissionSurface snapshot={snapshot} spatial={spatial} mapId={mapId} onMapChange={setMapId} />
+      <BusinessTimeline workOrder={snapshot.active_work_order} />
     </div>
-    <AuditTimeline workOrder={snapshot.active_work_order} />
     <input ref={inputRef} className="hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { void uploadScenario(event.target.files?.[0]); event.currentTarget.value = ""; }} />
   </section>;
 }

@@ -7,8 +7,8 @@ from fastapi.responses import StreamingResponse
 from database.connection import get_transitions_after, list_events, read_snapshot
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
 from optimization.agent import generate_recommendations
-from operations.service import operations_snapshot, start_scenario, start_upload
-from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload
+from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
+from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload, system_ai_status
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
@@ -24,6 +24,11 @@ API_CONTRACT = "operations.v1"
 def health_check() -> dict:
     status = ai_lab_status()
     return {"status": "ok", "phase": 8, "api_contract": API_CONTRACT, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
+
+
+@router.get("/system/ai-status", tags=["System"])
+def get_system_ai_status() -> dict:
+    return system_ai_status()
 
 
 @router.get("/park")
@@ -127,6 +132,11 @@ async def post_workbench_upload(file: UploadFile = File(...)) -> dict:
 def get_operations_snapshot(run_id: str | None = Query(None)) -> dict:
     """Server-projected mock telemetry, work-order and fleet read model."""
     return operations_snapshot(run_id)
+
+
+@router.get("/operations/work-orders", tags=["Customer Operations"])
+def get_operations_work_orders(limit: int = Query(50, ge=1, le=100)) -> list[dict]:
+    return list_work_orders(limit)
 
 
 @router.post("/operations/runs/{event_id}", tags=["Customer Operations"])
