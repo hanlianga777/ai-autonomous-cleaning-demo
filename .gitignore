@@ -14,3 +14,10 @@ backend/.env
 *.pt
 *.onnx
 *.engine
+# Demo-specific custom YOLO training assets. Source images and weights are local-only.
+datasets/ai_cleaning_raw/
+datasets/ai_cleaning_review/
+datasets/ai_cleaning_yolo/images/
+datasets/ai_cleaning_yolo/labels/
+datasets/ai_cleaning_yolo/holdout/
+models/ai_cleaning_custom_yolo/runs/

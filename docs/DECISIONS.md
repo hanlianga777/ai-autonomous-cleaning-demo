@@ -704,3 +704,22 @@ Phase 8 默认进入中文业务工作台。它通过产品化适配层编排 `a
 **业务类决策：**
 
 客户统一使用 `liquid / can / leaf / large_object / small_litter`。它们不是 stock YOLO 的原生类别承诺；`BusinessDetection` 必须同时保留 raw YOLO、VLM 与置信度来源，禁止为液体、树叶或大件伪造 YOLO bbox / confidence。
+
+---
+
+## 决策 25：Custom YOLO 作为本地、独立的 Demo 数据实验，不提前接入主流程
+
+**最终决定：**
+
+暂停 Phase 8R REAL E2E 后，只使用用户授权的 9 张 Demo 图片训练固定五类的 nano YOLO PoC。原图、review 图和权重只保留本地；Git 只保存训练工具、配置、标注清单和报告。未经用户确认与独立验收前，不替换 Phase 8R YOLO，也不修改 UI、Scheduler、SLAM 或 Multi-view Agent。
+
+**原因：**
+
+当前只有 8 个正样本实例，`leaf` 为 0；这只能验证数据管线和场景可行性，不能支撑生产或 REAL E2E 成功声明。
+
+**对后续开发的影响：**
+
+- 必须先阅读 `docs/YOLO_DATASET_REPORT.md`；
+- 只有用户明确确认结果后，才可讨论将本地 `best.pt` 配置进 REAL YOLO adapter；
+- 接入后仍须单独完成 Qwen-VL、Multi-view、post-clean verification 和浏览器 REAL E2E 验收；
+- 不得用低阈值或 MOCK 输出掩盖本轮 liquid/can/small_litter 漏检。

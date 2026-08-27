@@ -1460,3 +1460,9 @@ UI 强调：
 9. 多摄像头帧时间同步机制尚未最终确定。
 10. Robot B / C 能力参数目前主要作为 PoC Capability Profile，不应宣传成某真实厂商准确参数。
 11. Robot D 目前只有类型定义，不应扩展产品能力。
+
+## 31. Custom YOLO Demo Training（独立前置任务，已完成但未接入）
+
+Phase 8R 的完整 REAL 验收已暂停，未进入新 Phase。本轮只以用户提供的 9 张照片训练固定五类 `liquid / can / leaf / large_object / small_litter` 的 Demo-specific Custom YOLO。有效正样本仅 8 个，`leaf` 没有合法正样本，所有类别均为 LOW DATA。训练、中文 bbox review、逐张推理及 3 组清洁后负样本测试已完成，详见 `docs/YOLO_DATASET_REPORT.md`。
+
+结果只在 0.25 阈值稳定检出 Demo 4 两只 `large_object` 纸箱；`liquid`、`can`、`small_litter` 清洁前图均漏检，`leaf` 不可评估。因此权重仅保存在本地 `models/ai_cleaning_custom_yolo/best.pt`，不提交 Git，**不得**接入 Phase 8R 或声称 REAL 验收通过。MPS 已优先尝试但本机组合报错后回退 CPU；未改动产品 UI、Scheduler、SLAM 或 Agent。

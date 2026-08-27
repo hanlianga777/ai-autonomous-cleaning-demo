@@ -1,0 +1,9 @@
+path: datasets/ai_cleaning_yolo
+train: images/train
+val: images/val
+names:
+  0: liquid
+  1: can
+  2: leaf
+  3: large_object
+  4: small_litter

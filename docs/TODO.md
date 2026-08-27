@@ -313,3 +313,17 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 - [ ] 对比 Robot Adapter 架构
 - [ ] 对比 Elevator Connector
 - [ ] Codex 如认为需要 Fork，先提交复用分析，不得直接重构
+
+---
+
+## Custom YOLO Demo Training｜独立前置任务（已完成，未接入）
+
+- [x] 解压并审计 9 张 Demo 图片；生成本地 raw、YOLO train/val、holdout 与中文 review 目录
+- [x] 固定五类 id：`liquid=0`、`can=1`、`leaf=2`、`large_object=3`、`small_litter=4`
+- [x] 生成标准 YOLO bbox 预标注、清洁后负样本和可视化检查图
+- [x] 使用 YOLO11n 训练；MPS 不兼容时自动 CPU fallback；生成本地 `best.pt` / `last.pt`
+- [x] 在 9 张原图逐张推理，并执行三组 before / after 负样本测试
+- [x] 生成 `docs/YOLO_DATASET_REPORT.md`
+- [ ] 用户确认训练结果后，决定是否做下一轮数据补充/标注或接入 Phase 8R REAL adapter
+
+当前结果：只可靠检出 Demo 4 的 `large_object`；`liquid`、`can`、`small_litter` 在 0.25 阈值漏检，`leaf` 无正样本。禁止接入主流程或标为 REAL 验收通过。

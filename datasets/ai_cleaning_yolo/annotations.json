@@ -1,0 +1,268 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Demo-specific Custom YOLO PoC; never production training data.",
+  "classes": [
+    {
+      "id": 0,
+      "name": "liquid",
+      "display_name_zh": "液体污渍"
+    },
+    {
+      "id": 1,
+      "name": "can",
+      "display_name_zh": "易拉罐"
+    },
+    {
+      "id": 2,
+      "name": "leaf",
+      "display_name_zh": "树叶"
+    },
+    {
+      "id": 3,
+      "name": "large_object",
+      "display_name_zh": "大件物品"
+    },
+    {
+      "id": 4,
+      "name": "small_litter",
+      "display_name_zh": "其他小型垃圾"
+    }
+  ],
+  "annotation_method": "Vision-assisted bbox prelabels, manually checked against the supplied original image; after images are explicit negative samples.",
+  "split_policy": "Native source-image split. Any Ultralytics augmentation stays within its source image split; no generated image is copied between train and val.",
+  "samples": [
+    {
+      "id": "demo1_before",
+      "source": "demo1 室外地面纸巾/清洁前.png",
+      "split": "train",
+      "scene": "demo1_outdoor_tissue",
+      "phase": "before",
+      "boxes": [
+        {
+          "class": "small_litter",
+          "xyxy": [
+            716,
+            675,
+            775,
+            716
+          ]
+        }
+      ],
+      "review_status": "VERIFIED_PRELABEL",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "8c69508e1f681bf4aa3e3f09b994bce00df56927808686c34d0117f2b27e220c"
+    },
+    {
+      "id": "demo1_after",
+      "source": "demo1 室外地面纸巾/清洁后.png",
+      "split": "holdout",
+      "scene": "demo1_outdoor_tissue",
+      "phase": "after",
+      "boxes": [],
+      "review_status": "NEGATIVE_SAMPLE",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "a3c35c46e30014f44f1e6b9fa5cc815e95b63412025dfc3bea64085df24bea14"
+    },
+    {
+      "id": "demo2_view1_before",
+      "source": "demo2 室内地面奶茶污渍/清洁前视角1.png",
+      "split": "train",
+      "scene": "demo2_beverage_spill_cam_a1_02",
+      "phase": "before",
+      "boxes": [
+        {
+          "class": "liquid",
+          "xyxy": [
+            684,
+            529,
+            802,
+            617
+          ]
+        }
+      ],
+      "review_status": "VERIFIED_PRELABEL",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "46993284c05320f7dbde77f631eec92fae2facd032048f4341c5e050d328de5a"
+    },
+    {
+      "id": "demo2_view2_before",
+      "source": "demo2 室内地面奶茶污渍/清洁前视角2.png",
+      "split": "train",
+      "scene": "demo2_beverage_spill_cam_a1_01",
+      "phase": "before",
+      "boxes": [
+        {
+          "class": "liquid",
+          "xyxy": [
+            643,
+            544,
+            827,
+            641
+          ]
+        }
+      ],
+      "review_status": "VERIFIED_PRELABEL",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "a10c39cb47f441b597d91ac704beca7e826e9cbdf1bc17b78c5138eec230eb9c"
+    },
+    {
+      "id": "demo2_view3_before",
+      "source": "demo2 室内地面奶茶污渍/清洁前视角3.png",
+      "split": "val",
+      "scene": "demo2_beverage_spill_cam_a1_04",
+      "phase": "before",
+      "boxes": [
+        {
+          "class": "liquid",
+          "xyxy": [
+            630,
+            539,
+            817,
+            614
+          ]
+        }
+      ],
+      "review_status": "VERIFIED_PRELABEL",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "2ddc651e28e60c3c491684b9971a3f78824b60ecc3654d6947d1c3bcad35f5c8"
+    },
+    {
+      "id": "demo2_after",
+      "source": "demo2 室内地面奶茶污渍/清洁后视角.png",
+      "split": "holdout",
+      "scene": "demo2_beverage_spill_after_cam_a1_02",
+      "phase": "after",
+      "boxes": [],
+      "review_status": "NEGATIVE_SAMPLE",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "f53ba3bdff231f44fbec175038da205aaecceee3e80f4064beab649baf668b92"
+    },
+    {
+      "id": "demo3_before",
+      "source": "demo3 室内2楼易拉罐/清洁前.png",
+      "split": "train",
+      "scene": "demo3_indoor_can",
+      "phase": "before",
+      "boxes": [
+        {
+          "class": "can",
+          "xyxy": [
+            699,
+            695,
+            735,
+            721
+          ]
+        }
+      ],
+      "review_status": "VERIFIED_PRELABEL",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "bf071ebef6b3877b99b979557a78fbdc5e12ed09b70ecaa11be260f342942df4"
+    },
+    {
+      "id": "demo3_after",
+      "source": "demo3 室内2楼易拉罐/清洁后.png",
+      "split": "holdout",
+      "scene": "demo3_indoor_can",
+      "phase": "after",
+      "boxes": [],
+      "review_status": "NEGATIVE_SAMPLE",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "6761743dd4b64924cccca1197f4646ba16654d5b1037cb47eebe4ff73d0e8856"
+    },
+    {
+      "id": "demo4_before",
+      "source": "demo4 室内走廊垃圾桶旁的纸箱/清洁前.png",
+      "split": "train",
+      "scene": "demo4_oversized_boxes",
+      "phase": "before",
+      "boxes": [
+        {
+          "class": "large_object",
+          "xyxy": [
+            505,
+            570,
+            627,
+            706
+          ]
+        },
+        {
+          "class": "large_object",
+          "xyxy": [
+            604,
+            610,
+            723,
+            729
+          ]
+        }
+      ],
+      "review_status": "VERIFIED_PRELABEL",
+      "dimensions": {
+        "width": 1448,
+        "height": 1086
+      },
+      "source_sha256": "59e87c4a8cea71eb9e6648b985d3ba3708799496938f10ac6541915f7360df29"
+    }
+  ],
+  "inventory": {
+    "raw_image_total": 9,
+    "scenes": {
+      "demo1": 2,
+      "demo2": 4,
+      "demo3": 2,
+      "demo4": 1
+    },
+    "resolution_counts": {
+      "1448x1086": 9
+    },
+    "exact_duplicates_inside_zip": [],
+    "before_images": 6,
+    "after_images": 3,
+    "multiview_before_images": 3,
+    "positive_image_count_by_class": {
+      "liquid": 3,
+      "can": 1,
+      "leaf": 0,
+      "large_object": 2,
+      "small_litter": 1
+    },
+    "instance_count_by_class": {
+      "liquid": 3,
+      "can": 1,
+      "leaf": 0,
+      "large_object": 2,
+      "small_litter": 1
+    },
+    "low_data_classes": [
+      "liquid",
+      "can",
+      "leaf",
+      "large_object",
+      "small_litter"
+    ],
+    "note": "leaf has no valid target instance in the supplied images; background foliage is intentionally not annotated."
+  }
+}

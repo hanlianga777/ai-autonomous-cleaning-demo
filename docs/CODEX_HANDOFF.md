@@ -855,3 +855,19 @@ Heatmap + Optimization Agent
 10. 无真实 AI API 时 Demo 仍能稳定展示。
 11. 所有关键决策可以解释。
 12. 整体像一个可落地 AI 解决方案，而不是 AI API 拼装 Demo。
+
+---
+
+# 24. Current inserted task: Custom YOLO Demo Training
+
+Phase 8R REAL E2E remains paused. Do not enter a new Phase, change the customer UI, or alter Scheduler / SLAM / Agent architecture.
+
+The separate local custom-YOLO utility is complete:
+
+- `tools/custom_yolo_demo.py` audits, prepares, verifies, trains and infers only from the user-authorized ZIP;
+- fixed classes: `liquid=0`, `can=1`, `leaf=2`, `large_object=3`, `small_litter=4`;
+- reproducible annotations/config: `datasets/ai_cleaning_yolo/annotations.json` and `data.yaml`;
+- local weights: `models/ai_cleaning_custom_yolo/best.pt` (Git-ignored);
+- report: `docs/YOLO_DATASET_REPORT.md`.
+
+The current result is **not integration-ready**: only `large_object` passes at the normal 0.25 threshold; liquid, can and small_litter miss, and leaf has no source positive. Do not connect the weight to Phase 8R REAL mode or claim REAL E2E success. Await user review; any later integration still needs Qwen-VL, Multi-view, post-clean verification and browser E2E validation.

@@ -974,3 +974,18 @@ open-rmf/rmf_demos
 ````
 
 ---
+
+## 21. Independent Custom YOLO Training Utility
+
+```text
+user-authorized ZIP photos (local only)
+→ audit / fixed five-class annotation manifest
+→ YOLO images/train + images/val + after-image holdout
+→ Chinese bounding-box review previews
+→ YOLO11n training (MPS first, CPU fallback)
+→ local best.pt + per-image inference report
+→ user review
+→ (only after explicit approval) Phase 8R REAL YOLO adapter configuration
+```
+
+`tools/custom_yolo_demo.py` is an offline development utility, not an API or a second runtime perception service. It never creates a CleaningEvent, calls Camera → SLAM, changes Scheduler / Capability rules, calls an Agent, or alters the customer UI. The provenance and fixed class order are committed in `datasets/ai_cleaning_yolo/annotations.json`; user images, review previews and weights are Git-ignored. The integration arrow is deliberately inactive until user approval.

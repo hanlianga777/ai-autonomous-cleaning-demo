@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "model": "models/ai_cleaning_custom_yolo/best.pt",
+  "confidence_threshold": 0.25,
+  "samples": [
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo1 室外地面纸巾/清洁前.png",
+      "sample_id": "demo1_before",
+      "phase": "before",
+      "ground_truth": [
+        "small_litter"
+      ],
+      "predictions": [],
+      "after_negative_test_pass": null
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo1 室外地面纸巾/清洁后.png",
+      "sample_id": "demo1_after",
+      "phase": "after",
+      "ground_truth": [],
+      "predictions": [],
+      "after_negative_test_pass": true
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo2 室内地面奶茶污渍/清洁前视角1.png",
+      "sample_id": "demo2_view1_before",
+      "phase": "before",
+      "ground_truth": [
+        "liquid"
+      ],
+      "predictions": [],
+      "after_negative_test_pass": null
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo2 室内地面奶茶污渍/清洁前视角2.png",
+      "sample_id": "demo2_view2_before",
+      "phase": "before",
+      "ground_truth": [
+        "liquid"
+      ],
+      "predictions": [],
+      "after_negative_test_pass": null
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo2 室内地面奶茶污渍/清洁前视角3.png",
+      "sample_id": "demo2_view3_before",
+      "phase": "before",
+      "ground_truth": [
+        "liquid"
+      ],
+      "predictions": [],
+      "after_negative_test_pass": null
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo2 室内地面奶茶污渍/清洁后视角.png",
+      "sample_id": "demo2_after",
+      "phase": "after",
+      "ground_truth": [],
+      "predictions": [],
+      "after_negative_test_pass": true
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo3 室内2楼易拉罐/清洁前.png",
+      "sample_id": "demo3_before",
+      "phase": "before",
+      "ground_truth": [
+        "can"
+      ],
+      "predictions": [],
+      "after_negative_test_pass": null
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo3 室内2楼易拉罐/清洁后.png",
+      "sample_id": "demo3_after",
+      "phase": "after",
+      "ground_truth": [],
+      "predictions": [],
+      "after_negative_test_pass": true
+    },
+    {
+      "image": "datasets/ai_cleaning_raw/AI Cleaning demo 照片/demo4 室内走廊垃圾桶旁的纸箱/清洁前.png",
+      "sample_id": "demo4_before",
+      "phase": "before",
+      "ground_truth": [
+        "large_object",
+        "large_object"
+      ],
+      "predictions": [
+        {
+          "class": "large_object",
+          "confidence": 0.9395,
+          "xyxy": [
+            599.5,
+            606.4,
+            720.9,
+            732.3
+          ]
+        },
+        {
+          "class": "large_object",
+          "confidence": 0.7867,
+          "xyxy": [
+            504.0,
+            565.6,
+            625.6,
+            711.3
+          ]
+        }
+      ],
+      "after_negative_test_pass": null
+    }
+  ]
+}

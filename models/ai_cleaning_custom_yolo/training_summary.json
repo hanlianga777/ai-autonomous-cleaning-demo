@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Demo-specific / PoC only; no production-readiness claim.",
+  "base_model": "yolo11n.pt",
+  "device": "cpu",
+  "attempted_devices": [
+    "mps",
+    "cpu"
+  ],
+  "fallback_reason": "zeros: Dimension size must be non-negative.",
+  "epochs_requested": 60,
+  "training_time_seconds": 150.85,
+  "dataset_yaml": "datasets/ai_cleaning_yolo/data.yaml",
+  "run_dir": "models/ai_cleaning_custom_yolo/runs/custom_yolo",
+  "best_weights": "models/ai_cleaning_custom_yolo/best.pt",
+  "last_weights": "models/ai_cleaning_custom_yolo/last.pt",
+  "augmentation": {
+    "brightness_hsv_v": 0.1,
+    "contrast_hsv_s": 0.1,
+    "rotation_degrees": 3.0,
+    "scale": 0.05,
+    "translation": 0.02,
+    "mosaic": 0.0,
+    "mixup": 0.0
+  },
+  "created_at": "2026-08-27T10:07:53.134342+00:00"
+}
