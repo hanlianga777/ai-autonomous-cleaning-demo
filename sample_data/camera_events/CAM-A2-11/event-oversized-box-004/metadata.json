@@ -1,0 +1,12 @@
+{
+  "event_id": "event-oversized-box-004",
+  "camera_id": "CAM-A2-11",
+  "building": "A",
+  "floor": "2F",
+  "zone": "East Corridor",
+  "view_role": "primary",
+  "object_type": "large_cardboard_box",
+  "expected_robot": "HUMAN_FALLBACK",
+  "asset_role": "before_only",
+  "verification_note": "No after-cleaning image was supplied. The workbench must show an open human work order rather than fabricate a pass."
+}

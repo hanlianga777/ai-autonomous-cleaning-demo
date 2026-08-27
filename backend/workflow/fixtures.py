@@ -26,10 +26,22 @@ EVENT_TEMPLATES = {
         "location": {"building": "A", "floor": "1F", "zone": "East Corridor", "map_id": "A_1F", "x": 66.0, "y": 30.0},
         "task_profile": {"object_type": "paper_cup", "pollution_form": "dry_debris", "severity": "low", "estimated_area": 0.15, "surface": "tile", "required_capabilities": ["dry_debris"], "priority": "normal", "crowd_level": "high"},
     },
+    "indoor_can": {
+        "label": "A 栋 2F 易拉罐 · Robot C",
+        "template": "indoor_can", "confidence": 0.93, "camera_id": "CAM-A2-08",
+        "location": {"building": "A", "floor": "2F", "zone": "East Corridor", "map_id": "A_2F", "x": 37.0, "y": 25.0},
+        "task_profile": {"object_type": "aluminum_can", "pollution_form": "dry_debris", "severity": "low", "estimated_area": 0.08, "surface": "carpet", "required_capabilities": ["dry_debris", "light_cleaning"], "priority": "normal", "crowd_level": "medium"},
+    },
     "oversized_object": {
         "label": "大型纸箱 · Human Fallback",
         "template": "oversized_object", "confidence": 0.97, "camera_id": "CAM-A1-01",
         "location": {"building": "A", "floor": "1F", "zone": "Main Lobby", "map_id": "A_1F", "x": 23.0, "y": 25.0},
         "task_profile": {"object_type": "large_cardboard_box", "pollution_form": "large_object", "severity": "medium", "estimated_area": 2.0, "surface": "tile", "required_capabilities": ["large_object_pickup"], "priority": "normal", "crowd_level": "high"},
+    },
+    "oversized_object_a2": {
+        "label": "A 栋 2F 大型纸箱 · Human Fallback",
+        "template": "oversized_object_a2", "confidence": 0.97, "camera_id": "CAM-A2-11",
+        "location": {"building": "A", "floor": "2F", "zone": "East Corridor", "map_id": "A_2F", "x": 20.0, "y": 26.0},
+        "task_profile": {"object_type": "large_cardboard_box", "pollution_form": "large_object", "severity": "medium", "estimated_area": 2.0, "surface": "carpet", "required_capabilities": ["large_object_pickup"], "priority": "normal", "crowd_level": "medium"},
     },
 }

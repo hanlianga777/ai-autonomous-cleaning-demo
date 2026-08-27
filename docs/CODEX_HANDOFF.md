@@ -758,7 +758,7 @@ IMPLEMENTED · VISUAL ASSET VALIDATION PENDING
 
 ## 本阶段完成内容
 
-Phase 8：默认进入中文客户工作台，完整编排 Scenario 02 的现场、低置信度 AI 研判、多视角确认、同源 Camera → SLAM、Robot B 调度与地图移动、清洁、固定摄像头验收和闭环。Phase 1–7 页面保留在技术后台 / AI 能力验证。新增 `sample_data/camera_events` 素材契约与 `/api/workbench/scenario02/*` 适配 API，未改写任何引擎。
+Phase 8：默认进入中文客户工作台，现已用四组经授权素材完整编排 Scenario 01–04。上传仓库内任一清洁前原图会被 SHA-256 精确匹配并自动播放既有闭环：纸巾 → Robot A；三机位奶茶液污 → Multi-view（CAM-A1-02 / CAM-A1-04）→ Robot B；二楼易拉罐 → Robot C 的跨楼栋路线；大型纸箱 → Human Fallback。工作台通过 `/api/workbench/scenarios`、`/api/workbench/events/{event_id}/run`、`/api/workbench/upload` 调用，未改写任何引擎。
 
 ## 修改文件
 
@@ -773,7 +773,7 @@ Phase 8：默认进入中文客户工作台，完整编排 Scenario 02 的现场
 - REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。
 - Phase 5 只提供稳定 Mock 的 Scenario 02 多视角证据；真实摄像头取帧与真实 VLM 实跑属于后续接入验证，不改变其统一结构化边界。
 - Phase 6 的 30 天运营历史和 Optimization 建议均为确定性 Mock 数据；尚未接入真实设备 / 长期运营数据，建议不会自动下发为配置。
-- Scenario 02 尚缺少 4 张经授权实拍图：CAM-A1-01 `primary.jpg` / `after.jpg`、CAM-A1-02 / CAM-A1-03 `secondary.jpg`。工作台会明确显示缺失槽位，不伪造视觉素材。
+- 四组受控 Demo 素材已经入库并经浏览器验证加载。Scenario 04 仅有清洁前大型纸箱图，符合 Human Fallback：必须展示“等待人工回传验收”，不得用 Mock Verification 或 AI 图片把它呈现为自动验收通过。
 
 ## 下一阶段建议
 

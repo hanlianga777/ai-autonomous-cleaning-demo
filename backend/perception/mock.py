@@ -29,6 +29,11 @@ MOCK_CASES: dict[str, dict[str, Any]] = {
         "summary": "A small paper cup and light dry debris were confirmed indoors.",
         "task_profile": {"object_type": "paper_cup", "pollution_form": "dry_debris", "severity": "low", "estimated_area": 0.15, "surface": "tile", "required_capabilities": ["dry_debris"], "priority": "normal", "crowd_level": "high"},
     },
+    "indoor_aluminum_can": {
+        "label": "室内易拉罐 · Robot C", "camera_id": "CAM-A2-08", "class_name": "aluminum_can", "center": (500, 400),
+        "summary": "A small aluminum can was confirmed on the indoor carpet corridor.",
+        "task_profile": {"object_type": "aluminum_can", "pollution_form": "dry_debris", "severity": "low", "estimated_area": 0.08, "surface": "carpet", "required_capabilities": ["dry_debris", "light_cleaning"], "priority": "normal", "crowd_level": "medium"},
+    },
     "oversized_box_or_bag": {
         "label": "大纸箱/大垃圾袋 · Human Fallback", "camera_id": "CAM-A1-01", "class_name": "large_cardboard_box", "center": (380, 365),
         "summary": "An oversized object was confirmed; it exceeds the supported autonomous pickup capability.",

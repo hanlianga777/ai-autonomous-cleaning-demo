@@ -18,9 +18,9 @@
 - 真实 AI 适配器：配置本地 YOLO 权重与 DashScope Key 后启用 `REAL AI MODE`；否则明确降级为 `DEMO MOCK MODE`
 - Optimization Center：30 天稳定 Mock 历史、Spatial Heatmap、时段分布、Robot Utilization、KPI 与受限 Optimization Agent
 - Interview UX：五个可用一级入口、四类 Scenario 启动卡、状态回放、跨楼栋连接器、Camera → SLAM 与 Before / After 验收讲解
-- 默认客户首页：自主清洁任务工作台，以现场、AI 判断、空间执行、当前任务、固定摄像头验收组织 Scenario 02
+- 默认客户首页：自主清洁任务工作台，已接入四组经授权 Demo 现场图；上传任一清洁前原图将自动匹配并播放完整业务闭环
 
-尚未实现真实设备执行、真实长期运营数据接入与 REAL AI 实跑验证；Scenario 02 的四张经授权现场实拍图也尚待提供。当前范围仍为稳定可复现的 PoC Demo。
+尚未实现真实设备执行、真实长期运营数据接入与 REAL AI 实跑验证。上传自动匹配仅面向仓库内四张受控清洁前原图；生产环境仍需由真实 YOLO / Qwen-VL 推理替代该 Demo 适配层。当前范围仍为稳定可复现的 PoC Demo。
 
 ## 目录
 
@@ -102,6 +102,9 @@ npm run dev
 | `POST /api/ai-lab/analyze?camera_id=` | 上传图片 / MP4 并返回感知链路与 Task Profile |
 | `GET /api/workbench/scenario02/assets` | Scenario 02 的 Camera + Event + View 素材清单与缺失状态 |
 | `POST /api/workbench/scenario02/run` | 组合既有感知、多视角、调度、执行与验收结果供客户工作台播放 |
+| `GET /api/workbench/scenarios` | 四组受控客户演示场景及其 Camera + Event + View 素材清单 |
+| `POST /api/workbench/events/{event_id}/run` | 运行所选场景的既有 AI、空间、调度、执行与验收链路 |
+| `POST /api/workbench/upload` | 上传受控清洁前原图，SHA-256 匹配场景后自动运行完整闭环 |
 
 ## 数据与模式说明
 
@@ -182,14 +185,15 @@ uvicorn main:app --reload --port 8000
 ## Phase 8｜客户演示工作台
 
 - 默认首页改为中文优先的“自主清洁任务工作台”；Phase 1–7 页面保留在技术后台与 AI 能力验证入口
-- Scenario 02 复用 `ai-lab.v1` 低置信度 Mock 结果、Phase 5 Multi-view Agent、Phase 2 `map_pixel_to_slam`、Phase 3 Scheduler / Verification；不新增第二套 AI 或坐标算法
-- 三栏呈现：固定摄像头现场、2D SLAM 空间与 Robot B 动画、当前清洁任务；技术 JSON、评分、工具调用收纳至详情
-- 引入 `sample_data/camera_events` 的 Camera + Event + View 素材契约和 `/api/workbench/scenario02/*` 产品化适配 API
-- 缺少真实素材时明确显示“待补充经授权现场实拍图”，不生成或伪造真实图片
+- 四组现场素材分别对应：室外纸巾 → Robot A、三机位奶茶污渍 → Robot B、多楼栋二楼易拉罐 → Robot C、大纸箱 → Human Fallback
+- 上传任一受控清洁前原图会以 SHA-256 确定性匹配事件，随后复用 `ai-lab.v1`、Phase 2 `map_pixel_to_slam`、Phase 3 Scheduler / Verification；不新增第二套 AI 或坐标算法
+- Scenario 02 在 0.67 置信度触发 Phase 5 Multi-view Agent，真实素材的 CAM-A1-02 与 CAM-A1-04 作为两个补充视角；UI 仅展示工具、证据、摄像头、置信度和决定
+- 三栏呈现：固定摄像头现场、2D SLAM 空间与任务路线、当前清洁任务；另有完整业务状态审计和 Before / After 验收
+- Scenario 04 没有提供清洁后图且应进入人工兜底，工作台明确展示待人工回传验收，不伪造 PASS 图
 
 ## 下一阶段边界
 
-Phase 8 的逻辑与浏览器验收已完成；待补齐 Scenario 02 的四张经授权实拍图后，再进行客户视觉素材的最终验收。未进入 Phase 9。
+Phase 8 的素材接入、四场景自动播放与浏览器验收已完成。未进入 Phase 9。
 
 ## 验证
 

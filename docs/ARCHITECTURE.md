@@ -872,7 +872,7 @@ Camera asset / upload
 → customer-facing business timeline and Before / After
 ```
 
-`workbench.service` 只组合上述已有结果，`/api/workbench/scenario02/assets` 只返回 Camera + Event + View 素材关系，`/api/workbench/scenario02/run` 返回既有感知、工作流和多视角审计结果。`/demo-assets` 只静态提供实际存在的受授权文件；没有素材时，前端显示缺失槽位，绝不返回伪造图片。
+`workbench.service` 只组合上述已有结果。`/api/workbench/scenarios` 返回四个 `Camera + Event + View` 素材关系，`/api/workbench/events/{event_id}/run` 返回既有感知、工作流和多视角审计，`/api/workbench/upload` 仅以 SHA-256 匹配四张受控清洁前原图后运行同一链路。`/demo-assets` 只静态提供实际存在的授权文件；没有素材时，前端显示缺失槽位，绝不返回伪造图片。大型纸箱是 Human Fallback，不具备清洁后图时只能展示人工工单与待回传验收。
 
 ---
 

@@ -1,0 +1,11 @@
+{
+  "event_id": "event-indoor-can-003",
+  "camera_id": "CAM-A2-08",
+  "building": "A",
+  "floor": "2F",
+  "zone": "East Corridor",
+  "view_role": "primary",
+  "object_type": "aluminum_can",
+  "expected_robot": "ROBOT_C",
+  "asset_role": "before_and_after"
+}

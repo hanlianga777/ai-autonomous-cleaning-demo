@@ -1,19 +1,22 @@
 # Camera Event Demo Assets
 
-Phase 8 的客户工作台不会生成或伪造“真实现场照片”。请按以下路径提供 Scenario 02 的经授权实拍素材；文件名必须保持不变。
+本目录保存用户授权、仅用于本地 PoC / GitHub Demo 的四组固定摄像头素材。工作台不会生成或篡改“真实现场照片”。
 
 ```text
 camera_events/
+├── CAM-OUT-01/event-outdoor-tissue-001/
+│   ├── primary.png / after.png       # 室外纸巾：Robot A
 ├── CAM-A1-01/event-beverage-spill-002/
-│   ├── primary.jpg       # 奶茶/液体重污主视角（清洁前）
-│   ├── after.jpg         # 同一固定摄像头的清洁后画面
-│   └── metadata.json
-├── CAM-A1-02/event-beverage-spill-002/
-│   ├── secondary.jpg     # 同一事件的补充视角
-│   └── metadata.json
-└── CAM-A1-03/event-beverage-spill-002/
-    ├── secondary.jpg     # 同一事件的补充视角
-    └── metadata.json
+│   ├── primary.png / after.png       # 奶茶污渍主视角：Robot B
+├── CAM-A1-02/event-beverage-spill-002/secondary.png
+├── CAM-A1-04/event-beverage-spill-002/secondary.png
+│                                      # 两个补充视角：Phase 5 Multi-view
+├── CAM-A2-08/event-indoor-can-003/
+│   ├── primary.png / after.png       # 二楼易拉罐：Robot C
+└── CAM-A2-11/event-oversized-box-004/
+    └── primary.png                   # 大型纸箱：Human Fallback，无 after 图
 ```
 
-建议图片为 16:9、至少 1280×720，避免拍入人脸、车牌或其他敏感信息。素材只描述摄像头、事件和视角关系；AI 判断仍复用 `ai-lab.v1` / Phase 4 perception schema。
+每个事件目录的 `metadata.json` 仅描述 Camera、Event、View 与预期业务边界。`/api/workbench/upload` 对上传内容计算 SHA-256，只接受这四张受控的清洁前原图进行自动场景匹配；未知上传会返回明确错误，绝不默认成某个清洁事件。
+
+其中 Scenario 04 没有清洁后图是刻意保留的业务事实：大型纸箱必须创建人工工单，工作台只能显示“等待人工回传验收”，不能伪造自动验收通过。

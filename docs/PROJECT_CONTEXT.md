@@ -1283,9 +1283,9 @@ Workflow + Scheduler。
 
 ## Phase 8
 
-客户演示工作台产品化层已完成：默认进入中文业务工作台，而非技术 Dashboard。优先实现 Scenario 02，按“发现现场问题 → AI 研判 → 空间定位 → 机器人调度 → 执行清洁 → 固定摄像头验收 → 任务闭环”组织信息。它只编排既有 Phase 4 `ai-lab.v1`、Phase 5 Multi-view、Phase 2 `map_pixel_to_slam`、Phase 3 Scheduler / Verification；不会新建 AI、坐标或调度实现。
+客户演示工作台产品化层已完成：默认进入中文业务工作台，而非技术 Dashboard。按“发现现场问题 → AI 研判 → 空间定位 → 机器人调度 → 执行清洁 → 固定摄像头验收 → 任务闭环”组织信息。它只编排既有 Phase 4 `ai-lab.v1`、Phase 5 Multi-view、Phase 2 `map_pixel_to_slam`、Phase 3 Scheduler / Verification；不会新建 AI、坐标或调度实现。
 
-新增素材契约 `sample_data/camera_events/<camera>/<event>/`，metadata 只描述摄像头、事件与视角关系。当前缺少 Scenario 02 的主视角、两个补充视角和清洁后四张经授权实拍图；UI 以明确缺失槽位呈现，严禁用 AI / stock 图伪造“真实现场”。素材补齐后无需改代码即可由 `/demo-assets` 加载并完成最终视觉验收。
+已接入四组经授权素材，均存放在 `sample_data/camera_events/<camera>/<event>/`，metadata 只描述摄像头、事件与视角关系。清洁前原图以 SHA-256 精确匹配受控场景：室外纸巾 → Robot A；三机位奶茶液污 → Multi-view CONFIRM → Robot B；二楼易拉罐 → Robot C（电梯 + Skybridge 路线）；走廊大型纸箱 → `HUMAN_FALLBACK`。后者没有清洁后图，因此仅展示已创建的人工工单和“等待回传验收”，严禁伪造通过图。受控匹配是 `DEMO MOCK MODE` 的稳定演示适配；生产任意上传仍需后续 REAL AI 实跑验证。
 
 ---
 

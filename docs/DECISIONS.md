@@ -649,7 +649,7 @@ AI Lab 需要证明真实能力可接入，但固定 Scenario 必须可在无权
 
 Phase 8 默认进入中文业务工作台。它通过产品化适配层编排 `ai-lab.v1`、Multi-view Agent、Camera → SLAM、Scheduler、Robot Adapter 与 Verification，不增加第二套 AI、坐标映射或调度逻辑。
 
-Scenario 02 的摄像头素材采用 `Camera + Event + View` 目录契约。没有经授权实拍图时，UI 必须显示明确的素材缺失状态，禁止生成 AI 图片、渐变占位“照片”或误导性 stock 图。
+摄像头素材采用 `Camera + Event + View` 目录契约。四组经授权受控图片已入库；在 `DEMO MOCK MODE`，只有与清洁前资产 SHA-256 完全一致的上传才可自动匹配固定场景。未知图片不得伪造成已识别场景。Scenario 04 的大型纸箱属于 Human Fallback，未提供清洁后图时只显示待人工回传验收，禁止生成 AI 图片、渐变占位“照片”或误导性 stock 图。
 
 **原因：**
 
@@ -660,4 +660,4 @@ Scenario 02 的摄像头素材采用 `Camera + Event + View` 目录契约。没�
 - 客户默认只看现场、AI 判断、位置、机器人、执行、验收；技术 JSON 与工具调用进入详情层；
 - `map_pixel_to_slam`、Capability Engine、Scheduler、Robot-first + Human Fallback 保持唯一实现；
 - 补齐素材只可添加文件，不得改写 metadata 为完整 AI 结果；
-- Phase 8 在四张 Scenario 02 实拍图补齐并经人工验收前，不得开始 Phase 9。
+- 已完成四场景素材与浏览器验收；仍不得自行开始未定义的后续 Phase。

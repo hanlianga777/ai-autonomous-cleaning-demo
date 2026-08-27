@@ -9,7 +9,7 @@ from spatial.spatial_data import CAMERAS
 
 SCENARIO_02_EVIDENCE = {
     "CAM-A1-02": {"frame_id": "mv-a1-02-001", "captured_at": "2026-08-26T10:00:01+08:00", "sync_offset_ms": 180, "evidence": "wet reflective patch adjacent to beverage cup", "confidence": 0.90},
-    "CAM-A1-03": {"frame_id": "mv-a1-03-001", "captured_at": "2026-08-26T10:00:01+08:00", "sync_offset_ms": 240, "evidence": "spreading liquid boundary on tiled lobby floor", "confidence": 0.92},
+    "CAM-A1-04": {"frame_id": "mv-a1-04-001", "captured_at": "2026-08-26T10:00:01+08:00", "sync_offset_ms": 240, "evidence": "spreading liquid boundary on tiled lobby floor", "confidence": 0.92},
 }
 
 
@@ -34,6 +34,7 @@ def camera_coverage_tool(location: dict[str, Any], primary_camera_id: str, limit
             continue
         if _contains(location, camera["coverage_polygon"]):
             candidates.append({"camera_id": camera["camera_id"], "name": camera["name"], "map_id": camera["map_id"], "zone": camera["zone"], "selection_basis": "same-map coverage polygon contains initial SLAM target"})
+    candidates.sort(key=lambda camera: (camera["camera_id"] not in SCENARIO_02_EVIDENCE, camera["camera_id"]))
     return {"tool": "Camera Coverage Tool", "primary_camera_id": primary_camera_id, "selected_cameras": candidates[:limit], "candidate_count": len(candidates)}
 
 

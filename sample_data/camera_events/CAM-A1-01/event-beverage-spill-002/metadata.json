@@ -6,5 +6,7 @@
   "zone": "Main Lobby",
   "view_role": "primary",
   "object_type": "beverage_spill",
-  "expected_robot": "ROBOT_B"
+  "expected_robot": "ROBOT_B",
+  "asset_role": "before_and_after",
+  "source_note": "Approved customer demo material. The initial image is intentionally a confidence-gray-zone input."
 }

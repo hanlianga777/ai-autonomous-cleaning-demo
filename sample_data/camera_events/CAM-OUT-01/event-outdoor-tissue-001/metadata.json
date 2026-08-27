@@ -1,0 +1,11 @@
+{
+  "event_id": "event-outdoor-tissue-001",
+  "camera_id": "CAM-OUT-01",
+  "building": "OUTDOOR",
+  "floor": "Outdoor",
+  "zone": "East Road",
+  "view_role": "primary",
+  "object_type": "small_litter",
+  "expected_robot": "ROBOT_A",
+  "asset_role": "before_and_after"
+}

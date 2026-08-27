@@ -219,17 +219,21 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 - [x] 三视角证据、空间映射、Robot B 路线动画、清洁、固定摄像头验收、闭环 UI
 - [x] 技术详情按第二层 / 第三层收纳，不显示 Chain-of-Thought
 - [x] 浏览器验收 Scenario 02 的完整 Mock 流程
-- [ ] 提供并放入 4 张经授权 Scenario 02 现场实拍图：CAM-A1-01 `primary.jpg` / `after.jpg`、CAM-A1-02 / CAM-A1-03 `secondary.jpg`
-- [ ] 素材补齐后进行客户视觉素材最终验收；不得在此之前进入 Phase 9
+- [x] 入库 4 组经授权现场演示素材（共 9 张 PNG），保持 Camera + Event + View 契约
+- [x] 四个 Scenario 的素材化工作台：Robot A、B 多视角、C 跨楼栋、Human Fallback
+- [x] 上传清洁前原图后 SHA-256 匹配受控场景并自动运行完整业务流
+- [x] 展示 AI 研判、Camera → SLAM、Capability / Scheduler、路径、状态审计、Before / After 验收
+- [x] Scenario 04 明确展示人工工单与待回传验收，不伪造清洁后照片
+- [x] 素材化工作台 API、后端测试、前端构建与浏览器验收
 
 ---
 
 # 五、固定 Demo Scenario
 
-- [ ] Scenario 01：Outdoor Autonomous / Robot A
-- [ ] Scenario 02：Multi-view Heavy Cleaning / Robot B
-- [ ] Scenario 03：Cross-building Orchestration / Robot C
-- [ ] Scenario 04：Capability Boundary / Human Fallback
+- [x] Scenario 01：Outdoor Autonomous / Robot A
+- [x] Scenario 02：Multi-view Heavy Cleaning / Robot B
+- [x] Scenario 03：Cross-building Orchestration / Robot C
+- [x] Scenario 04：Capability Boundary / Human Fallback
 
 ---
 

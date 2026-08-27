@@ -7,13 +7,13 @@ from fastapi.responses import StreamingResponse
 from database.connection import get_transitions_after, list_events, read_snapshot
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
 from optimization.agent import generate_recommendations
-from perception.service import RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload
+from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
 from workflow.engine import WorkflowError, create_mock_event, evaluate_event, event_detail, run_event, run_scenario_02
 from workflow.fixtures import EVENT_TEMPLATES
-from workbench.service import run_scenario_02_workbench, scenario_02_assets
+from workbench.service import list_scenario_assets, run_scenario_02_workbench, run_workbench_event, run_workbench_upload, scenario_02_assets
 
 router = APIRouter(prefix="/api", tags=["Demo API"])
 
@@ -88,6 +88,37 @@ def get_workbench_scenario_02_assets() -> dict:
 @router.post("/workbench/scenario02/run", tags=["Customer Workbench"])
 def post_workbench_scenario_02_run() -> dict:
     return run_scenario_02_workbench()
+
+
+@router.get("/workbench/scenarios", tags=["Customer Workbench"])
+def get_workbench_scenarios() -> list[dict]:
+    return list_scenario_assets()
+
+
+@router.post("/workbench/events/{event_id}/run", tags=["Customer Workbench"])
+def post_workbench_event(event_id: str) -> dict:
+    try:
+        return run_workbench_event(event_id)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@router.post("/workbench/upload", tags=["Customer Workbench"])
+async def post_workbench_upload(file: UploadFile = File(...)) -> dict:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="An upload filename is required.")
+    try:
+        media_kind(file.filename)
+        content = await file.read()
+        if not content:
+            raise ValueError("The uploaded file is empty.")
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise ValueError(f"The upload exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.")
+        return run_workbench_upload(file.filename, content)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    finally:
+        await file.close()
 
 
 @router.get("/robots/{robot_id}")
