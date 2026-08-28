@@ -43,10 +43,10 @@ DEMO_SCENARIOS: dict[str, dict[str, Any]] = {
         "assets": [("CAM-A2-08", "primary.png", "清洁前主视角", "before"), ("CAM-A2-08", "after.png", "清洁后固定摄像头图", "after")],
     },
     "event-oversized-box-004": {
-        "title": "Scenario 04 · 走廊大型纸箱", "subtitle": "超出机器人能力边界 · 创建人工工单，不伪造验收",
+        "title": "Scenario 04 · 走廊大型纸箱", "subtitle": "超出机器人能力边界 · 人工搬运后由云端 AI 验收",
         "template": "oversized_object_a2", "mock_case": "oversized_box_or_bag", "primary_camera_id": "CAM-A2-11",
         "expected_robot": "HUMAN_FALLBACK", "verification_mode": "HUMAN_REQUIRED", "location_label": "A 栋 · 2F · 走廊回收点",
-        "assets": [("CAM-A2-11", "primary.png", "清洁前主视角", "before")],
+        "assets": [("CAM-A2-11", "primary.png", "清洁前主视角", "before"), ("CAM-A2-11", "after.png", "人工清理后固定摄像头图", "after")],
     },
 }
 

@@ -1036,3 +1036,23 @@ demo_v1.service
 `frontend/public/visual-assets/` only stores user-provided robot and campus white-model images. Camera frames remain FastAPI `/demo-assets` resources. The frontend does not copy camera calibration, route planning, capability ranking or Qwen transport: those remain existing backend single sources of truth.
 
 `SpatialDispatchView` keeps its temporary display anchors and route waypoints as normalized `0..1` coordinates. Its SVG converts them only at render time, so a later adapter can replace these presets with Phase 2 SLAM / Dijkstra route points without changing the view contract.
+
+## 24. Integrated Demo V1.1 additions
+
+```text
+Customer shell (/ and /prototype)
+  ├── workbench / EventDetailPanel / spatial display
+  ├── Event Center ← SQLite cleaning_events
+  ├── Analytics ← 30-day baseline + persisted demo increment
+  └── Advanced Mode ← read-only model/mapping audit
+
+demo_v1.service
+  ├── first cloud semantic review
+  ├── grey-zone independent targeted review (when 0.50–0.85)
+  ├── auditable Evidence Fusion Composite Disposal Score
+  ├── existing Capability Engine + Scheduler
+  ├── cloud before/after verification
+  └── SQLite event + transition persistence
+```
+
+`perception.qwen._request_qwen` remains the sole DashScope transport. The targeted review shares its output schema and transport but has a different prompt and no first-review content. `complete_demo04_manual` is the only manual completion adapter; it refreshes the authorized Scenario04 after asset then runs the same verification function.

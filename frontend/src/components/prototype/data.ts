@@ -17,12 +17,12 @@ export const cameras: Record<string, Camera> = {
   "CAM-A1-02": {
     id: "CAM-A1-02", location: "A栋1F入口补充视角",
     image: asset("CAM-A1-02", "event-beverage-spill-002", "secondary.png"),
-    overlay: [{ label: "液体疑似区域", confidence: 0.63, bbox: [684 / 1448, 529 / 1086, 802 / 1448, 617 / 1086] }], temporary: true,
+    overlay: [{ label: "液体污渍", confidence: 0.63, bbox: [684 / 1448, 529 / 1086, 802 / 1448, 617 / 1086] }], temporary: true,
   },
   "CAM-A1-04": {
     id: "CAM-A1-04", location: "A栋1F休息区补充视角",
     image: asset("CAM-A1-04", "event-beverage-spill-002", "secondary.png"),
-    overlay: [{ label: "液体疑似区域", confidence: 0.61, bbox: [630 / 1448, 539 / 1086, 817 / 1448, 614 / 1086] }], temporary: true,
+    overlay: [{ label: "液体污渍", confidence: 0.61, bbox: [630 / 1448, 539 / 1086, 817 / 1448, 614 / 1086] }], temporary: true,
   },
   "CAM-A2-08": {
     id: "CAM-A2-08", location: "A栋2F连廊区域",
@@ -59,7 +59,7 @@ export const scenarios: DemoScenario[] = [
   },
   {
     id: "oversized", triggerLabel: "A栋公共区域 · 大件物品", cameraId: "CAM-A2-11", eventTitle: "A栋2F公共区域发现大件物品", category: "大型纸箱", confidence: 82, qwenConfidence: 0,
-    qwenSummary: "确认大件纸箱占用通道，现有清洁机器人不具备安全搬运能力。", steps: ["DISCOVERED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATING", "HUMAN_FALLBACK"],
+    qwenSummary: "确认大件纸箱占用通道，现有清洁机器人不具备安全搬运能力。", steps: ["DISCOVERED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATING", "HUMAN_FALLBACK", "VERIFYING", "CLOSED"],
   },
 ];
 

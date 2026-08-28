@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from statistics import mean
 
 from analytics.mock_history import generate_history
+from database.connection import list_events
 
 
 ROBOT_LABELS = {"robot-a": "Robot A", "robot-b": "Robot B", "robot-c": "Robot C"}
@@ -14,7 +15,31 @@ AVAILABLE_MINUTES = 30 * 8 * 60
 
 
 def task_history() -> list[dict]:
-    return generate_history()
+    """30-day baseline plus every persisted integrated-demo event.
+
+    The baseline remains explicit demo history; a run from the customer
+    workbench becomes visible immediately rather than being a browser-only row.
+    """
+    history = generate_history()
+    for event in list_events(100):
+        if not str(event.get("event_id", "")).startswith("integrated-"):
+            continue
+        location = event.get("location", {})
+        profile = event.get("task_profile", {})
+        decision = event.get("assignment_decision") or {}
+        state = event.get("state", "HUMAN_REVIEW")
+        history.append({
+            "timestamp": event.get("updated_at", "2026-08-26 12:00:00"), "zone_id": f"live-{event['event_id']}",
+            "zone": location.get("zone", "未定位区域"), "map_id": location.get("map_id", "outdoor-east"),
+            "building": location.get("building", "OUTDOOR"), "floor": location.get("floor", "G"),
+            "x": location.get("x", 30), "y": location.get("y", 30), "severity": profile.get("severity", "medium"),
+            "robot_id": decision.get("selected_robot_id"), "autonomously_closed": state == "CLOSED",
+            "human_intervention": state in {"HUMAN_REVIEW", "HUMAN_FALLBACK"},
+            "verification_first_pass": state == "CLOSED", "multi_view_triggered": event.get("template") == "multiview_heavy_spill",
+            "multi_view_recovered": state == "CLOSED" and event.get("template") == "multiview_heavy_spill",
+            "response_time_minutes": 0.2, "closure_time_minutes": 1.0,
+        })
+    return history
 
 
 def heatmap() -> list[dict]:

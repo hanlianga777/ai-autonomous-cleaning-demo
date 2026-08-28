@@ -232,3 +232,10 @@ Phase 8 的素材接入、四场景自动播放、指挥台读模型与浏览器
 PYTHONPATH=backend python3 -m unittest discover -s backend/tests -v
 cd frontend && npm run build
 ```
+
+## 集成演示 V1.1
+
+- 默认 `/` 与 `/prototype` 均为 CleanOps 客户演示：自主清洁工作台、事件中心、运营分析和高级模式。
+- 每次运行持久化到 SQLite，事件中心与运营分析立即读取；模型只做语义/验收，机器人仍由 Capability Engine + Scheduler 决定。
+- 灰区使用独立二次复核与可审计证据融合；云端明确 veto 时不派发。
+- Demo04 先建立人工搬运工单，再以同机位 after 图经云端验收闭环；它不宣称机器人完成大件搬运。

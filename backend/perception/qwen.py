@@ -75,6 +75,10 @@ EVENT_PROMPT = """You are a cautious cleaning-event semantic reviewer. Review th
 {"need_clean": boolean, "event_type": "small_litter|liquid|can|large_object|unknown", "decision_confidence": number, "severity": "low|medium|high", "surface_type": string, "interference_factors": [string], "evidence_summary": string, "recommended_capabilities": [string], "next_action": "dispatch_robot|human_review|ignore"}
 Do not choose a robot. Do not invent evidence. Keep evidence_summary in concise Chinese (40-80 Chinese characters)."""
 
+TARGETED_REVIEW_PROMPT = """You are an independent second cleaning-event reviewer. This is a fresh review: do not assume, repeat, or receive any first-review conclusion. Review the supplied camera images and the limited factual context only. For the liquid-spill case, the three images are from the same place and time but different fixed cameras; each single image can be ambiguous. Compare spatial alignment, shape continuity, surface reflection and camera consistency before deciding. Return JSON only:
+{"need_clean": boolean, "event_type": "small_litter|liquid|can|large_object|unknown", "decision_confidence": number, "severity": "low|medium|high", "surface_type": string, "interference_factors": [string], "evidence_summary": string, "recommended_capabilities": [string], "next_action": "dispatch_robot|human_review|ignore"}
+Do not choose a robot. Do not invent evidence. Keep evidence_summary in concise Chinese (40-80 Chinese characters)."""
+
 VERIFICATION_PROMPT = """You are a cautious cleaning verification reviewer. The first image is before cleaning and the second is after cleaning. Return JSON only:
 {"issue_remaining": boolean, "verification_pass": boolean, "confidence": number, "evidence_summary": string, "next_action": "close|retry|human_review"}
 Use concise Chinese evidence_summary. Do not invent a pass when the result is unclear."""
@@ -84,6 +88,29 @@ def run_event_qwen_vl(images: list[Path], yolo_evidence: list[dict[str, Any]], c
     """One real multi-image semantic call; the answer is never averaged client-side."""
     context = {"yolo_evidence": yolo_evidence, "cameras": cameras}
     content: list[dict[str, Any]] = [{"type": "text", "text": f"{EVENT_PROMPT}\nContext JSON: {json.dumps(context, ensure_ascii=False)}"}]
+    content.extend({"type": "image_url", "image_url": {"url": _image_data_url(path)}} for path in images)
+    parsed, elapsed_ms = _request_qwen(content, model)
+    confidence = parsed.get("decision_confidence", parsed.get("confidence", 0))
+    return {
+        "provider": "DashScope Qwen-VL", "model": model, "image_count": len(images), "elapsed_ms": elapsed_ms,
+        "need_clean": bool(parsed.get("need_clean", False)), "event_type": str(parsed.get("event_type", "unknown")).lower(),
+        "decision_confidence": round(float(confidence), 4) if isinstance(confidence, (int, float)) else 0.0,
+        "severity": str(parsed.get("severity", "medium")).lower(), "surface_type": str(parsed.get("surface_type", ""))[:80],
+        "interference_factors": [str(item)[:100] for item in parsed.get("interference_factors", []) if isinstance(item, str)][:6],
+        "evidence_summary": str(parsed.get("evidence_summary", ""))[:500],
+        "recommended_capabilities": [str(item)[:80] for item in parsed.get("recommended_capabilities", []) if isinstance(item, str)][:8],
+        "next_action": str(parsed.get("next_action", "human_review")).lower(), "raw": parsed,
+    }
+
+
+def run_targeted_event_qwen_vl(images: list[Path], yolo_evidence: list[dict[str, Any]], cameras: list[dict[str, Any]], model: str) -> dict[str, Any]:
+    """Run an independent grey-zone review through the same transport and schema.
+
+    It deliberately receives no first-review response, preventing a prompt-chain
+    from laundering the initial conclusion into a supposed second opinion.
+    """
+    context = {"yolo_evidence": yolo_evidence, "cameras": cameras}
+    content: list[dict[str, Any]] = [{"type": "text", "text": f"{TARGETED_REVIEW_PROMPT}\nContext JSON: {json.dumps(context, ensure_ascii=False)}"}]
     content.extend({"type": "image_url", "image_url": {"url": _image_data_url(path)}} for path in images)
     parsed, elapsed_ms = _request_qwen(content, model)
     confidence = parsed.get("decision_confidence", parsed.get("confidence", 0))

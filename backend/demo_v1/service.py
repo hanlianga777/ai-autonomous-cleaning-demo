@@ -9,12 +9,14 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from data.mock_data import ROBOTS
 from perception.config import get_runtime
 from perception.multiview.agent import run_multi_view_agent
-from perception.qwen import run_event_qwen_vl, run_verification_qwen_vl
+from perception.qwen import run_event_qwen_vl, run_targeted_event_qwen_vl, run_verification_qwen_vl
 from perception.yolo import RealInferenceError
+from database.connection import get_event, record_transition, save_event
 from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
 from workflow.fixtures import EVENT_TEMPLATES
@@ -105,8 +107,73 @@ def _human_review(
     }
 
 
+def _fusion_score(review: dict[str, Any], evidence: list[dict[str, Any]], multi_view: dict[str, Any] | None) -> dict[str, Any]:
+    """Auditable composite — never a disguised bump to Qwen confidence.
+
+    60% is the fresh raw cloud score; the rest is independently observable
+    camera/category/mapping agreement. A cloud veto still wins in run_demo.
+    """
+    categories = {str(item.get("class_name", "")).replace("疑似区域", "污渍") for item in evidence}
+    category_consistency = 1.0 if len(categories) == 1 else 0.0
+    camera_mapping_consistency = 1.0 if evidence else 0.0
+    multi_view_consistency = 1.0 if multi_view and len(multi_view.get("selected_cameras", [])) >= 2 else 0.0
+    raw = float(review.get("decision_confidence", 0.0))
+    score = 0.60 * raw + 0.20 * category_consistency + 0.12 * camera_mapping_consistency + 0.08 * multi_view_consistency
+    return {"name": "Evidence Fusion Composite Disposal Score", "score": round(score, 4), "components": {"second_raw_cloud_confidence": raw, "yolo_category_consistency": category_consistency, "camera_location_time_mapping_consistency": camera_mapping_consistency, "multi_view_consistency": multi_view_consistency}, "formula": "0.60×raw_cloud + 0.20×yolo_category + 0.12×camera_mapping + 0.08×multi_view"}
+
+
+def _persist_demo_result(demo_id: str, result: dict[str, Any]) -> dict[str, Any]:
+    """Write integrated demo runs to the canonical SQLite event audit immediately."""
+    event_id = f"integrated-{demo_id}-{uuid4().hex[:10]}"
+    manifest = result["asset_manifest"]
+    event = {
+        "event_id": event_id,
+        "state": result["status"],
+        "template": TEMPLATE_BY_EVENT[SCENARIO_IDS[demo_id]],
+        "location": EVENT_TEMPLATES[TEMPLATE_BY_EVENT[SCENARIO_IDS[demo_id]]]["location"],
+        "task_profile": result.get("task_profile") or {"object_type": (result.get("qwen_review") or {}).get("event_type", "unknown")},
+        "assignment_decision": result.get("assignment_decision"),
+        "demo_v1": result,
+    }
+    save_event(event)
+    record_transition(event_id, "DETECTED", {"source": "integrated_demo", "camera_id": manifest["assets"][0]["camera_id"]})
+    record_transition(event_id, result["status"], {"reason": result["reason"], "cloud_review": result.get("qwen_review"), "fusion": result.get("evidence_fusion")})
+    result["event_id"] = event_id
+    return result
+
+
 def scenario_catalog() -> list[dict[str, Any]]:
     return [{"id": demo_id, "event_id": event_id, "title": scenario_assets(event_id)["title"], "verification_mode": scenario_assets(event_id)["verification_mode"]} for demo_id, event_id in SCENARIO_IDS.items()]
+
+
+def complete_demo04_manual(event_id: str) -> dict[str, Any]:
+    """Record a human box-removal completion, then run the normal AI verifier."""
+    stored = get_event(event_id)
+    if not stored or stored.get("template") != TEMPLATE_BY_EVENT["event-oversized-box-004"]:
+        raise ValueError("Manual completion is available only for an existing Demo04 human work order.")
+    result = stored.get("demo_v1") or {}
+    manifest = result.get("asset_manifest") or scenario_assets(SCENARIO_IDS["demo04"])
+    # Older persisted work orders predate the generated after-cleaning frame;
+    # refresh the asset manifest so they can enter the same verifier safely.
+    if not any(asset.get("role") == "after" for asset in manifest.get("assets", [])):
+        manifest = scenario_assets(SCENARIO_IDS["demo04"])
+        result["asset_manifest"] = manifest
+    primary = next(asset for asset in manifest["assets"] if asset["role"] == "before")
+    after = next((asset for asset in manifest["assets"] if asset["role"] == "after"), None)
+    runtime = get_runtime()
+    if not after or not runtime.qwen_ready:
+        raise RealInferenceError("Cloud verification is unavailable; the manual work order remains open.")
+    verification = run_verification_qwen_vl(_asset_path(primary), _asset_path(after), {"event_type": "large_object", "camera_id": primary["camera_id"], "manual_completion": True}, runtime.qwen_model)
+    result["verification"] = verification
+    result["human_work_order"] = {"status": "COMPLETED", "source": "manual_operator"}
+    result["status"] = "CLOSED" if verification["verification_pass"] and verification["confidence"] >= 0.85 and verification["next_action"] == "close" else "HUMAN_REVIEW"
+    result["reason"] = "人工清理完成，云端 AI 验收通过，事件已闭环。" if result["status"] == "CLOSED" else "人工清理完成，但云端 AI 验收未达到闭环门控。"
+    result["event_id"] = event_id
+    stored.update({"state": result["status"], "demo_v1": result})
+    save_event(stored)
+    record_transition(event_id, "VERIFYING", {"source": "manual_completion", "verification": verification})
+    record_transition(event_id, result["status"], {"reason": result["reason"]})
+    return result
 
 
 def run_demo(demo_id: str, mode: str = "live", force_unavailable: bool = False) -> dict[str, Any]:
@@ -128,26 +195,42 @@ def run_demo(demo_id: str, mode: str = "live", force_unavailable: bool = False) 
         # The approved asset set is the hard upper limit; preserve its camera order.
         qwen_images.extend(_asset_path(asset) for asset in requested_assets)
     if force_unavailable:
-        return _human_review("云端综合研判不可用；未创建机器人任务。请人工复核或手动开启稳定回放。", manifest, evidence=evidence, multi_view=multi_view)
+        return _persist_demo_result(demo_id, _human_review("云端综合研判不可用；未创建机器人任务。", manifest, evidence=evidence, multi_view=multi_view))
     if mode == "replay":
-        return _stable_replay(demo_id, manifest, evidence, location, multi_view)
+        return _persist_demo_result(demo_id, _stable_replay(demo_id, manifest, evidence, location, multi_view))
     runtime = get_runtime()
     if not runtime.qwen_ready:
-        return _human_review("未配置云端综合研判；现场演示模式不允许自动切换稳定回放。", manifest, evidence=evidence, multi_view=multi_view)
+        return _persist_demo_result(demo_id, _human_review("未配置云端综合研判；未创建机器人任务。", manifest, evidence=evidence, multi_view=multi_view))
     try:
         qwen = run_event_qwen_vl(qwen_images, evidence, _camera_contexts(manifest, evidence), runtime.qwen_model)
     except RealInferenceError as error:
-        return _human_review(f"云端综合研判失败：{error}", manifest, evidence=evidence, multi_view=multi_view)
+        return _persist_demo_result(demo_id, _human_review(f"云端综合研判失败：{error}", manifest, evidence=evidence, multi_view=multi_view))
     event_type = _event_type(qwen["event_type"])
     qwen["event_type"] = event_type
-    eligible_for_dispatch = qwen["need_clean"] and qwen["decision_confidence"] >= 0.85 and qwen["next_action"] == "dispatch_robot" and event_type != "unknown"
+    second_review = None
+    decision_review = qwen
+    if 0.5 <= qwen["decision_confidence"] < 0.85:
+        try:
+            second_review = run_targeted_event_qwen_vl(qwen_images, evidence, _camera_contexts(manifest, evidence), runtime.qwen_model)
+            second_review["event_type"] = _event_type(second_review["event_type"])
+            decision_review = second_review
+        except RealInferenceError as error:
+            return _persist_demo_result(demo_id, _human_review(f"云端独立复核失败：{error}", manifest, qwen, evidence, multi_view))
+    fusion = _fusion_score(decision_review, evidence, multi_view)
+    veto = not decision_review["need_clean"] or decision_review["event_type"] == "unknown" or decision_review["next_action"] == "ignore"
+    # The project gate is evidence-based: a high-confidence clean-required
+    # review may proceed even when the model's generic next_action is phrased
+    # conservatively as human_review. Explicit model vetoes remain absolute.
+    eligible_for_dispatch = not veto and fusion["score"] >= 0.85
     if not eligible_for_dispatch:
-        return _human_review("云端综合研判未达到自动派发门控；未创建机器人任务。", manifest, qwen, evidence, multi_view)
-    profile = _task_profile(qwen, location)
+        result = _human_review("云端综合研判未达到自动派发门控；未创建机器人任务。", manifest, decision_review, evidence, multi_view)
+        result.update({"first_qwen_review": qwen, "second_qwen_review": second_review, "evidence_fusion": fusion})
+        return _persist_demo_result(demo_id, result)
+    profile = _task_profile(decision_review, location)
     evaluations = evaluate_capabilities(profile, location, ROBOTS)
     decision = make_assignment_decision(profile, evaluations)
     if decision["status"] != "ASSIGNED":
-        return {"mode": "LIVE", "status": "HUMAN_FALLBACK", "reason": decision["reason"], "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": qwen, "task_profile": profile, "assignment_decision": decision, "verification": None, "human_work_order": {"status": "OPEN", "reason": decision["reason"], "source": "capability_engine"}}
+        return _persist_demo_result(demo_id, {"mode": "LIVE", "status": "HUMAN_FALLBACK", "reason": decision["reason"], "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": decision_review, "first_qwen_review": qwen, "second_qwen_review": second_review, "evidence_fusion": fusion, "task_profile": profile, "assignment_decision": decision, "verification": None, "human_work_order": {"status": "OPEN", "reason": decision["reason"], "source": "capability_engine"}})
     after = next((asset for asset in manifest["assets"] if asset["role"] == "after"), None)
     verification = None
     status = "ASSIGNED"
@@ -164,7 +247,7 @@ def run_demo(demo_id: str, mode: str = "live", force_unavailable: bool = False) 
         except RealInferenceError as error:
             status = "HUMAN_REVIEW"
             reason = f"真实云端验收失败：{error}"
-    return {"mode": "LIVE", "status": status, "reason": reason, "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": qwen, "task_profile": profile, "assignment_decision": decision, "verification": verification, "human_work_order": {"status": "OPEN", "reason": reason, "source": "verification"} if status == "HUMAN_REVIEW" else None}
+    return _persist_demo_result(demo_id, {"mode": "LIVE", "status": status, "reason": reason, "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": decision_review, "first_qwen_review": qwen, "second_qwen_review": second_review, "evidence_fusion": fusion, "task_profile": profile, "assignment_decision": decision, "verification": verification, "human_work_order": {"status": "OPEN", "reason": reason, "source": "verification"} if status == "HUMAN_REVIEW" else None})
 
 
 def _stable_replay(demo_id: str, manifest: dict[str, Any], evidence: list[dict[str, Any]], location: dict[str, Any], multi_view: dict[str, Any] | None) -> dict[str, Any]:

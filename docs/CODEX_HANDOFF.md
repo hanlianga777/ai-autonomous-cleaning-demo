@@ -916,3 +916,13 @@ Non-negotiable boundaries:
 - Actual Qwen acceptance on 2026-08-28 created no automatic dispatch: all four LIVE scenarios correctly stopped at `HUMAN_REVIEW` under the `.85` gate. See the test record; do not report a real CLOSED path until it actually runs.
 
 Next safe work is user-led acceptance: inspect `/prototype` visual hierarchy and decide whether to adjust product copy or threshold policy. Do not lower thresholds, synthesize model results or begin another Phase without explicit authorization.
+
+---
+
+# 26. Current handoff: Integrated Demo V1.1
+
+Read the six Markdown files named above before changing code. The active customer shell is now both `/` and `/prototype`; do not revive the obsolete root dashboard. `frontend/src/components/prototype/PrototypeWorkbench.tsx` owns the four customer views; `backend/demo_v1/service.py` is the composition layer and persists each run through `database.connection`.
+
+Customer UI says “云端大模型”, never Qwen/DashScope or Key; only Advanced Mode may expose model/latency/trace metadata. `run_targeted_event_qwen_vl` is the only grey-zone second opinion and must not receive the first answer. Explicit cloud veto always remains human review.
+
+Demo04 includes generated `sample_data/camera_events/CAM-A2-11/event-oversized-box-004/after.png`; it is used only after human completion through `POST /api/demo-v1/manual-work-orders/{event_id}/complete`. Do not use it as a robot cleaning result. Robot A is an exact crop of the top-left source quadrant; never replace B/C/D.

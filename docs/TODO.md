@@ -370,3 +370,14 @@ Prototype V1 **未通过人工视觉验收**，不得描述为最终产品设计
 - [ ] 用户确认训练结果后，决定是否做下一轮数据补充/标注或接入 Phase 8R REAL adapter
 
 当前结果：只可靠检出 Demo 4 的 `large_object`；`liquid`、`can`、`small_litter` 在 0.25 阈值漏检，`leaf` 无正样本。禁止接入主流程或标为 REAL 验收通过。
+
+---
+
+## 集成演示 V1 后续事项
+
+- [x] 统一 `/` 与 `/prototype` 客户壳，接通四个导航页
+- [x] 灰区独立二次云端复核、证据融合评分、SQLite 事件写入与 Analytics 增量
+- [x] Demo04 人工完成 → 生成 after 图 → 云端验收闭环
+- [x] 使用源图左上象限重新裁剪 Robot A；B/C/D 保持原图
+- [ ] 给 Demo03 采集更多真实清洁后验收样本，分析为何某次真实验收未通过
+- [ ] 若要把 controlled edge evidence 升级为真实 YOLO，先补充可验证数据集；不可使用当前低数据权重

@@ -15,7 +15,7 @@ from spatial.service import get_map, spatial_overview
 from workflow.engine import WorkflowError, create_mock_event, evaluate_event, event_detail, run_event, run_scenario_02
 from workflow.fixtures import EVENT_TEMPLATES
 from workbench.service import list_scenario_assets, run_scenario_02_workbench, run_workbench_event, run_workbench_upload, scenario_02_assets
-from demo_v1.service import run_demo, scenario_catalog
+from demo_v1.service import complete_demo04_manual, run_demo, scenario_catalog
 
 router = APIRouter(prefix="/api", tags=["Demo API"])
 API_CONTRACT = "operations.v1"
@@ -34,6 +34,14 @@ def post_demo_v1_run(demo_id: str, mode: str = Query("live", pattern="^(live|rep
 @router.post("/demo-v1/runs/{demo_id}/simulate-unavailable", tags=["Integrated Customer Demo"])
 def post_demo_v1_unavailable(demo_id: str) -> dict:
     return run_demo(demo_id, force_unavailable=True)
+
+
+@router.post("/demo-v1/manual-work-orders/{event_id}/complete", tags=["Integrated Customer Demo"])
+def post_demo_v1_manual_completion(event_id: str) -> dict:
+    try:
+        return complete_demo04_manual(event_id)
+    except (ValueError, RealInferenceError) as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.get("/health")

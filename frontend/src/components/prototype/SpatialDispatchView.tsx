@@ -1,4 +1,5 @@
-import { BatteryMedium, Navigation, Route } from "lucide-react";
+import { BatteryMedium } from "lucide-react";
+import { useState } from "react";
 import { stageCopy } from "./data";
 import type { ActiveEvent } from "./types";
 
@@ -32,11 +33,13 @@ function robotPosition(robot: string, event: ActiveEvent | null): Point {
 }
 
 function RobotMarker({ robot, event, battery, name }: { robot: string; event: ActiveEvent | null; battery: number; name: string }) {
+  const [hovered, setHovered] = useState(false);
   const position = robotPosition(robot, event);
   const active = event?.scenario.robot === robot && !["CLOSED", "HUMAN_FALLBACK"].includes(event.scenario.steps[event.stageIndex]);
   const state = active ? stageCopy[event!.scenario.steps[event!.stageIndex]].title : "空闲";
-  return <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2 transition-[left,top] duration-1000 ease-in-out" style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%` }}>
-    <div className={`w-[72px] ${active ? "scale-110" : "opacity-75"} transition-transform`}><img className="mx-auto h-8 w-12 object-contain" src={`/visual-assets/robots/${robot.toLowerCase().replace(" ", "-")}.png`} alt={`${name} 机器人`} /><div className="flex items-center justify-center gap-1 border border-slate-300 bg-white/90 px-1 py-0.5"><span className="truncate text-[8px] font-semibold text-slate-800">{name}</span><BatteryMedium size={10} className={battery < 40 ? "text-amber-500" : "text-emerald-600"} /></div><p className="mt-0.5 truncate text-center text-[8px] text-slate-600">{active ? state : position.location}</p></div>
+  return <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className="absolute z-20 -translate-x-1/2 -translate-y-1/2 transition-[left,top] duration-1000 ease-in-out" style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%` }}>
+    <div className={`w-[clamp(34px,4vw,54px)] ${robot === "Robot A" || robot === "Robot D" ? "opacity-100" : "opacity-80"} ${active ? "scale-110" : ""} transition-transform`}><img className="mx-auto h-9 w-full object-contain" src={`/visual-assets/robots/${robot.toLowerCase().replace(" ", "-")}.png`} alt={`${name} 机器人`} /></div>
+    {hovered && <div className="absolute left-1/2 top-full z-30 mt-1 w-36 -translate-x-1/2 border border-slate-300 bg-white p-1.5 text-[9px] text-slate-600 shadow-sm"><b className="block text-slate-800">{name}</b><p>电量 {battery}% · {active ? state : "空闲"}</p><p>{position.location}</p></div>}
     {active && <span className="mx-auto block h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />}
   </div>;
 }
@@ -55,8 +58,8 @@ function RouteLayer({ showRoute, scenario, state }: { showRoute: boolean; scenar
     : state === "ROBOT_ASSIGNED" ? 0 : state === "NAVIGATING" ? 58 : 100;
   if (!showRoute) return null;
   return <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="机器人规划路线">
-    <path d={path} fill="none" stroke="#94a3b8" strokeWidth="0.75" strokeDasharray="2.4 1.6" vectorEffect="non-scaling-stroke" />
-    <path d={path} fill="none" stroke="#334155" strokeWidth="1.25" pathLength="100" strokeDasharray={`${progress} 100`} vectorEffect="non-scaling-stroke" />
+    <path d={path} fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
+    <path d={path} fill="none" stroke="#2563eb" strokeWidth="2.2" pathLength="100" strokeDasharray={`${progress} 100`} vectorEffect="non-scaling-stroke" />
   </svg>;
 }
 
@@ -65,12 +68,11 @@ export function SpatialDispatchView({ event }: { event: ActiveEvent | null }) {
   const currentTarget = event ? target[event.scenario.id] : null;
   const activeRobot = event?.scenario.robot;
   const showRoute = Boolean(event && activeRobot && ["ROBOT_ASSIGNED", "NAVIGATING", "ELEVATOR_TRANSFER", "SKYBRIDGE_TRANSFER", "CLEANING", "VERIFYING"].includes(state));
-  return <section className="relative min-h-[180px] overflow-hidden border border-slate-200 bg-[#f6f8f9]" aria-label="园区空间调度视图">
-    <div className="absolute inset-x-0 top-0 z-30 flex h-10 items-center justify-between border-b border-slate-200 bg-white/92 px-3"><div className="flex items-center gap-2"><p className="text-sm font-semibold text-slate-900">园区空间调度</p><span className="text-[10px] text-slate-500">二维 SLAM 空间关系</span></div><div className="flex items-center gap-1.5 text-[10px] text-slate-500"><Route size={13} />固定视角</div></div>
-    <div className="absolute inset-x-0 bottom-0 top-10 overflow-hidden"><img src="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区白模" className="absolute inset-0 h-full w-full object-contain" /><RouteLayer showRoute={showRoute} scenario={event?.scenario.id} state={state} />
+  return <section className="relative grid min-h-[220px] grid-cols-[112px_1fr] overflow-hidden border border-slate-200 bg-[#f6f8f9]" aria-label="园区空间调度视图">
+    <aside className="z-30 border-r border-slate-200 bg-white p-2"><p className="mb-2 text-[10px] font-semibold text-slate-500">设备资产</p>{[["Robot A", "A"], ["Robot B", "B"], ["Robot C", "C"], ["Robot D", "D"]].map(([robot, short]) => <div key={robot} className="mb-1 flex items-center gap-1.5 border-b border-slate-100 py-1"><img src={`/visual-assets/robots/${robot.toLowerCase().replace(" ", "-")}.png`} className="h-6 w-8 object-contain" /><span className="text-[9px] text-slate-700">{short} · {robot === activeRobot ? stageCopy[state].title : "空闲"}</span></div>)}</aside>
+    <div className="relative overflow-hidden"><img src="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区白模" className="absolute inset-0 h-full w-full object-contain" /><RouteLayer showRoute={showRoute} scenario={event?.scenario.id} state={state} />
       {currentTarget && <div className="absolute z-10 -translate-x-1/2 -translate-y-1/2" style={{ left: `${currentTarget.x * 100}%`, top: `${currentTarget.y * 100}%` }}><span className="block h-4 w-4 animate-pulse rounded-full border-2 border-rose-500 bg-rose-100/80" /><span className="absolute left-5 top-0 whitespace-nowrap text-[9px] font-semibold text-rose-700">清洁目标</span></div>}
       <RobotMarker robot="Robot A" name="室外清扫 A" event={event} battery={82} /><RobotMarker robot="Robot B" name="重载洗地 B" event={event} battery={71} /><RobotMarker robot="Robot C" name="室内清洁 C" event={event} battery={89} /><RobotMarker robot="Robot D" name="配送机器人 D" event={event} battery={64} />
     </div>
-    <div className="absolute bottom-2 left-3 z-30 flex items-center gap-1.5 border border-slate-200 bg-white/90 px-2 py-1 text-[9px] text-slate-600"><Navigation size={11} className="text-slate-500" />{activeRobot ? `${activeRobot} · ${stageCopy[state].title}` : "4 台设备在线 · 配送机器人不参与清洁候选"}</div>
   </section>;
 }

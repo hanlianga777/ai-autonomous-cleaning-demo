@@ -771,3 +771,13 @@ Qwen-VL Key 的可用性独立于本地 YOLO 权重：Key 存在时，匹配的�
 **空间与视觉边界：** 园区白模和机器人 A/B/C/D 都是用户提供的本地图片；白模只作静态背景，路线/设备状态是独立 SVG/DOM 层，不再生成 B1、额外建筑、树木或未授权设施。
 
 **对既有决策的影响：** 决策 26 的“前端不 fetch、不调用 Qwen、只用本地 setTimeout”边界由本决策 **SUPERSEDED**。Phase 2/3/5 的空间映射、Scheduler、Robot-first + Human Fallback 规则均不变。
+
+---
+
+## 决策 28：集成演示 V1 的证据融合与人工验收闭环
+
+`/` 与 `/prototype` 现在共享同一个四页客户演示壳：工作台、事件中心、运营分析和高级模式。每次 `demo_v1` 运行立即写入既有 SQLite `cleaning_events` 与 transition audit，事件中心和 30 天运营基线会读取该增量；没有第二套调度、地图或工作流。
+
+灰区（原始云端置信度 `0.50–0.85`）必须进行一次**独立**二次复核，二次提示不携带首轮结论。处置使用 `Evidence Fusion Composite Disposal Score = 0.60×独立云端原始置信度 + 0.20×YOLO类别一致性 + 0.12×摄像头/地点/时间映射一致性 + 0.08×多视角一致性`。它与云端置信度分开显示；`need_clean=false`、`unknown` 或明确 ignore 是绝对人工复核 veto。
+
+Scenario 04 首轮维持 Human Fallback；人工完成纸箱移除后调用同一云端验收器比较清洁前/后，不通过就保持人工复核。生成的 `CAM-A2-11/.../after.png` 仅移除了两只纸箱，属于这一步的受控验收素材。先前“Demo04 没有 after 图”“稳定回放入口”及“所有 LIVE 均未派发”的相应表述均由本决策 **SUPERSEDED**。
