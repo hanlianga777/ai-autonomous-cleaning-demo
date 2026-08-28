@@ -111,6 +111,9 @@ npm run dev
 | `POST /api/operations/upload` | 上传受控清洁前原图并创建同一 `operations.v1` 演示回放 |
 | `GET /api/operations/work-orders` | 从 SQLite CleaningEvent 生成的客户工单中心索引 |
 | `GET /api/system/ai-status` | 无密钥的 YOLO / Qwen-VL / Simulation 真实运行状态 |
+| `GET /api/demo-v1/scenarios` | 集成面试演示的四组受控场景目录 |
+| `POST /api/demo-v1/runs/{demoId}?mode=live\|replay` | LIVE DashScope 语义链路，或用户显式稳定回放 |
+| `POST /api/demo-v1/runs/{demoId}/simulate-unavailable` | 可审计的云端不可用 / 人工复核路径 |
 
 ## 数据与模式说明
 
@@ -175,6 +178,14 @@ uvicorn main:app --reload --port 8000
 未完成上述配置时无需阻塞开发或演示：AI Lab 与 Dashboard 都会明确显示 `DEMO MOCK MODE`。
 
 > 当前限制：REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。
+
+## Integrated Demo V1
+
+`/prototype` 现在是集成演示页面：固定监控墙、园区白模、机器人状态和右侧业务时间线位于同一工作区。四组授权图片的检测框是审核后的 `CONTROLLED_EDGE_DEMO` 证据，**不是**已经验收的本地 YOLO 推理；云端语义和清洁后验收使用 DashScope Qwen-VL。
+
+LIVE 模式必须满足 `need_clean=true`、Qwen 置信度 `>= .85` 和 `next_action=dispatch_robot` 才能创建任务，然后仍由已有 Capability Engine / Scheduler 选择机器人。请求失败或模型不满足门控时，页面明确停在 `HUMAN_REVIEW`；不会偷偷改成 Mock。用户可在页面的摄像头设置菜单显式选择“手动稳定回放”。
+
+最新真实调用结果、限制与可复现命令见 [docs/AI_INTEGRATION_TEST.md](docs/AI_INTEGRATION_TEST.md)。
 
 ## Phase 5｜Multi-view Perception Agent
 

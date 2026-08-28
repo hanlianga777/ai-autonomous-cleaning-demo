@@ -24,6 +24,7 @@ export type Camera = {
   id: string;
   location: string;
   image: string;
+  afterImage?: string;
   overlay?: Overlay[];
   temporary?: boolean;
 };
@@ -47,4 +48,6 @@ export type ActiveEvent = {
   scenario: DemoScenario;
   stageIndex: number;
   startedAt: string;
+  liveResult?: Record<string, unknown>;
+  cloudLoading?: boolean;
 };

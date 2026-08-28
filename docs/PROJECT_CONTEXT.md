@@ -1473,8 +1473,20 @@ Phase 8R 的完整 REAL 验收已暂停，未进入新 Phase。本轮只以用�
 
 结果只在 0.25 阈值稳定检出 Demo 4 两只 `large_object` 纸箱；`liquid`、`can`、`small_litter` 清洁前图均漏检，`leaf` 不可评估。因此权重仅保存在本地 `models/ai_cleaning_custom_yolo/best.pt`，不提交 Git，**不得**接入 Phase 8R 或声称 REAL 验收通过。MPS 已优先尝试但本机组合报错后回退 CPU；未改动产品 UI、Scheduler、SLAM 或 Agent。
 
-## 32. 独立低保真工作台原型（待人工验收）
+## 32. 独立低保真工作台原型（SUPERSEDED）
 
 `frontend/src/components/prototype/` 提供仅前端的 `/prototype` 工作台。它不是 Phase 8R 的正式替换，也不会调用 Qwen-VL 或任何后端 API。原型采用 `CleaningEvent → RobotTask / Human Work Order` 的对象层次，通过四个演示触发器验证摄像头发现、受控 bbox、置信度门控、多视角、空间定位、机器人路径、固定摄像头验收与人工兜底。
 
 Scenario 02 使用 CAM-A1-01 / 02 / 04 的 62% / 66% / 64% 证据，综合研判为“液体污渍、需要清洁、91%”；这 91% 是跨视角语义结论而非平均值。原型只使用仓库内已授权的四组图片；机器人真实图片目前缺失，界面明确标示“图片素材待补充”。正式产品是否采纳原型，必须等待人工验收后再决定。
+
+## 33. 集成面试演示 V1（当前实现）
+
+`/prototype` 已从纯前端低保真原型升级为可运行的“受控现场演示”层。它保留已有的 Phase 2 空间、Phase 3 Capability Engine / Scheduler、Phase 5 Multi-view Agent 和 Phase 4 Qwen transport，**不复制这些实现**。
+
+- 四组授权清洁前图片的 bbox 与固定置信度是审阅后的 `CONTROLLED_EDGE_DEMO` 证据，不是本地真实 YOLO 权重推理；本机 Custom YOLO 训练结论仍不适合接入。
+- 本机 `.env` 有 `DASHSCOPE_API_KEY` 时，`POST /api/demo-v1/runs/{demoId}?mode=live` 会调用一次真实 DashScope Qwen-VL。Scenario 02 将主视角与最多 2 个已选补充视角合并为**一次三图请求**。
+- 只有 `need_clean=true`、Qwen `confidence ≥ .85`、`next_action=dispatch_robot` 才创建 TaskProfile；随后仍由既有能力引擎和 Scheduler 选择机器人。
+- 只有实际派发后才调用 Qwen 清洁前/后验收；任何错误或门控失败都进入 `HUMAN_REVIEW`，绝不隐式切换回放。
+- 用户可在摄像头设置菜单显式选择“手动稳定回放”；其响应 `mode=STABLE_REPLAY`，与 LIVE 模式清晰区分。
+
+空间可视化以用户提供的园区白模为静态背景，SVG/DOM 只叠加路径、目标与设备位置；四张用户提供的机器人图片固定映射 A/B/C/D。机器人锚点和路线 waypoint 均使用 `0..1` 归一化坐标，后续可替换为 Phase 2 的真实 SLAM / Dijkstra 输出。默认两路固定监控为 `CAM-OUT-01`（Demo 01 清洁后）和 `CAM-A2-08`（Demo 03 清洁后）；Scenario 02 的三路证据只出现在右侧详情，不改变监控墙布局。

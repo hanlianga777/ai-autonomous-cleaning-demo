@@ -734,7 +734,7 @@ Qwen-VL Key 的可用性独立于本地 YOLO 权重：Key 存在时，匹配的�
 
 ---
 
-## 决策 26：自主清洁工作台以事件为核心的独立交互原型
+## 决策 26（SUPERSEDED）：自主清洁工作台以事件为核心的独立交互原型
 
 **最终决定：**
 
@@ -753,3 +753,21 @@ Qwen-VL Key 的可用性独立于本地 YOLO 权重：Key 存在时，匹配的�
 **对既有决策的影响：**
 
 决策 23、24 的“正式客户首页读模型”“仅产品化 Scenario 02”“以 Work Order 为主对象”的产品方向已由本决策 **SUPERSEDED**。正式产品实现仍保留，待原型经人工验收后另行授权整合；本轮不回改它。
+
+---
+
+## 决策 27：受控边缘证据 + 真实 Qwen-VL 的集成面试演示
+
+**最终决定：** `/prototype` 升级为 `demo_v1` 集成演示：受控 bbox 是可复现的本地边缘证据，真实 DashScope Qwen-VL 负责语义研判与清洁后验收；Qwen **不得**直接选择机器人。输出先规范为 TaskProfile，再唯一地进入既有 Capability Engine 与 Scheduler。
+
+**证据与真实边界：**
+
+- 当前没有可验收的本地 YOLO 权重，故四组图片的框和置信度必须标记为 `CONTROLLED_EDGE_DEMO`，不得称作真实本地 YOLO 推理；
+- DashScope Key 独立于 YOLO 权重。Key 缺失、超时、解析错误或门控不通过，一律 `HUMAN_REVIEW`，不得自动切换回放；
+- 稳定回放仅可由用户在 UI 显式开启，响应 `STABLE_REPLAY`，不得写成实时云端结果；
+- Scenario 02 复用 Phase 5 Camera Coverage / Frame Fetch / VLM Tool audit，只选择两个补充摄像头，随后把三张图交给 Qwen 一次；不做三次请求或客户端置信度平均；
+- 清洁后图片存在不等于 PASS。仅当 Scheduler `ASSIGNED` 且 Qwen 验收 `verification_pass=true`、`confidence ≥ .85`、`next_action=close` 时 CLOSED。
+
+**空间与视觉边界：** 园区白模和机器人 A/B/C/D 都是用户提供的本地图片；白模只作静态背景，路线/设备状态是独立 SVG/DOM 层，不再生成 B1、额外建筑、树木或未授权设施。
+
+**对既有决策的影响：** 决策 26 的“前端不 fetch、不调用 Qwen、只用本地 setTimeout”边界由本决策 **SUPERSEDED**。Phase 2/3/5 的空间映射、Scheduler、Robot-first + Human Fallback 规则均不变。

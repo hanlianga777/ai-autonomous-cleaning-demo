@@ -998,7 +998,7 @@ user-authorized ZIP photos (local only)
 
 ---
 
-## 22. Independent `/prototype` frontend architecture
+## 22. Independent `/prototype` frontend architecture（SUPERSEDED）
 
 ```text
 /prototype
@@ -1012,3 +1012,27 @@ user-authorized ZIP photos (local only)
 The prototype is deliberately frontend-only: it makes no `fetch`, does not invoke DashScope, and does not write SQLite. It reuses the existing static `/demo-assets` asset contract, but does not change the FastAPI static mount or any business service. Its local state transitions exist only for human usability testing.
 
 The controlled bounding boxes remain normalised to the authorized 1448×1086 source images. `CameraTile` uses a 4:3 image wrapper with `object-contain`, so overlay and image share one coordinate space. This prototype convention is compatible with the existing Camera → SLAM image-space contract, without creating a second mapper.
+
+---
+
+## 23. Integrated Demo V1 architecture
+
+```text
+/prototype (React)
+  ├── fixed CameraMonitorGrid (2 stable monitors)
+  ├── EventDetailPanel (business timeline + technical disclosure)
+  └── SpatialDispatchView (user white-model background + SVG/DOM overlays)
+             │ POST /api/demo-v1/runs/{demoId}?mode=live|replay
+             ▼
+demo_v1.service
+  ├── CONTROLLED_EDGE_DEMO bbox evidence
+  ├── Phase 5 Multi-view Agent (Demo 02 only)
+  ├── one DashScope Qwen-VL semantic call
+  ├── TaskProfile normalization
+  ├── Phase 3 Capability Engine + Scheduler (only robot selector)
+  └── one Qwen before/after verification call (only after ASSIGNED)
+```
+
+`frontend/public/visual-assets/` only stores user-provided robot and campus white-model images. Camera frames remain FastAPI `/demo-assets` resources. The frontend does not copy camera calibration, route planning, capability ranking or Qwen transport: those remain existing backend single sources of truth.
+
+`SpatialDispatchView` keeps its temporary display anchors and route waypoints as normalized `0..1` coordinates. Its SVG converts them only at render time, so a later adapter can replace these presets with Phase 2 SLAM / Dijkstra route points without changing the view contract.

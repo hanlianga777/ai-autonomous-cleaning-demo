@@ -891,3 +891,28 @@ The separate local custom-YOLO utility is complete:
 - report: `docs/YOLO_DATASET_REPORT.md`.
 
 The current result is **not integration-ready**: only `large_object` passes at the normal 0.25 threshold; liquid, can and small_litter miss, and leaf has no source positive. Do not connect the weight to Phase 8R REAL mode or claim REAL E2E success. Await user review; any later integration still needs Qwen-VL, Multi-view, post-clean verification and browser E2E validation.
+
+---
+
+# 25. Current handoff: Integrated Demo V1
+
+The prior “prototype frontend only / no backend or Qwen” instruction is **SUPERSEDED** by Decision 27. The current customer-facing route is `/prototype`; it calls `backend/demo_v1/service.py` through `/api/demo-v1/*`.
+
+Read first in any new Codex session:
+
+1. `docs/PROJECT_CONTEXT.md`
+2. `docs/DECISIONS.md`
+3. `docs/TODO.md`
+4. `docs/ARCHITECTURE.md`
+5. this file
+6. `docs/AI_INTEGRATION_TEST.md`
+
+Non-negotiable boundaries:
+
+- Controlled red boxes/confidences are `CONTROLLED_EDGE_DEMO`, not validated local YOLO inference. Do not connect the failed local Custom YOLO weight.
+- LIVE mode calls DashScope only when Key exists; it must never silently become replay. Replay is explicit user action and must remain `STABLE_REPLAY`.
+- Qwen provides semantics / verification only. Existing Phase 3 Capability Engine + Scheduler choose Robot A/B/C; do not change Robot-first + Human Fallback, Phase 2 mapping or Phase 5 tool limits.
+- Static campus/robot images live in `frontend/public/visual-assets/`; do not regenerate, swap or visually invent buildings/floors.
+- Actual Qwen acceptance on 2026-08-28 created no automatic dispatch: all four LIVE scenarios correctly stopped at `HUMAN_REVIEW` under the `.85` gate. See the test record; do not report a real CLOSED path until it actually runs.
+
+Next safe work is user-led acceptance: inspect `/prototype` visual hierarchy and decide whether to adjust product copy or threshold policy. Do not lower thresholds, synthesize model results or begin another Phase without explicit authorization.
