@@ -772,13 +772,14 @@ Phase 8R：GitHub 是唯一项目事实源。未来 Codex 必须先读取本文�
 
 - REAL MODE 尚未使用真实 YOLO 权重和 Qwen-VL Key 完成实跑验证。
 - 当前可稳定演示的四组受控图片使用 `CONTROLLED_REPLAY` 精确框叠加，已在页面、API 和回归测试中统一；这不是 REAL YOLO，未来替换为真实权重时不得覆盖或误写来源。配置 `DASHSCOPE_API_KEY` 后，受控主图会额外真实调用 Qwen-VL 并展示 `cloud_review`，不会修改既有调度结论。
+- DashScope Key 已在本机本地 `.env` 配置并完成一次真实 Scenario 02 主图复核：Qwen-VL 返回 `liquid` / 0.95 / `need_clean=true`，现有 Scheduler 仍选 Robot B；浏览器 Console 0 error。不得记录或提交 Key。该结果不代表 REAL YOLO、真实多视角或后验 REAL 验收已完成。
 - Phase 5 只提供稳定 Mock 的 Scenario 02 多视角证据；真实摄像头取帧与真实 VLM 实跑属于后续接入验证，不改变其统一结构化边界。
 - Phase 6 的 30 天运营历史和 Optimization 建议均为确定性 Mock 数据；尚未接入真实设备 / 长期运营数据，建议不会自动下发为配置。
 - 四组受控 Demo 素材已经入库并经浏览器验证加载。Scenario 04 仅有清洁前大型纸箱图，符合 Human Fallback：必须展示“等待人工回传验收”，不得用 Mock Verification 或 AI 图片把它呈现为自动验收通过。
 
 ## 下一阶段建议
 
-等待用户在根目录本地 `.env` 配置 `DASHSCOPE_API_KEY` 后，才可做一次真实云端 Qwen-VL 连接验证；不要将 Key 提交、记录到日志或发送到聊天中。
+如要继续 REAL 感知验收，下一步只能在用户明确同意后补充可用的本地 YOLO 权重并分别验证真实多视角及清洁后复核；不要把本次 Qwen-VL 单图成功扩大写成完整 REAL E2E。
 
 然后：
 

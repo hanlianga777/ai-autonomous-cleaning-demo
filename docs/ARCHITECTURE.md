@@ -906,6 +906,8 @@ For exact SHA-256 matches of the approved customer-demo before images only, `wor
 
 `AiRuntime.qwen_ready` is independent of local YOLO readiness. When the local `.env` contains `DASHSCOPE_API_KEY`, a matched customer workbench main image calls `run_qwen_vl` once and exposes a bounded `cloud_review` evidence record (`REAL`, `FAILED` or `NOT_CONFIGURED`). A cloud failure is displayed as a failure, never converted to a mock success; the existing deterministic Scenario workflow, Spatial mapping and Scheduler are intentionally not overwritten by that secondary review.
 
+The current local validation exercised this optional branch once for Scenario 02: `liquid`, 0.95 confidence and `need_clean=true`. This is a real Qwen-VL evidence record, while the displayed detection overlay remains `CONTROLLED_REPLAY`; the two sources must remain distinguishable in API data and interview explanation.
+
 ---
 
 # 20. UI 架构

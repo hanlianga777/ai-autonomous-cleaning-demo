@@ -245,9 +245,9 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 - [x] 受控清洁前图片的精确检测框 / 置信度回放；主工作台常驻工单详情与业务审计
 - [x] 回放 API 与浏览器验证：图片上传 → Robot B 工单 → 红框证据 → SLAM / 调度 → 验收；新实例 Console 0 error
 - [ ] 配置本地 YOLO 权重并验证真实加载
-- [ ] 配置 `DASHSCOPE_API_KEY` 并验证 DashScope Qwen-VL 可达性
+- [x] 配置 `DASHSCOPE_API_KEY` 并验证 DashScope Qwen-VL：Scenario 02 主图 → `liquid` / 95% / `need_clean=true`
 - [x] 将 Qwen-VL Key 可用性与本地 YOLO 权重解耦；Key 存在时受控工单才发起云端二次复核
-- [ ] Scenario 02：REAL YOLO → REAL Qwen-VL → REAL Multi-view VLM → REAL post-clean AI verification → CLOSED
+- [ ] Scenario 02：REAL YOLO → REAL Qwen-VL → REAL Multi-view VLM → REAL post-clean AI verification → CLOSED（当前仅 Qwen-VL 受控主图已真实验证）
 - [ ] 浏览器 REAL E2E 验收（刷新后工单持久化、Console 0 error）
 
 在上述 REAL 验收通过前，禁止将 Phase 8R 标记为 Done，禁止继续产品化 Scenario 01 / 03 / 04 或进入 Phase 9。

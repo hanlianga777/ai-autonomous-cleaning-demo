@@ -711,6 +711,8 @@ Phase 8 默认进入中文业务工作台。它通过产品化适配层编排 `a
 
 Qwen-VL Key 的可用性独立于本地 YOLO 权重：Key 存在时，匹配的受控主图可额外请求一次真实 Qwen-VL 作为 `cloud_review`；该复核只能补充证据，不能在没有独立验收的情况下覆盖固定场景的 Workflow、坐标映射或调度结论。
 
+本机已用 Scenario 02 主图实际验证该边界：Qwen-VL 返回 `liquid`、0.95、`need_clean=true`。该验证不改变“检测框来源为 `CONTROLLED_REPLAY`”和“REAL YOLO 尚未验收”的既有决策。
+
 ---
 
 ## 决策 25：Custom YOLO 作为本地、独立的 Demo 数据实验，不提前接入主流程

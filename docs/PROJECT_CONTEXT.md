@@ -1303,6 +1303,8 @@ REAL AI 接入边界已补齐：根目录 `.env.example` 描述本地 YOLO 权�
 
 为消除客户工作台中“固定占位框”和“只上传、不展示闭环”的问题，四个受控清洁前图片现返回其审阅过的精确归一化框坐标；Scenario 02 的两张补充视角也返回对应证据。前端使用同一 `DetectionFrame` 在现场、工单详情和清洁前后对比中绘制红框与置信度，并常驻展示 Workflow 审计、Robot A/B/C 状态、电量与位置、空间任务图、调度理由和验收。该离线来源固定标记为 `CONTROLLED_REPLAY`，不代表本地 YOLO 实推；未知上传仍失败。配置 `DASHSCOPE_API_KEY` 后，受控主图会额外实际调用 Qwen-VL 并以“云端 Qwen-VL 复核”附在工单中；不配置时保持离线，不会发起云端请求。
 
+已完成一次真实 DashScope Qwen-VL 验证：Scenario 02 主图返回 `business_class=liquid`、`need_clean=true`、`confidence=0.95`，并保留既有 Robot B 确定性调度；浏览器显示 `Qwen-VL · REAL_READY` 与云端复核卡片，Console 为 0 error。该成功只证明 Qwen-VL 的受控主图二次复核，**不代表**本地 YOLO、真实多视角 VLM 或清洁后 REAL 验收已经通过。
+
 ---
 
 # 26. 开源项目参考
