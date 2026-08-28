@@ -995,3 +995,20 @@ user-authorized ZIP photos (local only)
 ```
 
 `tools/custom_yolo_demo.py` is an offline development utility, not an API or a second runtime perception service. It never creates a CleaningEvent, calls Camera → SLAM, changes Scheduler / Capability rules, calls an Agent, or alters the customer UI. The provenance and fixed class order are committed in `datasets/ai_cleaning_yolo/annotations.json`; user images, review previews and weights are Git-ignored. The integration arrow is deliberately inactive until user approval.
+
+---
+
+## 22. Independent `/prototype` frontend architecture
+
+```text
+/prototype
+├── PrototypeWorkbench              # viewport shell + local state-machine orchestration
+├── CameraMonitorGrid / CameraTile  # fixed camera view and controlled evidence overlays
+├── EventDetailPanel                # latest CleaningEvent and independently scrollable history
+├── SpatialDispatchView             # CSS/SVG 2.5D campus projection and route animation
+└── data.ts / types.ts              # auditable scenarios, camera assets and state contracts
+```
+
+The prototype is deliberately frontend-only: it makes no `fetch`, does not invoke DashScope, and does not write SQLite. It reuses the existing static `/demo-assets` asset contract, but does not change the FastAPI static mount or any business service. Its local state transitions exist only for human usability testing.
+
+The controlled bounding boxes remain normalised to the authorized 1448×1086 source images. `CameraTile` uses a 4:3 image wrapper with `object-contain`, so overlay and image share one coordinate space. This prototype convention is compatible with the existing Camera → SLAM image-space contract, without creating a second mapper.

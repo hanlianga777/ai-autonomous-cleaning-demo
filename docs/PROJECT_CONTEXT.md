@@ -1472,3 +1472,9 @@ UI 强调：
 Phase 8R 的完整 REAL 验收已暂停，未进入新 Phase。本轮只以用户提供的 9 张照片训练固定五类 `liquid / can / leaf / large_object / small_litter` 的 Demo-specific Custom YOLO。有效正样本仅 8 个，`leaf` 没有合法正样本，所有类别均为 LOW DATA。训练、中文 bbox review、逐张推理及 3 组清洁后负样本测试已完成，详见 `docs/YOLO_DATASET_REPORT.md`。
 
 结果只在 0.25 阈值稳定检出 Demo 4 两只 `large_object` 纸箱；`liquid`、`can`、`small_litter` 清洁前图均漏检，`leaf` 不可评估。因此权重仅保存在本地 `models/ai_cleaning_custom_yolo/best.pt`，不提交 Git，**不得**接入 Phase 8R 或声称 REAL 验收通过。MPS 已优先尝试但本机组合报错后回退 CPU；未改动产品 UI、Scheduler、SLAM 或 Agent。
+
+## 32. 独立低保真工作台原型（待人工验收）
+
+`frontend/src/components/prototype/` 提供仅前端的 `/prototype` 工作台。它不是 Phase 8R 的正式替换，也不会调用 Qwen-VL 或任何后端 API。原型采用 `CleaningEvent → RobotTask / Human Work Order` 的对象层次，通过四个演示触发器验证摄像头发现、受控 bbox、置信度门控、多视角、空间定位、机器人路径、固定摄像头验收与人工兜底。
+
+Scenario 02 使用 CAM-A1-01 / 02 / 04 的 62% / 66% / 64% 证据，综合研判为“液体污渍、需要清洁、91%”；这 91% 是跨视角语义结论而非平均值。原型只使用仓库内已授权的四组图片；机器人真实图片目前缺失，界面明确标示“图片素材待补充”。正式产品是否采纳原型，必须等待人工验收后再决定。

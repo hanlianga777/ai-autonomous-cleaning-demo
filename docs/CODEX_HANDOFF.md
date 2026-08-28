@@ -781,6 +781,16 @@ Phase 8R：GitHub 是唯一项目事实源。未来 Codex 必须先读取本文�
 
 如要继续 REAL 感知验收，下一步只能在用户明确同意后补充可用的本地 YOLO 权重并分别验证真实多视角及清洁后复核；不要把本次 Qwen-VL 单图成功扩大写成完整 REAL E2E。
 
+---
+
+## 最新交接：独立 `/prototype` 低保真交互原型（待人工验收）
+
+在开始任何后续工作前，必须先读：`CODEX_HANDOFF.md`、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`。本轮新增了 `http://localhost:5173/prototype`，它是独立前端原型，**不替换**正式客户工作台，不修改 backend、Qwen API、Scheduler、SQLite、Spatial Engine 或 Multi-view Agent，也不会发起云端请求。
+
+原型目录为 `frontend/src/components/prototype/`，按 `PrototypeWorkbench`、`CameraMonitorGrid`、`EventDetailPanel`、`SpatialDispatchView`、`data.ts`、`types.ts` 分层；不要把它合并成单一大组件。四个受控演示触发器覆盖 Robot A 室外清扫、Robot B 液体污渍的三视角研判、Robot C 的电梯/空中连廊跨楼路径，以及大型纸箱的 Human Fallback。Scenario 02 的综合 91% 是原型桩的跨视角语义结果，并非真实 Qwen 调用或平均分。
+
+已验证：前端生产构建通过；`/prototype` 首屏无白屏，1366×768 页面无纵向滚动、图片无加载失败、Console 0 error；Scenario 02 显示三路证据并闭环；Scenario 03 显示电梯和空中连廊；Scenario 04 不生成 RobotTask。缺少真实机器人图片素材，界面明确提示“图片素材待补充”。现在必须停止，等待用户的人为原型验收；未获明确许可不得整合进正式产品或进入任何新 Phase。
+
 然后：
 
 **停止。**

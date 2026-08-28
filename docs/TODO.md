@@ -254,6 +254,22 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 
 ---
 
+## 独立原型｜自主清洁工作台低保真交互验证（已完成，待人工验收）
+
+- [x] 新增独立 `/prototype` 路由，正式工作台与后端保持不变
+- [x] 单屏：2×2 固定摄像头监控、2.5D 园区空间调度、右侧独立滚动的最近事件详情
+- [x] 四个演示触发器：室外小垃圾、液体污渍、易拉罐、大件物品
+- [x] 使用统一 `CleaningEvent → RobotTask / Human Work Order` 产品对象表达
+- [x] 使用 `object-contain` 与 4:3 容器复用审核 bbox，避免画面裁切导致框漂移
+- [x] Scenario 02 三路低置信度多视角证据与 91% 综合研判展示
+- [x] Robot A/B/C 的调度路径；Robot C 显示 B1 → 电梯 → B2 → 空中连廊 → A2
+- [x] Scenario 04 Human Fallback，验证无机器人任务与无机器人移动
+- [x] 清洁前后固定摄像头验收与 PASS 闭环保留在最近事件详情
+- [x] 1366×768 浏览器单屏、Console 0 error、前端生产构建验证
+- [ ] 人工验收原型信息架构与视觉方向；未经确认不得把原型整合进正式产品
+
+---
+
 # 五、固定 Demo Scenario
 
 - [x] Scenario 01：Outdoor Autonomous / Robot A

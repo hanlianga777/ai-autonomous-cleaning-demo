@@ -9,6 +9,7 @@ import { MultiViewAgentPanel } from "@/components/multiview/MultiViewAgentPanel"
 import { AiLabPanel } from "@/components/ai-lab/AiLabPanel";
 import { RobotOrchestration } from "@/components/interview/RobotOrchestration";
 import { CustomerWorkbench } from "@/components/workbench/CustomerWorkbench";
+import { PrototypeWorkbench } from "@/components/prototype/PrototypeWorkbench";
 import { WorkOrderCenter } from "@/components/operations/WorkOrderCenter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -25,6 +26,7 @@ const navItems: { icon: typeof LayoutDashboard; label: string; view: View; techn
 ];
 
 function App() {
+  if (window.location.pathname === "/prototype") return <PrototypeWorkbench />;
   const [dashboard, setDashboard] = useState<DashboardData>(fallbackDashboard);
   const [apiStatus, setApiStatus] = useState<"loading" | "online" | "offline">("loading");
   const [view, setView] = useState<View>("workbench");
