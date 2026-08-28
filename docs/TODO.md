@@ -242,6 +242,8 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 - [x] 仅展示客户业务时间线；工作流枚举、能力约束、路线和原始模型信息收纳在技术详情
 - [x] `BusinessDetection` 业务类与 raw YOLO / VLM 类、置信度来源分离
 - [x] `.env.example`、本地 `.env` 自动加载、AI 状态 API、密钥与权重 Git 忽略
+- [x] 受控清洁前图片的精确检测框 / 置信度回放；主工作台常驻工单详情与业务审计
+- [x] 回放 API 与浏览器验证：图片上传 → Robot B 工单 → 红框证据 → SLAM / 调度 → 验收；新实例 Console 0 error
 - [ ] 配置本地 YOLO 权重并验证真实加载
 - [ ] 配置 `DASHSCOPE_API_KEY` 并验证 DashScope Qwen-VL 可达性
 - [ ] Scenario 02：REAL YOLO → REAL Qwen-VL → REAL Multi-view VLM → REAL post-clean AI verification → CLOSED

@@ -1299,6 +1299,10 @@ Phase 8R 将客户默认体验收敛为三层信息架构：一级仅保留“�
 
 REAL AI 接入边界已补齐：根目录 `.env.example` 描述本地 YOLO 权重与 DashScope Key，配置由本地 `.env` 自动读取且被 Git 忽略；`GET /api/system/ai-status` 只报告无密钥的运行状态。当前机器未配置 `.env`、YOLO 权重和 `DASHSCOPE_API_KEY`，因此 **Scenario 02 REAL YOLO + Qwen-VL + post-clean verification 的实跑验收尚未完成**；默认只明确运行 MOCK，不能写成 REAL 通过。
 
+### 受控图片检测证据补强（进行中的 Phase 8R 修复）
+
+为消除客户工作台中“固定占位框”和“只上传、不展示闭环”的问题，四个受控清洁前图片现返回其审阅过的精确归一化框坐标；Scenario 02 的两张补充视角也返回对应证据。前端使用同一 `DetectionFrame` 在现场、工单详情和清洁前后对比中绘制红框与置信度，并常驻展示 Workflow 审计、Robot A/B/C 状态、电量与位置、空间任务图、调度理由和验收。该离线来源固定标记为 `CONTROLLED_REPLAY`，不代表本地 YOLO 实推；未知上传仍失败。云端 Qwen-VL 仅在本地 `.env` 提供 `DASHSCOPE_API_KEY` 后才可进行真实调用。
+
 ---
 
 # 26. 开源项目参考

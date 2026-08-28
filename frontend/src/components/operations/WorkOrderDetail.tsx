@@ -3,6 +3,7 @@ import { Bot, CheckCircle2, CircleAlert, Eye, Route, ShieldCheck, UsersRound } f
 import { Badge } from "@/components/ui/badge";
 import type { OperationsWorkOrder } from "@/types/operations";
 import type { DemoAsset } from "@/types/workbench";
+import { DetectionFrame } from "@/components/operations/DetectionFrame";
 
 export function WorkOrderDetail({ workOrder }: { workOrder: OperationsWorkOrder | null }) {
   if (!workOrder) return <aside className="border border-slate-200 bg-white p-5"><p className="section-kicker">Selected work order</p><h3 className="mt-1 text-base font-semibold">尚未选择工单</h3><p className="mt-3 text-xs leading-5 text-slate-500">左侧选择一个 Scenario 或上传受控清洁前图。创建后，这里会展示 AI、位置、能力校验、调度原因、路线和验收状态。</p></aside>;
@@ -20,7 +21,7 @@ export function AuditTimeline({ workOrder }: { workOrder: OperationsWorkOrder | 
   return <section className="border border-slate-200 bg-white p-4"><div className="flex items-end justify-between"><div><p className="section-kicker">Workflow audit</p><h3 className="mt-1 text-base font-semibold">业务状态与执行审计</h3></div><Badge variant="outline">{workOrder.audit_transitions.length} 条记录</Badge></div><ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{workOrder.audit_transitions.map((transition) => <li key={transition.id} className={`border p-2.5 ${transition.state === workOrder.display_state ? "border-slate-800 bg-slate-900 text-white" : "border-slate-100 bg-slate-50"}`}><p className={`text-[10px] font-bold tracking-[0.1em] ${transition.state === workOrder.display_state ? "text-slate-300" : "text-slate-500"}`}>{transition.state}</p><p className={`mt-1 text-[11px] leading-4 ${transition.state === workOrder.display_state ? "text-white" : "text-slate-700"}`}>{transitionMessage(transition.detail)}</p></li>)}</ol></section>;
 }
 
-function Image({ asset, label, compact = false }: { asset?: DemoAsset; label: string; compact?: boolean }) { return <div className={`mt-3 overflow-hidden border border-slate-200 bg-slate-50 ${compact ? "aspect-[16/8]" : "aspect-[16/10]"}`}>{asset?.url ? <img src={asset.url} alt={label} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center px-3 text-center text-[11px] text-slate-400">{label}暂不可用</div>}</div>; }
+function Image({ asset, label, compact = false }: { asset?: DemoAsset; label: string; compact?: boolean }) { return <div className="mt-3 overflow-hidden border border-slate-200 bg-slate-50"><DetectionFrame asset={asset} label={label} compact={compact} /></div>; }
 function Fact({ label, value }: { label: string; value: string }) { return <div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-700">{value}</p></div>; }
 function assetFor(order: OperationsWorkOrder, role: DemoAsset["role"]) { return order.asset_manifest.assets.find((asset) => asset.role === role); }
 function translateObject(value: string) { return ({ small_litter: "室外纸巾", beverage_spill: "奶茶液体污渍", aluminum_can: "室内易拉罐", large_cardboard_box: "大型纸箱" } as Record<string, string>)[value] ?? value; }

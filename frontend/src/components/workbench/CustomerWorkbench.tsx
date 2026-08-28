@@ -8,6 +8,7 @@ import { AiRuntimeStrip } from "@/components/operations/AiRuntimeStrip";
 import { FleetCommandBar } from "@/components/operations/FleetCommandBar";
 import { MissionSurface } from "@/components/operations/MissionSurface";
 import { WorkOrderQueue } from "@/components/operations/WorkOrderQueue";
+import { AuditTimeline, WorkOrderDetail } from "@/components/operations/WorkOrderDetail";
 import { Badge } from "@/components/ui/badge";
 import type { OperationsSnapshot } from "@/types/operations";
 import type { SpatialOverview } from "@/types/spatial";
@@ -108,6 +109,7 @@ export function CustomerWorkbench() {
       <MissionSurface snapshot={snapshot} spatial={spatial} mapId={mapId} onMapChange={setMapId} />
       <BusinessTimeline workOrder={snapshot.active_work_order} />
     </div>
+    {snapshot.active_work_order && <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]"><AuditTimeline workOrder={snapshot.active_work_order} /><WorkOrderDetail workOrder={snapshot.active_work_order} /></div>}
     <input ref={inputRef} className="hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { void uploadScenario(event.target.files?.[0]); event.currentTarget.value = ""; }} />
   </section>;
 }

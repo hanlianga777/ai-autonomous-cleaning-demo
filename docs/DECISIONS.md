@@ -705,6 +705,10 @@ Phase 8 默认进入中文业务工作台。它通过产品化适配层编排 `a
 
 客户统一使用 `liquid / can / leaf / large_object / small_litter`。它们不是 stock YOLO 的原生类别承诺；`BusinessDetection` 必须同时保留 raw YOLO、VLM 与置信度来源，禁止为液体、树叶或大件伪造 YOLO bbox / confidence。
 
+**受控回放证据：**
+
+对经 SHA-256 匹配的四组授权图片，可以返回审阅过的框坐标以支持离线、可复现的工作台回放；其 API `source` 与 `confidence_source` 必须为 `CONTROLLED_REPLAY`，不得写成 REAL YOLO。该回放只复用既有 Camera → SLAM、Capability Engine、Scheduler 与 Verification，不创建第二套业务规则。云端 VLM 只有在本地 Key 存在时才能调用。
+
 ---
 
 ## 决策 25：Custom YOLO 作为本地、独立的 Demo 数据实验，不提前接入主流程

@@ -4,6 +4,13 @@ import type { WorkflowEvent } from "@/types/workflow";
 
 export type DemoAssetRole = "before" | "after" | "evidence";
 
+export interface DetectionOverlay {
+  label: string;
+  confidence: number;
+  bbox: { x1: number; y1: number; x2: number; y2: number };
+  source: "CONTROLLED_REPLAY";
+}
+
 export interface DemoAsset {
   camera_id: string;
   event_id: string;
@@ -13,6 +20,7 @@ export interface DemoAsset {
   available: boolean;
   url: string | null;
   sha256: string | null;
+  detection_overlays: DetectionOverlay[];
 }
 
 export interface DemoAssetManifest {

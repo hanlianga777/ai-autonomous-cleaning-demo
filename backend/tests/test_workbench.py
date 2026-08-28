@@ -38,6 +38,11 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(result["multi_view"]["final_confidence"], 0.92)
         self.assertEqual(result["workflow_event"]["assignment_decision"]["selected_robot_name"], "Robot B")
         self.assertEqual(result["workflow_event"]["verification"]["result"], "PASS")
+        primary = next(asset for asset in result["asset_manifest"]["assets"] if asset["role"] == "before")
+        overlay = primary["detection_overlays"][0]
+        self.assertEqual(overlay["label"], "液体污渍")
+        self.assertEqual(overlay["source"], "CONTROLLED_REPLAY")
+        self.assertEqual(result["initial_ai_result"]["business_detections"][0]["confidence_source"], "CONTROLLED_REPLAY")
 
     def test_other_image_backed_scenarios_reuse_scheduler_and_preserve_human_boundary(self):
         robot_c = run_workbench_event("event-indoor-can-003")

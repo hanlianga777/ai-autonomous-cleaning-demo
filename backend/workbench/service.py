@@ -15,6 +15,7 @@ from typing import Any
 
 from perception.service import analyze_mock_case
 from workflow.engine import create_mock_event, run_event
+from workbench.preset_detections import overlays_for_asset
 
 
 ASSET_ROOT = Path(__file__).resolve().parents[2] / "sample_data" / "camera_events"
@@ -59,6 +60,7 @@ def _asset_item(event_id: str, camera_id: str, filename: str, label: str, role: 
         "available": available,
         "url": f"/demo-assets/{camera_id}/{event_id}/{filename}" if available else None,
         "sha256": sha256(path.read_bytes()).hexdigest() if available else None,
+        "detection_overlays": overlays_for_asset(event_id, camera_id, filename),
     }
 
 
@@ -88,6 +90,30 @@ def list_scenario_assets() -> list[dict[str, Any]]:
 
 def _initial_ai_result(event_id: str, uploaded_filename: str | None = None) -> dict[str, Any]:
     result = analyze_mock_case(DEMO_SCENARIOS[event_id]["mock_case"])
+    scenario = DEMO_SCENARIOS[event_id]
+    primary = next(
+        (asset for asset in scenario_assets(event_id)["assets"] if asset["role"] == "before"),
+        None,
+    )
+    overlays = primary["detection_overlays"] if primary else []
+    if overlays:
+        result["detections"] = [
+            {
+                "class_name": overlay["label"],
+                "confidence": overlay["confidence"],
+                "bbox": overlay["bbox"],
+                "frame_index": 0,
+                "source": overlay["source"],
+            }
+            for overlay in overlays
+        ]
+        result["business_detections"][0]["bbox"] = overlays[0]["bbox"]
+        result["business_detections"][0]["display_confidence"] = overlays[0]["confidence"]
+        result["business_detections"][0]["confidence_source"] = "CONTROLLED_REPLAY"
+        result["business_detections"][0]["raw_yolo_class"] = None
+        result["business_detections"][0]["raw_yolo_confidence"] = None
+        result["pipeline"]["yolo"] = "controlled-replay-overlay"
+        result["notes"][0] = "Controlled replay uses reviewed overlays for the exact authorised before-cleaning image; no local model or cloud API was called."
     if uploaded_filename:
         result["source"]["filename"] = uploaded_filename
         result["notes"].append("Upload content matched an approved demo before-cleaning asset by SHA-256.")
