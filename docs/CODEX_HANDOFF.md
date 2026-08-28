@@ -791,6 +791,12 @@ Phase 8R：GitHub 是唯一项目事实源。未来 Codex 必须先读取本文�
 
 已验证：前端生产构建通过；`/prototype` 首屏无白屏，1366×768 页面无纵向滚动、图片无加载失败、Console 0 error；Scenario 02 显示三路证据并闭环；Scenario 03 显示电梯和空中连廊；Scenario 04 不生成 RobotTask。缺少真实机器人图片素材，界面明确提示“图片素材待补充”。现在必须停止，等待用户的人为原型验收；未获明确许可不得整合进正式产品或进入任何新 Phase。
 
+### Prototype V2 视觉纠偏状态
+
+Prototype V1 没有通过人工视觉验收，不能称为最终产品设计。当前只允许在 `/prototype` 做 V2 视觉与交互纠偏：恢复左侧视觉导航、压缩产品栏、按真实 16:9 视频窗展示完整 4:3 源图、把 bbox 绑定到实际图片坐标层、重做透明轴测建筑模型，并删除验收/闭环的重复图片。仍然禁止修改正式 `CustomerWorkbench`、后端、Scheduler、SQLite、AI/Agent，或调用真实 Qwen。
+
+V2 已完成浏览器检查：空闲、室外小型垃圾、Scenario 02 多视角、Scenario 03 Robot C 空中连廊、闭环状态均可访问；图片无加载失败、Console 0 error。Scenario 02 只对 CAM-A1-02 / CAM-A1-04 标记“Agent 临时调取”；在闭环状态，清洁前和清洁后证据各只保留一份。现在继续停止并等待人工验收。
+
 然后：
 
 **停止。**
