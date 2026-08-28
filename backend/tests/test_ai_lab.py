@@ -27,6 +27,24 @@ class AiLabTests(unittest.TestCase):
                 else:
                     os.environ[key] = value
 
+    def test_dashscope_key_is_reported_ready_without_requiring_local_yolo_weight(self):
+        old_mode = os.environ.get("AI_LAB_MODE")
+        old_key = os.environ.get("DASHSCOPE_API_KEY")
+        old_model = os.environ.get("AI_LAB_YOLO_MODEL")
+        os.environ["AI_LAB_MODE"] = "auto"
+        os.environ["DASHSCOPE_API_KEY"] = "local-test-key"
+        os.environ.pop("AI_LAB_YOLO_MODEL", None)
+        try:
+            runtime = get_runtime()
+            self.assertEqual(runtime.active_mode, "mock")
+            self.assertTrue(runtime.qwen_ready)
+        finally:
+            for key, value in (("AI_LAB_MODE", old_mode), ("DASHSCOPE_API_KEY", old_key), ("AI_LAB_YOLO_MODEL", old_model)):
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
     def test_mock_image_result_is_structured_and_does_not_dispatch(self):
         with tempfile.TemporaryDirectory() as directory:
             image = Path(directory) / "coffee-cup.jpg"

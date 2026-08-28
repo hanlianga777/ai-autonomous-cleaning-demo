@@ -709,6 +709,8 @@ Phase 8 默认进入中文业务工作台。它通过产品化适配层编排 `a
 
 对经 SHA-256 匹配的四组授权图片，可以返回审阅过的框坐标以支持离线、可复现的工作台回放；其 API `source` 与 `confidence_source` 必须为 `CONTROLLED_REPLAY`，不得写成 REAL YOLO。该回放只复用既有 Camera → SLAM、Capability Engine、Scheduler 与 Verification，不创建第二套业务规则。云端 VLM 只有在本地 Key 存在时才能调用。
 
+Qwen-VL Key 的可用性独立于本地 YOLO 权重：Key 存在时，匹配的受控主图可额外请求一次真实 Qwen-VL 作为 `cloud_review`；该复核只能补充证据，不能在没有独立验收的情况下覆盖固定场景的 Workflow、坐标映射或调度结论。
+
 ---
 
 ## 决策 25：Custom YOLO 作为本地、独立的 Demo 数据实验，不提前接入主流程

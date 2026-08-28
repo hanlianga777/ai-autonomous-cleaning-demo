@@ -246,6 +246,7 @@ Phase 4 已正式验收通过。当前限制：**REAL MODE 尚未使用真实 YO
 - [x] 回放 API 与浏览器验证：图片上传 → Robot B 工单 → 红框证据 → SLAM / 调度 → 验收；新实例 Console 0 error
 - [ ] 配置本地 YOLO 权重并验证真实加载
 - [ ] 配置 `DASHSCOPE_API_KEY` 并验证 DashScope Qwen-VL 可达性
+- [x] 将 Qwen-VL Key 可用性与本地 YOLO 权重解耦；Key 存在时受控工单才发起云端二次复核
 - [ ] Scenario 02：REAL YOLO → REAL Qwen-VL → REAL Multi-view VLM → REAL post-clean AI verification → CLOSED
 - [ ] 浏览器 REAL E2E 验收（刷新后工单持久化、Console 0 error）
 

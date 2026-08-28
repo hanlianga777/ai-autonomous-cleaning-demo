@@ -904,6 +904,8 @@ Camera demo asset / real camera frame
 
 For exact SHA-256 matches of the approved customer-demo before images only, `workbench.preset_detections` adds `detection_overlays` to the existing asset manifest. Each overlay carries normalised image coordinates, a display confidence and `source: CONTROLLED_REPLAY`; the frontend's `DetectionFrame` renders it over the unmodified source frame. The response preserves this provenance through `business_detections.confidence_source`; it never upgrades the record to a raw YOLO result. The same `DemoAsset` is consumed by the event scene, work-order detail and before/after comparison, so one frame cannot show a different box from another part of the product.
 
+`AiRuntime.qwen_ready` is independent of local YOLO readiness. When the local `.env` contains `DASHSCOPE_API_KEY`, a matched customer workbench main image calls `run_qwen_vl` once and exposes a bounded `cloud_review` evidence record (`REAL`, `FAILED` or `NOT_CONFIGURED`). A cloud failure is displayed as a failure, never converted to a mock success; the existing deterministic Scenario workflow, Spatial mapping and Scheduler are intentionally not overwritten by that secondary review.
+
 ---
 
 # 20. UI 架构

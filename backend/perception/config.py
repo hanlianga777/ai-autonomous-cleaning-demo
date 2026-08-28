@@ -37,6 +37,7 @@ class AiRuntime:
     reason: str
     yolo_model: str | None
     qwen_model: str
+    qwen_ready: bool
 
 
 def get_runtime() -> AiRuntime:
@@ -54,7 +55,7 @@ def get_runtime() -> AiRuntime:
     key_present = bool(os.getenv("DASHSCOPE_API_KEY", "").strip())
     model_present = bool(model and Path(model).expanduser().is_file())
     if requested != "mock" and model_present and key_present:
-        return AiRuntime(requested, "real", "REAL AI MODE", True, "Local YOLO model and DashScope credentials are configured.", model, os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max"))
+        return AiRuntime(requested, "real", "REAL AI MODE", True, "Local YOLO model and DashScope credentials are configured.", model, os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max"), key_present)
     if requested == "real":
         missing = []
         if not model_present:
@@ -66,4 +67,4 @@ def get_runtime() -> AiRuntime:
         reason = "MOCK mode was selected explicitly."
     else:
         reason = "REAL prerequisites are not configured; stable local Mock is active."
-    return AiRuntime(requested, "mock", "DEMO MOCK MODE", False, reason, model, os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max"))
+    return AiRuntime(requested, "mock", "DEMO MOCK MODE", False, reason, model, os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max"), key_present)

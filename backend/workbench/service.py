@@ -13,7 +13,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from perception.config import get_runtime
+from perception.qwen import run_qwen_vl
 from perception.service import analyze_mock_case
+from perception.yolo import RealInferenceError
 from workflow.engine import create_mock_event, run_event
 from workbench.preset_detections import overlays_for_asset
 
@@ -114,10 +117,40 @@ def _initial_ai_result(event_id: str, uploaded_filename: str | None = None) -> d
         result["business_detections"][0]["raw_yolo_confidence"] = None
         result["pipeline"]["yolo"] = "controlled-replay-overlay"
         result["notes"][0] = "Controlled replay uses reviewed overlays for the exact authorised before-cleaning image; no local model or cloud API was called."
+    _attach_optional_cloud_review(result, primary)
     if uploaded_filename:
         result["source"]["filename"] = uploaded_filename
         result["notes"].append("Upload content matched an approved demo before-cleaning asset by SHA-256.")
     return result
+
+
+def _attach_optional_cloud_review(result: dict[str, Any], primary: dict[str, Any] | None) -> None:
+    """Run Qwen-VL only after the local user has configured its key.
+
+    A cloud review is evidence alongside the controlled replay; it cannot
+    overwrite the established Scenario workflow or pretend to be raw YOLO.
+    """
+    runtime = get_runtime()
+    if not runtime.qwen_ready:
+        result["cloud_review"] = {"status": "NOT_CONFIGURED", "model": runtime.qwen_model}
+        return
+    if not primary:
+        result["cloud_review"] = {"status": "FAILED", "model": runtime.qwen_model, "reason": "No primary image is available for cloud review."}
+        return
+    image_path = ASSET_ROOT / primary["camera_id"] / primary["event_id"] / primary["filename"]
+    try:
+        vlm = run_qwen_vl(image_path, runtime.qwen_model)
+        result["cloud_review"] = {
+            "status": "REAL",
+            "model": runtime.qwen_model,
+            "need_clean": vlm["need_clean"],
+            "confidence": vlm["confidence"],
+            "summary": vlm["summary"],
+            "business_class": vlm["business_class"],
+        }
+        result["notes"].append("DashScope Qwen-VL executed for this controlled image; its result is retained as secondary evidence.")
+    except RealInferenceError as error:
+        result["cloud_review"] = {"status": "FAILED", "model": runtime.qwen_model, "reason": str(error)}
 
 
 def run_workbench_event(event_id: str, uploaded_filename: str | None = None) -> dict[str, Any]:

@@ -36,7 +36,7 @@ def system_ai_status() -> dict:
         "overall_mode": runtime.active_mode,
         "reason": runtime.reason,
         "yolo": {"mode": "REAL" if runtime.active_mode == "real" else "MOCK", "model": yolo_path.name if yolo_path else None, "loaded": bool(yolo_path and yolo_path.is_file() and runtime.active_mode == "real"), "weights_path": str(yolo_path) if yolo_path else None},
-        "qwen_vl": {"mode": "REAL" if runtime.active_mode == "real" else "MOCK", "model": runtime.qwen_model, "api_key_configured": bool(os.environ.get("DASHSCOPE_API_KEY", "").strip()), "reachable": "not_checked"},
+        "qwen_vl": {"mode": "REAL_READY" if runtime.qwen_ready else "MOCK", "model": runtime.qwen_model, "api_key_configured": runtime.qwen_ready, "reachable": "not_checked"},
         "multiview_agent": {"mode": "REAL_LOGIC", "max_additional_cameras": 2, "max_iterations": 2},
         "camera_to_slam": {"mode": "REAL_CALCULATION", "implementation": "spatial.calibration.map_pixel_to_slam"},
         "scheduler": {"mode": "REAL_ALGORITHM", "implementation": "Phase 3 deterministic capability + score"},

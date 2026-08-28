@@ -44,4 +44,5 @@ export interface AiLabResult {
   notes: string[];
   workflow_input: AiLabWorkflowInput | null;
   scheduler_preview: AiLabSchedulerPreview | null;
+  cloud_review?: { status: "NOT_CONFIGURED" | "REAL" | "FAILED"; model: string; need_clean?: boolean; confidence?: number; summary?: string; business_class?: string; reason?: string };
 }
