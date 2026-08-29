@@ -69,7 +69,21 @@
 - **UI / ASR**：Workbench/Event Center 同一可拖动浮窗；无已保存位置默认左下角，localStorage 位置优先，刷新/跨页/展开/收起保持，拖动不出 viewport。Analytics 仅固定 Panel；不出现第二 Agent。Microphone 只有配置的真实 ASR provider 可调用时才可用；未配置时必须 disabled 或显示“语音服务未配置”，不得使用预设文本、timer、mock transcript 或 fake voice animation。
 - **Delivery Adapter**：没有真实平台授权必须是 `ADAPTER READY` / `AUTH REQUIRED`；不得显示 `CONNECTED` 或模拟外部 callback。真实授权后才测试 webhook / 双向状态同步。
 
-## 7. 清洁主场景总体回归（LOCKED / TODO）
+## 7. Advanced Technical Observability 验收（LOCKED / TODO）
+
+| 场景 | 必须可审计的 Advanced Trace |
+|---|---|
+| Demo01 | Edge → Single-view Cloud → `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT` Multi-view → Business Decision / Fusion → Verification |
+| Demo02 | Edge → Single-view Cloud → Evidence Insufficient → `MODEL_TOOL_CALL` → supporting camera search → evidence fetch → Multi-view Cloud → Decision / Fusion → Verification；不得显示 `SYSTEM_WORKFLOW` 强制进入 |
+| Demo03 | Camera→SLAM → Capability → Scheduler → 真实 `plan_route()` → 蜗小白 SC50 → Verification |
+| Demo04 | Cloud → Camera→SLAM → Capability Candidate Count 0 → `HUMAN_FALLBACK` → Manual completion → Verification |
+
+- **Reality Badge**：controlled edge 不得显示 `LIVE MODEL`；controlled camera evidence 不得显示 production live camera；PoC robot 不得显示 real telemetry；未授权 Delivery Adapter 不得显示 `CONNECTED`；Reality Matrix 的状态由 Runtime fact / configuration / provider / evidence / authorization 自动决定，用户不可编辑。
+- **Runtime / Error**：验证 LIVE success、LIVE model failure、用户手动启用 Replay、`POLICY_REJECTED`、`SPATIAL_ERROR`、`ROUTE_ERROR`、`VERIFICATION_ERROR`；错误层级准确，LIVE failure 无 silent Replay。Tool Trace 必须有 tool、trigger source、start time、duration、status、input/result summary，不能是前端定时器。
+- **Sensitive data / CoT**：任何 Advanced UI/API response 不得泄漏 API Key、Secret、Access Token、Authorization Header 或环境变量具体值；不得显示 Chain-of-Thought、scratchpad 或 reasoning tokens。
+- **Trace projection**：Advanced 只投影 CleaningEvent transitions、cloud/model request record、Agent Action/Tool Audit、spatial/capability/scheduler/route/verification/provider/reality metadata；不得重跑模型、Scheduler 或 Route Planner。Trace ID 独立于 Event ID，并可串联 Event / AgentTask / Tool / model / task runtime。
+
+## 8. 清洁主场景总体回归（LOCKED / TODO）
 
 | 模式 | 场景 | 次数与通过条件 |
 |---|---|---|
@@ -81,9 +95,10 @@
 
 每次必须记录 run id / commit、模式、时间、raw cloud confidence、是否二审及 confidence、Fusion/composite score、系统决策、selected robot、route、verification raw result、最终状态、每个云端请求 latency。主场景合理业务成功率低于约 80% 时，先调查 Prompt、ROI、ontology、输入上下文、parser、模型/系统决策分离，而不是仅称“随机”。
 
-## 8. 当前限制与禁止性结论
+## 9. 当前限制与禁止性结论
 
 - 当前不宣称 REAL YOLO、生产多机位同步、真实机器人遥测、真实电梯、真实外卖平台集成或生产阈值。
 - 旧 Stable Replay 不能叫完整稳定回归，直到满足本文件第 3 节定义。
 - Demo03 目前的 `retry` 必须如实保留；不能通过 Demo ID 特判或写死 PASS 修复。
+- 当前 Advanced 仅是基础 shell；不宣称已完成 Trace Inspector、Reality Matrix、结构化 audit、真实 Tool / Error / source projection 或 Trace ID。
 - 本轮是 docs-only；没有运行新的代码、模型、浏览器或 API 测试。

@@ -155,6 +155,29 @@ Shared AgentSession / Message / ActionAudit / Task context
 
 清洁仍是主业务。未获得平台授权、资质与 API 权限时，Delivery Adapter 只能显示 `ADAPTER READY` / `AUTH REQUIRED`；不得声称 `CONNECTED` 或伪造 platform callback。授权后，结构化订单走确定性 Adapter / POI normalization / Policy / Delivery Workflow / FlashBot Max / status callback；不确定例外才升级给 Robot Operations Agent。
 
-## 10. 不进入本轮与不允许的实现
+## 10. Advanced Technical Observability（LOCKED / TODO）
 
-本轮不实现任何前后端或测试变更。未来统一 implementation batch 也禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 改基础设施配置。Batch C / Part 3 pending discussion，尚无实施授权。
+```text
+Existing Runtime
+  → CleaningEvent transitions / Cloud request records / Agent Action + Tool Audit
+  → spatial mapping / capability evaluation / assignment / route / verification
+  → provider status + reality source metadata
+  → Technical Projection
+  → Advanced Trace Inspector
+       ├── AI Recognition Trace
+       ├── Spatial / Capability / Scheduling / Route Trace
+       ├── Runtime / Model / Tool / Error Observability
+       └── System Reality Matrix
+```
+
+Advanced 是 read-mostly **Technical Observability & Execution Trace Inspector**，不是新 Runtime：不得独立重跑模型、Scheduler 或 Route Planner。当前代码仅有基础技术状态卡片与当前事件 JSON；目标实现改为顶部 Runtime Strip、左 62–65% Execution Trace、右 35–38% Selected Node Detail 的 Trace → Node → Inspect，不默认展平 JSON。
+
+AI Trace 固定投影 Edge Detection、Single-view Cloud VLM、Conditional Multi-view Perception Agent、Multi-view Cloud Judgment、Business Decision/Fusion、Verification 六段。Multi-view 未发生时必须明确 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`；发生时 Tool Trace 必须来自真实 Agent audit，并记录 `MODEL_TOOL_CALL`。每个 Node 只显示结构化 input/output summary、evidence, confidence、sufficiency、ambiguity、latency、second-review、ROI/verdict，不显示 Chain-of-Thought。
+
+空间 Trace 固定投影 Camera→SLAM、Capability、Scheduler、Dijkstra：在现有 Runtime 具备记录后显示 calibration / u-v / map-x-y、TaskProfile / constraints、Scheduler explanation / `AssignmentDecision`、Dijkstra map/node/segment/cost；Dijkstra 是 campus global topology，不是 Nav2 / local obstacle avoidance。Runtime / Tool / Error Trace 使用统一 trigger source（`MODEL_TOOL_CALL`、`SYSTEM_WORKFLOW`、`USER_ACTION`）与错误 taxonomy（`MODEL_ERROR`、`TOOL_ERROR`、`POLICY_REJECTED`、`SPATIAL_ERROR`、`SCHEDULER_ERROR`、`ROUTE_ERROR`、`VERIFICATION_ERROR`、`EXTERNAL_ADAPTER_ERROR`）。
+
+Reality Source Metadata 是独立可审计数据：`LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`。System Reality Matrix 由该 metadata、provider/configuration 与 authorization status 自动投影，覆盖模型、evidence、空间、调度、路线、机器人、电梯/Skybridge、验证、Replay、Delivery、ASR；不能由前端手改或伪造。Advanced 还应显示 Current PoC Boundaries、future adapter replacement points 与独立 Trace ID（不等于 Event ID），且绝不泄露密钥、token、authorization header 或环境变量值。
+
+## 11. 不进入本轮与不允许的实现
+
+本轮不实现任何前后端或测试变更。未来统一 implementation batch 也禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 或 Advanced 改基础设施配置。Batch C / Part 3 已为 `LOCKED/TODO`，但尚无 implementation 授权。

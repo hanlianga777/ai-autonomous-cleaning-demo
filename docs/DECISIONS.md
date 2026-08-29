@@ -99,6 +99,26 @@
 
 **IMPLEMENTED / LOCKED**：阶段 API 与 SQLite 审计已拆分；Cloud 仅在 cloud-review，Scheduler 仅在 assign，Verification 仅在 verify 或 Demo04 人工完成后。`assignment_decision` 是当前行动机器人的唯一事实源；旧 `/runs/*` 已 410。后续实现必须保留该边界，不能回到“先算完整结果再播放”。
 
+## D13｜Advanced Technical Observability / 高级模式
+
+**LOCKED / TODO**：Advanced 正式定位为 **Technical Observability & Execution Trace Inspector**，是 read-mostly 技术透明、运行审计与执行链路查看页面；它不是普通客户运营页、管理员配置后台、模型训练平台、SLAM 编辑器、Scheduler 配置台、参数调试后台或黑客终端。沿用 React + TypeScript + Vite + Tailwind + shadcn/ui，浅色、克制、企业 SaaS；禁止黑客终端、霓虹、赛博朋克、Glassmorphism、复杂 3D 或第二 UI System。
+
+**LOCKED / TODO**：只允许查看、审计、追溯、展开技术详情与用户主动切换 LIVE / Stable Replay。绝不允许编辑 SLAM、Camera Calibration、Camera Coverage、禁行区、清洁/巡检范围、机器人 Capability、Scheduler Policy、自动处置 Threshold、Dijkstra topology、门禁/电梯权限、安全速度或 Agent 工具权限；未来 Admin / Configuration 是独立产品能力。
+
+**LOCKED / TODO**：顶部为轻量 Runtime Strip：LIVE / Stable Replay、Cloud Model Available / Unavailable、Last Request Success / Failed / Idle、真实最近 latency；可补 Provider、Model、Request Time，不堆系统指标、不展示 API Key / Secret / Access Token / Authorization Header / 环境变量值。主体为左 62–65% Execution Trace、右 35–38% Selected Node Detail，交互固定为 Trace → Node → Inspect，不默认铺完整 JSON。
+
+**LOCKED / TODO**：四个核心模块固定为：(1) AI Recognition Trace；(2) Spatial / Capability / Scheduling / Route Trace；(3) Runtime / Model / Tool / Error Observability；(4) System Reality Matrix。不得重复放普通 Event List、Analytics KPI / 热力图、业务大屏或普通 Fleet Dashboard。
+
+**LOCKED / TODO**：AI Recognition Trace 固定六段：Edge Detection、Single-view Cloud VLM、Conditional Multi-view Perception Agent、Multi-view Cloud Judgment、Business Decision / Fusion、Verification。未触发 Multi-view 时第 3/4 段如实显示 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`，不得假装调用。Node 展示结构化输入/输出摘要、camera、bbox/ROI、confidence、evidence sufficiency、ambiguity、latency、second-review status、verification ROI/verdict；禁止 Chain-of-Thought、scratchpad 或 reasoning tokens。Edge 仍为受控 bbox 时必须显示 `CONTROLLED EDGE DEMO`，不得声称 REAL YOLO。
+
+**LOCKED / TODO**：Spatial / Capability / Scheduling / Route Trace 固定四段：Camera→SLAM、Capability Engine、Scheduler、Dijkstra Route。Camera→SLAM 展示 camera、bbox ground point、u/v、4-point homography、calibration status、building/floor/zone/map/x/y；Capability 展示 TaskProfile、硬约束、候选与 Demo Configuration 边界；Scheduler 展示 current state/map/battery/task/route cost/capability fit/priority 与 `AssignmentDecision`；Dijkstra 展示 start/target map、node/segment path、cost、数量与小 topology preview。清洁机器人选择永远来自 Capability Engine + Scheduler，不得标为 LLM / Agent selected robot；Dijkstra 只代表园区级全局 topology planning，不等于 Nav2 或局部动态避障。
+
+**LOCKED / TODO**：Runtime Observability 包含 Runtime Mode、Model Runtime、Agent Tool Trace、Error & Recovery。统一 Tool Trace component 显示 tool、trigger source、start time、duration、status、input/result summary；trigger source 仅为 `MODEL_TOOL_CALL`、`SYSTEM_WORKFLOW`、`USER_ACTION`。错误层级固定为 `MODEL_ERROR`、`TOOL_ERROR`、`POLICY_REJECTED`、`SPATIAL_ERROR`、`SCHEDULER_ERROR`、`ROUTE_ERROR`、`VERIFICATION_ERROR`、`EXTERNAL_ADAPTER_ERROR`；LIVE failure 禁止 silent Replay。Recovery 只可展示 Policy Guard 白名单内 retry/wait/re-query/allowed alternative/notify，不能借 Recovery 改基础设施配置。
+
+**LOCKED / TODO**：关键 Node / Evidence 使用统一 Source Badge：`LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`。Reality Status 未来由 Runtime fact、configuration、provider status、evidence source、authorization status 自动决定，前端用户不得手改。System Reality Matrix 至少覆盖 Cloud Qwen、Multi-view Tool Calling、supplemental evidence、YOLO/edge evidence、Camera→SLAM、Capability、Scheduler、Dijkstra、robot movement、elevator/Skybridge、verification、Replay、delivery adapter、FlashBot Max delivery runtime、ASR，并展示 Capability / Current Reality Status / Short Explanation、PoC boundary 与 future adapter replacement point。
+
+**LOCKED / TODO**：Advanced 不是新 Runtime。它只读投影 CleaningEvent transitions、Cloud request records、Agent Action/Tool Audit、spatial mapping、capability evaluation、AssignmentDecision、route、verification、provider status 与 reality source metadata；不得独立重跑模型、Scheduler 或 Route Planner，不得前端伪造 trace、tool call、latency、error、source badge、model status 或 reality status。未来 CleaningEvent / AgentTask 应有独立 Trace ID（不等于 Event ID）串联 Workbench、Event Center、Advanced、Action Card、Tool Trace、Model Request 与 Task Runtime。
+
 ## SUPERSEDED 决策索引
 
 | 旧方案 | 新决策 |

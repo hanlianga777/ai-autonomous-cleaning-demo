@@ -63,11 +63,22 @@
 - [ ] **Event / Analytics / Agent 回归**：历史 snapshot 不被当前 Fleet 覆盖；状态分类与 URL 恢复正确；Analytics 无硬编码 KPI；Action Card / Policy Guard / Audit 与 Delivery Adapter 授权状态可验证。
 - [ ] **实现后文档更新**：仅在代码、测试、浏览器证据和用户验收都存在时，将对应 TODO 转为 IMPLEMENTED，并更新六份事实源。
 
-## 后续 Batch（不在本轮 implementation scope）
+## P1-H｜Advanced Technical Observability（Batch C）
 
-- [ ] Advanced 完整产品化与深度技术 trace 体验。
+- [ ] **Trace Inspector layout**：在现有 Advanced shell 上实现浅色 read-mostly Technical Observability & Execution Trace Inspector；顶部 Runtime Strip，左 62–65% Execution Trace、右 35–38% Selected Node Detail，交互为 Trace → Node → Inspect；不做配置后台、黑客终端或满屏 JSON。
+- [ ] **AI Recognition 6-stage Trace**：投影 Edge、Single-view Cloud、conditional Multi-view Agent、Multi-view Cloud、Business Decision/Fusion、Verification；未触发 Multi-view 如实显示 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`，不伪造调用或固定 confidence。
+- [ ] **Multi-view Agent / unified Tool Trace**：统一展示 tool、`MODEL_TOOL_CALL` / `SYSTEM_WORKFLOW` / `USER_ACTION`、start time、duration、status、input/result summary；Demo02 可审计 single-view insufficiency、candidate、selected camera、fetch、final judgment，不显示 Chain-of-Thought。
+- [ ] **Source / Reality badges 与 Reality Matrix**：统一 `LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`；Reality Matrix 覆盖 AI、空间、调度、机器人、电梯/Skybridge、验证、Replay、Delivery、ASR，并由 Runtime facts 自动决定，用户不可手改。
+- [ ] **空间、能力、调度、路线 Inspector**：展示 Camera→SLAM 4-point homography / u-v / map-x-y、TaskProfile 与 Capability 硬约束、Scheduler factors / AssignmentDecision、Dijkstra global topology route 与 Demo03 Skybridge；不宣称 Nav2 或真实局部避障。
+- [ ] **Runtime / Model / Error / Recovery Inspector**：实现 LIVE/Replay strip、真实 provider/model/request/latency、错误 taxonomy、Policy Guard recovery audit、LIVE failure no silent Replay；不泄漏任何 secret。
+- [ ] **Trace ID、PoC Boundaries 与 Adapter Points**：以独立 Trace ID 串联 Event / AgentTask / Tool / model / task runtime；展示当前 PoC boundary、future Evidence/Robot/Delivery/ASR/Elevator Adapter replacement point；Advanced 只读真实 Runtime Records，绝不独立重跑模型、Scheduler 或 Route Planner。
+- [ ] **Advanced acceptance**：完成 `AI_INTEGRATION_TEST.md` 的 Demo01–04 Trace、Reality Badge、Runtime/Error、sensitive-data 检查；必须证明无 fake trace/tool/latency/error/badge/status。
+
+## 后续 Batch（不在 Unified Implementation Batch 的范围）
+
+- [ ] 在 P1-H 完成并验收后，才另行讨论 Advanced 的非必要增强体验；不得稀释已锁定的四模块 Trace Inspector 范围。
 - [ ] 经授权的真实 RTSP/VMS/NVR、生产机器人/电梯/门禁与外部配送平台 Adapter。
-- [ ] **Batch C / Part 3 pending discussion**：尚未完整讨论，禁止自行定义范围或实施。
+- [ ] **Batch C / Part 3 Advanced**：方案已 `LOCKED/TODO`，由 P1-H 承载；当前仍无 implementation 授权，必须等待 Unified Implementation Prompt。
 
 ## 不在授权范围
 

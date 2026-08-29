@@ -7,8 +7,8 @@
 
 - 仓库：`ai-autonomous-cleaning-demo`；分支：`main`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`；它不能回退为一次性 `/runs` + 前端播放。
-- 当前最新文档提交锁定了 Event Center、Analytics、Robot Operations Agent、外部配送边界与新的 Multi-view 架构；这些是 **LOCKED/TODO，不是 IMPLEMENTED**。
-- **当前没有 implementation 授权。** 等待用户单独提供统一 implementation prompt；在此之前不得修改 frontend、backend、数据库、API、Runtime、模型、素材或测试，也不得擅自进入 Batch C / Part 3。
+- 当前最新文档已锁定第一、二、三部分：Event Center、Analytics、Robot Operations Agent、外部配送边界、新 Multi-view 架构与 Advanced Technical Observability；这些是 **LOCKED/TODO，不是 IMPLEMENTED**。
+- **当前没有 implementation 授权。** 等待用户单独提供 Unified Implementation Prompt；在此之前不得修改 frontend、backend、数据库、API、Runtime、模型、素材或测试。Batch C / Part 3 已 LOCKED/TODO，不能再当作待讨论，也不得提前实施。
 
 ## 先理解的实现事实与文档冲突
 
@@ -17,6 +17,7 @@
 3. 当前 `locate` 仍是模板 location，`navigation_plan` 仍是演示锚点，不是 bbox→`map_pixel_to_slam()` + Fleet current map→`plan_route()` Runtime。
 4. 当前客户名称/产品资料仍是旧 mock 名称。实施时只能改显示投影与资料契约，保持内部 ID `robot-a` / `robot-b` / `robot-c` / `robot-d`。
 5. 当前 Demo04 有 cloud 阶段直接人工分支；目标必须改为 Cloud → Locate → Capability zero candidate → `HUMAN_FALLBACK`。
+6. 当前 Advanced 只是技术状态卡片 + 当前事件 JSON 的基础 shell；没有 Trace Inspector、node detail、structured Tool Audit、Reality Matrix、错误分类或 Trace ID，不能称为 Batch C 已完成。
 
 ## 不可违反规则
 
@@ -30,6 +31,8 @@
 8. 系统仅有 Multi-view Perception Agent 与 Robot Operations Agent 两个 Agent。后者可以在低风险白名单内做 task-level action / observe / replan，但绝不拥有地图、能力、Coverage、标定、Scheduler、阈值、速度、门禁、电梯等基础设施 Write Tool。
 9. 一个 Robot Operations Agent：Workbench/Event Center 共享浮窗，无 localStorage 保存位置时默认左下角，保存位置优先；只可从 Header/Drag Handle 拖动、不能出 viewport，展开/收起/跨页/刷新保持。Analytics 固定 Panel，Session/Audit/Task context 共享。语音只是 Microphone → real ASR → transcript 输入，不是主演示路径；ASR 未配置时麦克风 disabled 或显示“语音服务未配置”，不得伪造 transcript。Analytics Advice 不是第三个 Agent，也不能自动改运营配置。
 10. 不引入第二 UI System、Three.js、ROS/RMF、Docker/K8s、真实设备 runtime 或大型本地模型。
+11. Advanced 是 read-mostly Technical Observability & Execution Trace Inspector，不是 Admin / Configuration。它只投影真实 Runtime records，不能重跑模型/Scheduler/Route，不能编辑 SLAM、标定、Coverage、范围、Capability、Scheduler/threshold/topology、安全、门禁、电梯或 Agent tool permission。
+12. Advanced 四个模块固定：AI Recognition Trace（六段）、Spatial/Capability/Scheduling/Route Trace（四段）、Runtime/Model/Tool/Error Observability、System Reality Matrix。关键来源使用 `LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`；不得 fake trace/tool/latency/error/badge/model status/reality status，也不得展示 Chain-of-Thought 或任何 secret。
 
 ## 获得统一 implementation prompt 后的建议顺序
 
@@ -40,6 +43,7 @@
 5. P1-E：Analytics data model、KPI、Heatmap、drill-down、真实利用率。
 6. P1-F：Robot Operations Agent、Policy Guard、Task/Action Card、共享 UI、Analytics Advice、Delivery Adapter boundary。
 7. P1-G：按测试事实源跑 LIVE / Replay / Event / Analytics / Agent 回归，并用代码、测试、浏览器证据更新六份文档。
+8. P1-H：在现有 Advanced shell 上实现只读 Trace Inspector、六段 AI Trace、四段空间/调度 Trace、Runtime Strip、统一 Tool/Error Trace、Reality Matrix、Trace ID、PoC boundary / Adapter points 与安全验收。
 
 ## 代码定位（仅供核对现状）
 
@@ -51,4 +55,4 @@
 
 ## 验收与文档纪律
 
-实施前先将本文所列当前/目标差距映射为实际计划；未经用户授予 implementation 权限不得行动。实施后只在代码、测试、浏览器证据和用户验收都存在时，才把 TODO 变 IMPLEMENTED。每次代码改动更新六份事实源并 commit/push；如发现代码与 LOCKED 方案冲突，先记录并按用户授权处理，不要静默改变硬规则。
+实施前先将本文所列当前/目标差距映射为实际计划；未经用户授予 implementation 权限不得行动。Advanced 所展示的任何步骤必须回溯 backend record / response / audit / transition，绝不前端伪造。实施后只在代码、测试、浏览器证据和用户验收都存在时，才把 TODO 变 IMPLEMENTED。每次代码改动更新六份事实源并 commit/push；如发现代码与 LOCKED 方案冲突，先记录并按用户授权处理，不要静默改变硬规则。

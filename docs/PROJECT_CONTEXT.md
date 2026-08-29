@@ -7,13 +7,14 @@
 
 这是面向 AI 解决方案专家岗位面试的园区自主清洁 PoC：固定摄像头发现地面事件，受控边缘证据提供候选，云端模型做语义理解，确定性空间/能力/调度系统决定处置，固定摄像头 + 云端验收形成可解释闭环。
 
-产品由同一套 `CleaningEvent`、SQLite transition 与 Fleet / route snapshot 支撑三类页面：
+产品由同一套 `CleaningEvent`、SQLite transition 与 Fleet / route snapshot 支撑四个一级页面：
 
 - **自主清洁工作台（Workbench）**：回答“现在正在发生什么”。
 - **AI 事件处置档案中心（Event Center）**：回答“一个事件如何发生、为何这样处置、如何闭环”。
 - **AI 自主清洁运营分析中心（Analytics）**：回答“历史事件整体说明什么、下一步应如何优化”。
+- **Advanced Technical Observability / 高级模式**：回答“系统如何运行、哪些记录与能力是真实、确定性、受控证据或 PoC 模拟”。
 
-本轮是 **SOURCE-OF-TRUTH DOCS ONLY**。下列产品与架构均已讨论并锁定，但除明确标为 IMPLEMENTED 的基线外均是未来统一 implementation batch 的 `LOCKED/TODO`；本轮不授权任何前端、后端、模型、Runtime、素材或数据库改动。**Batch C / Part 3 仍待讨论，禁止自行脑补。**
+本轮是 **SOURCE-OF-TRUTH DOCS ONLY**。第一、二、三部分均已讨论并锁定，但除明确标为 IMPLEMENTED 的基线外均是未来统一 implementation batch 的 `LOCKED/TODO`；本轮不授权任何前端、后端、模型、Runtime、素材或数据库改动。**Batch C / Part 3 已是 LOCKED/TODO，仍未获得 implementation 授权。**
 
 真实生产机器人、电梯、近同步多摄像头、RTSP/VMS/NVR、平台授权、动态避障和生产阈值均未部署；A/B 楼、电梯、Skybridge 与机器人执行是 PoC 模拟。受控 bbox 不是本地真实 YOLO 权重推理，禁止对外声称 REAL YOLO 已通过。
 
@@ -37,6 +38,7 @@
 - 云端调用统一经 `perception.qwen._request_qwen`；已有一次 Cloud 与独立 targeted second review/Fusion 的代码边界。`confidence >= 0.85` 不独立二审；`0.50 <= confidence < 0.85` 独立二审；`confidence < 0.50` 转 `HUMAN_REVIEW`。
 - 当前 Multi-view 是受限 LangGraph 流程：仅灰区触发、受控 evidence、固定 coverage / frame / VLM 工具顺序。它不是本轮锁定的“Single-view VLM evidence sufficiency 驱动的自主工具调用”实现。
 - 当前存在基础 Event Center、Analytics、Optimization、Advanced 页面/API：Event Center 是基础列表 + 独立简版详情；Analytics 使用结构化 Demo history + persisted event increment；Optimization 是确定性 mock recommendation；均不等于本文件锁定的目标产品。
+- 当前 Advanced 是技术状态卡片 + 当前事件 JSON 的基础 shell；它不具备最终 Trace → Node → Inspect、结构化 audit、Reality Matrix 或错误分层，不得称为 Advanced Trace Inspector。
 - 当前地图只会在 `assignment_decision` 后激活相应机器人；现有 `campusTopology` 与 `navigation_plan` 可投影蜗小白 SC50 的演示路线。
 - Demo01、Demo02 三次、Demo04 人工完成后曾真实 CLOSED；Demo03 曾真实选中 `robot-c`，但验收为 `retry → HUMAN_REVIEW`。完整原始记录见测试事实源。
 
@@ -45,7 +47,7 @@
 | Demo | 锁定业务事实 | 正常目标 |
 |---|---|---|
 | 01 | 室外、**其他小型垃圾**、赛特净界 S5、before/after | 自动闭环 |
-| 02 | A栋 1F 高反光地面疑似液体污渍；主摄像头 `CAM-A1-01` 的受控 YOLO 58%；`CAM-A1-02` / `CAM-A1-04` 是受控补充证据资产（63% / 61%） | Single-view Cloud 先作 Evidence Sufficiency Judgment；若证据不足且可由合法补充视角缓解，先由模型自主请求 Multi-view，再以最终充分证据进入 confidence disposition，最终由高仙 Omnie自动闭环 |
+| 02 | A栋 1F 高反光地面疑似液体污渍；主摄像头 `CAM-A1-01` 的受控 YOLO 58%；`CAM-A1-02` / `CAM-A1-04` 是受控补充证据资产（63% / 61%） | Single-view Cloud 先作 Evidence Sufficiency Judgment；若证据不足且可由合法补充视角缓解，先由模型自主请求 Multi-view，再以最终充分证据进入 confidence disposition，最终由高仙 Omnie 自动闭环 |
 | 03 | A栋 2F 地毯易拉罐；蜗小白 SC50 从 B1F 经电梯、B2F、Skybridge 至 A2F；after 有约 3m 外机器人 | 目标 ROI 验收后闭环 |
 | 04 | A栋 2F 逃生/通道附近两纸箱、**大件物品**；A/B/C 无搬运能力 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` → 人工搬运 → after → AI 验收 → CLOSED |
 
@@ -71,6 +73,12 @@
 
 唯一的运营与自然语言任务编排层：Workbench / Event Center 使用同一个可拖动 Floating Window；没有已保存 UI position 时默认在左下角，用户拖动后的 localStorage 位置优先；Analytics 改用右侧固定 Agent Panel；三页共享 `AgentSession`、Action Audit、Task context，只随 Page Context 改变呈现。它有任务级自主权，不具有基础设施级配置权；具体界限见 `DECISIONS.md` 与 `ARCHITECTURE.md`。
 
+### Advanced Technical Observability / 高级模式
+
+Advanced 是 **Technical Observability & Execution Trace Inspector**，面向售前、解决方案工程师、技术负责人、客户 IT 与面试官，回答本次事件的模型、工具、空间、调度、路线、模式与失败层级；它不是客户运营页、管理员配置后台、训练平台、SLAM 编辑器或黑客终端。它只读投影真实 Runtime records，允许用户主动切换 LIVE / Stable Replay，不允许修改地图、标定、Coverage、禁行区、范围、机器人能力、Scheduler policy、阈值、Dijkstra topology、安全策略、门禁/电梯权限或 Agent 工具权限。
+
+目标布局为左侧约 62–65% Execution Trace、右侧约 35–38% Selected Node Detail，以 **Trace → Node → Inspect** 为核心，默认不铺满 JSON。四大模块固定为：AI Recognition Trace；Spatial / Capability / Scheduling / Route Trace；Runtime / Model / Tool / Error Observability；System Reality Matrix。所有技术展示必须可回溯 backend record / response / audit / transition，不得前端伪造 trace、tool call、latency、error、source badge、model status 或真实性状态。
+
 ## 6. CURRENT IMPLEMENTATION vs LOCKED TARGET
 
 | 范畴 | 当前实现事实 | 锁定目标 / 差距 |
@@ -82,6 +90,7 @@
 | Event Center | 基础列表与独立简版 detail | 紧凑 archive list + 同一 `EventDetailPanel(mode="history")` + URL state + 正确状态分类 |
 | Analytics | 存在演示历史聚合、固定利用率/建议和基础图 | 可追溯的 KPI、Heatmap、drill-down、真实 increment、无虚构 trend / utilization |
 | Optimization / Agent | 现有 Optimization 是确定性 mock recommendation；无 Robot Operations Agent | 一个具白名单工具、Policy Guard、Action Audit、Observe/Replan/Close 的 Agent |
+| Advanced | 技术状态卡片 + 当前事件 JSON 基础 shell | Read-mostly Trace Inspector：结构化 Trace / Node Detail、Reality Matrix、Runtime/Tool/Error Observability，只读真实 audit records |
 | MapCanvas / Fleet | 有拓扑数据、SVG 路线和 presentation-only playback | 所有动态物件统一 MapCanvas；共享 Fleet 终态、真实 transition 时间、连续路线 |
 | Stable Replay | 旧 replay 路径存在，不满足新定义 | 仅回放真实 AI structured evidence；其余空间、调度、路线、执行、SQLite 仍真实运行 |
 
@@ -90,4 +99,5 @@
 - Robot-first + Human Fallback；人工不是 Scheduler 候选。LLM 只理解事件/能力建议/验收，不能选 `robot-a` / `robot-b` / `robot-c` 或控制路线。
 - LIVE 失败必须 `HUMAN_REVIEW`，绝不 silent fallback；Stable Replay 只能由用户在现有 Advanced shell 的最小 AI Runtime 控制区主动选择且透明标识。该控制区仅包含 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和最近 latency；Advanced 完整产品化仍属于后续 Batch。
 - Event Center、Analytics、Workbench 必须使用同一 CleaningEvent / SQLite；历史详情必须读取历史 snapshot，不能被当前 Fleet 覆盖。
+- Advanced 不是独立 Runtime，不能重跑模型、Scheduler 或 Route Planner；只能投影现有事件、Agent、空间、调度、验证、provider 与真实性元数据记录，不得展示 Chain-of-Thought、API Key、Secret、Access Token、Authorization Header 或环境变量值。
 - 不引入第二 UI System、Three.js、ROS/RMF runtime、Docker/K8s、大型本地模型。不得修改 `robot-a` / `robot-b` / `robot-c` 的内部 ID、Phase 2 空间基础、Phase 3 调度规则。
