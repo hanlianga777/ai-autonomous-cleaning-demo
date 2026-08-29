@@ -30,31 +30,32 @@ FastAPI /api
 
 ```text
 受控边缘证据（bbox + 固定置信度，非真实 YOLO）
-  → 首次云端大模型语义研判
+  → [POST edge-review] 边缘证据
+  → [POST multi-view，仅 Demo02] 有界三视角证据
+  → [POST cloud-review] 首次云端大模型语义研判
   → [0.50–0.85] 独立二次云端复核
-  → Evidence Fusion Composite Disposal Score
-  → 绝对 veto 检查（need_clean=false / unknown / ignore）
-  → TaskProfile
-  → Capability Engine
-  → Scheduler / assignment_decision
-  → 云端清洁后验收
+  → Evidence Fusion Composite Disposal Score / veto
+  → [POST locate] TaskProfile + Phase 2 空间定位
+  → [POST assign] Capability Engine + Scheduler / assignment_decision
+  → [POST start-navigation → complete-navigation → complete-cleaning]
+  → [POST verify] 云端清洁后验收
 ```
 
-**IMPLEMENTED**：`backend/perception/qwen.py::_request_qwen` 是唯一 DashScope OpenAI-compatible HTTP transport。`run_event_qwen_vl` 和 `run_targeted_event_qwen_vl` 共享 schema/transport；后者不接收首轮答案。`backend/demo_v1/service.py` 计算融合分数并复用既有 Capability Engine/Scheduler。
+**IMPLEMENTED**：`backend/perception/qwen.py::_request_qwen` 是唯一 DashScope OpenAI-compatible HTTP transport。`run_event_qwen_vl` 和 `run_targeted_event_qwen_vl` 共享 schema/transport；后者不接收首轮答案。`backend/demo_v1/service.py` 使用真实状态机函数计算融合分数并复用既有 Capability Engine/Scheduler。
 
-**PARTIAL**：首次多图 Prompt 未写清“三图同地点/同时间/同地面区域”；前端时间线在 API 返回完整结果后以 `setTimeout` 推进，不能视为后端逐阶段真实执行。
+**IMPLEMENTED（待用户最终验收）**：首次多图 Prompt 明确“三图同地点/同时间/同地面区域”。前端只在上一真实 REST 响应后以轻量停顿请求下一阶段；计时中的云端/验收调用尚未返回最终结论。
 
 ## 3. 数据与持久化
 
 - **IMPLEMENTED**：`database/connection.py` 存储 `cleaning_events`、`event_transitions`、assignment decisions 与 human fallback work orders。
-- **IMPLEMENTED**：`demo_v1.service._persist_demo_result` 每次运行写入 CleaningEvent 和审计 transition；`analytics.service.task_history()` 将 `integrated-*` 事件叠加到 30 天/300 条演示历史。
+- **IMPLEMENTED（待用户最终验收）**：阶段化 `demo_v1.service` 对每一步调用 `save_event` + `record_transition`，可见 `DETECTED`、`EDGE_DETECTED`、`MULTI_VIEW`、`CLOUD_REVIEW`、`LOCATED`、`ASSIGNED`、`NAVIGATING`、`ARRIVED`、`CLEANING_COMPLETED`、`VERIFYING`、终态。`analytics.service.task_history()` 能安全显示尚未产生 TaskProfile 的新事件。
 - **PARTIAL**：客户 Event Center 没有复用工作台详情组件；Analytics 的部分客户分析/助手为前端占位，不是云端 Assistant。
 
 ## 4. 空间与路线
 
 **IMPLEMENTED 基础**：6 map（OUTDOOR、A_B1、A_1F、A_2F、B_1F、B_2F）、Global Spatial Graph、Dijkstra/A*、Coverage、CAM-A1-01 四点映射在 `backend/spatial/`。
 
-**PARTIAL 客户投影**：`SpatialDispatchView.tsx` 用归一化 display coordinates 和本地 SVG 路线。视觉上包含 Robot C 的电梯/连廊阶段，但不直接消费完整 Phase 2 路径拓扑，也主要读取 `scenario.robot` 而非 `assignment_decision`。因此地图并非真实导航投影。
+**IMPLEMENTED（待用户最终验收）**：`frontend/src/components/prototype/topology.ts` 定义客户地图锚点。`SpatialDispatchView.tsx` 只在 `assignment_decision` 已存在时高亮机器人，并使用后端 `navigation_plan.anchor_sequence` 绘制 SVG 路线。Demo03 锚点顺序是 B1 待命→电梯入口→B2 电梯出口→B2 连廊入口→A2 连廊出口→A2 易拉罐目标。
 
 ## 5. 素材与证据
 
@@ -68,7 +69,8 @@ FastAPI /api
 | API | 当前状态 | 说明 |
 |---|---|---|
 | `GET /api/health`、`GET /api/dashboard` | IMPLEMENTED | Phase 1 健康与基础数据 |
-| `POST /api/demo-v1/runs/{demoId}` | IMPLEMENTED / PARTIAL | 真实云端组合与 SQLite 写入；非逐阶段执行 API |
+| `POST /api/demo-v1/runs/{demoId}` | RETIRED (410) | 旧的一次性组合入口已禁用，避免绕过阶段边界 |
+| `POST /api/demo-v1/events` 及其 `edge-review`、`multi-view`、`cloud-review`、`locate`、`assign`、导航、清洁、`verify` 子路径 | IMPLEMENTED（待用户最终验收） | 新的客户工作台运行时；每个接口只做自己的阶段，禁止提前调用后续服务 |
 | `POST /api/demo-v1/manual-work-orders/{event_id}/complete` | IMPLEMENTED | Demo04 人工完成后调用真实云端验收 |
 | `GET /api/events` | IMPLEMENTED / PARTIAL | 可查 SQLite，但客户字段/详情复用不足 |
 | `GET /api/analytics/overview` | IMPLEMENTED | 程序聚合演示基线 + 增量 |

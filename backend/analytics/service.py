@@ -25,7 +25,9 @@ def task_history() -> list[dict]:
         if not str(event.get("event_id", "")).startswith("integrated-"):
             continue
         location = event.get("location", {})
-        profile = event.get("task_profile", {})
+        # Newly created stage-driven events have no TaskProfile until cloud
+        # review completes; they must still be visible in operations safely.
+        profile = event.get("task_profile") or {}
         decision = event.get("assignment_decision") or {}
         state = event.get("state", "HUMAN_REVIEW")
         history.append({
@@ -55,7 +57,10 @@ def heatmap() -> list[dict]:
 
 def time_distribution() -> list[dict]:
     hours = Counter(int(record["timestamp"][11:13]) for record in task_history())
-    return [{"hour": hour, "label": f"{hour:02d}:00", "count": hours[hour]} for hour in range(8, 21)]
+    # Stage-driven runs are persisted at their actual wall-clock time, rather
+    # than the old 08:00–20:00 fixture window. Keep all events in the program
+    # aggregate so operations totals do not silently discard a live run.
+    return [{"hour": hour, "label": f"{hour:02d}:00", "count": hours[hour]} for hour in range(24)]
 
 
 def robot_utilization() -> list[dict]:

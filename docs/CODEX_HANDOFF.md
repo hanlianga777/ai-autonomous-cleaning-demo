@@ -18,7 +18,7 @@
 - 分支：`main`
 - 本轮 Context Governance 前基线：`3b886e7 feat: complete integrated cleaning demo v1`
 - 客户入口：`/` 与 `/prototype`，均为四页 CleanOps 壳
-- 未进入新的功能 Phase；当前应该先处理 `TODO.md` 的 P0，而不是继续扩展功能。
+- P0 Runtime Correctness 代码与真实技术回归已完成，等待用户验收；**不要**自行进入 P1 或新 Phase。
 
 ## 不可违反的规则
 
@@ -38,15 +38,17 @@
 - 右侧详情：`EventDetailPanel.tsx`
 - 客户地图：`SpatialDispatchView.tsx`
 - 组合层：`backend/demo_v1/service.py`
+- 真实阶段 API：`backend/api/routes.py` 的 `/demo-v1/events/{event_id}/...`
 - 云端 transport/prompt：`backend/perception/qwen.py`
 - 空间单一实现：`backend/spatial/`
 - 调度单一实现：`backend/scheduling/`
 - 事件持久化：`backend/database/connection.py`
+- 客户地图锚点：`frontend/src/components/prototype/topology.ts`
 
 ## 下一步
 
-只在用户授权实现后，先完成 `TODO.md` 的 P0：真实逐阶段状态、真实 assignment 驱动、拓扑路由投影、Demo02 首轮 Prompt、真实重新回归。实现前先提出或更新计划；完成后必须同步六份事实源并 commit/push。
+等待用户验收 P0；不得进入 P1。若用户反馈 P0 问题，优先检查 `demo_v1.service` 的状态边界、SQLite transition audit、`PrototypeWorkbench` 的阶段请求及 `topology.ts` 投影。之后任何改动仍必须同步六份事实源并 commit/push。
 
 ## 已知真实测试结论
 
-历史测试和当前实现状态必须阅读 `AI_INTEGRATION_TEST.md`。2026-08-28 的单次门控测试已经过期为 **Historical Result**；其数值不能当作二次复核/融合逻辑的当前验收。2026-08-29 有真实 run 记录，但仍不是完整新的四场景正式回归；细节同样见测试文档。
+历史测试和当前实现状态必须阅读 `AI_INTEGRATION_TEST.md`。2026-08-28 的单次门控测试已经过期为 **Historical Result**；其数值不能当作二次复核/融合逻辑的当前验收。2026-08-29 已完成新的阶段化真实回归；Demo03 验收失败仍是必须如实保留的当前限制。

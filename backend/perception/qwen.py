@@ -87,7 +87,18 @@ Use concise Chinese evidence_summary. Do not invent a pass when the result is un
 def run_event_qwen_vl(images: list[Path], yolo_evidence: list[dict[str, Any]], cameras: list[dict[str, Any]], model: str) -> dict[str, Any]:
     """One real multi-image semantic call; the answer is never averaged client-side."""
     context = {"yolo_evidence": yolo_evidence, "cameras": cameras}
-    content: list[dict[str, Any]] = [{"type": "text", "text": f"{EVENT_PROMPT}\nContext JSON: {json.dumps(context, ensure_ascii=False)}"}]
+    multi_view_context = ""
+    if len(images) == 3 and {item.get("camera_id") for item in cameras} >= {"CAM-A1-01", "CAM-A1-02", "CAM-A1-04"}:
+        multi_view_context = """
+The three images below are from ONE cleaning event: the same physical ground area,
+captured during the same time window by three different fixed cameras. They are not
+three independent events. Individual controlled edge detections are low confidence:
+CAM-A1-01 liquid 58%, CAM-A1-02 liquid 63%, CAM-A1-04 liquid 61%.
+Jointly evaluate spatial alignment, appearance consistency, floor reflection/glare,
+whether this is real liquid contamination, whether cleaning is required, and the
+required cleaning capabilities. Do not average the edge scores.
+"""
+    content: list[dict[str, Any]] = [{"type": "text", "text": f"{EVENT_PROMPT}\n{multi_view_context}\nContext JSON: {json.dumps(context, ensure_ascii=False)}"}]
     content.extend({"type": "image_url", "image_url": {"url": _image_data_url(path)}} for path in images)
     parsed, elapsed_ms = _request_qwen(content, model)
     confidence = parsed.get("decision_confidence", parsed.get("confidence", 0))

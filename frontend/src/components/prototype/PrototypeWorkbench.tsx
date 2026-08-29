@@ -8,66 +8,101 @@ import type { ActiveEvent } from "./types";
 
 export function PrototypeWorkbench() {
   const [event, setEvent] = useState<ActiveEvent | null>(null);
-  const [running, setRunning] = useState(false);
   const [view, setView] = useState<"workbench" | "events" | "analytics" | "advanced">("workbench");
+
+  const applyStageResponse = (result: Record<string, unknown>) => {
+    setEvent((current) => {
+      if (!current) return current;
+      const backendState = String(result.state ?? result.status ?? current.backendState ?? "DETECTED");
+      const steps = stepsFor(current.scenario, backendState);
+      return { ...current, scenario: { ...current.scenario, steps }, stageIndex: stageIndexFor(steps, backendState), liveResult: result, backendState, inFlightState: undefined, processing: false };
+    });
+  };
+
+  const callStage = async (action: string, inFlightState?: ActiveEvent["inFlightState"]) => {
+    const eventId = String(event?.liveResult?.event_id ?? "");
+    if (!eventId || !event || event.processing) return;
+    if (inFlightState) setEvent((current) => current && ({ ...current, inFlightState, processing: true, stageIndex: stageIndexFor(current.scenario.steps, inFlightState) }));
+    else setEvent((current) => current && ({ ...current, processing: true }));
+    try {
+      const response = await fetch(`/api/demo-v1/events/${encodeURIComponent(eventId)}/${action}`, { method: "POST" });
+      const result = await response.json() as Record<string, unknown>;
+      if (!response.ok) throw new Error(String(result.detail ?? "阶段执行失败"));
+      applyStageResponse(result);
+    } catch (error) {
+      setEvent((current) => current && ({ ...current, processing: false, inFlightState: undefined, liveResult: { ...current.liveResult, reason: error instanceof Error ? error.message : "阶段服务暂不可用" } }));
+    }
+  };
+
   useEffect(() => {
-    if (!event || !running) return;
-    const state = event.scenario.steps[event.stageIndex];
-    if (["CLOSED", "HUMAN_FALLBACK"].includes(state) || event.cloudLoading) { setRunning(false); return; }
-    const delay = stageDelay(event);
-    const timer = window.setTimeout(() => setEvent((current) => current && ({ ...current, stageIndex: Math.min(current.stageIndex + 1, current.scenario.steps.length - 1) })), delay);
+    if (!event || event.processing) return;
+    const state = event.backendState;
+    const next = state === "DETECTED" ? ["edge-review", "EDGE_DETECTED", 1000] as const
+      : state === "EDGE_DETECTED" ? [event.scenario.id === "liquid" ? "multi-view" : "cloud-review", event.scenario.id === "liquid" ? "MULTI_VIEW" : "CLOUD_REVIEW", 1250] as const
+      : state === "MULTI_VIEW" ? ["cloud-review", "CLOUD_REVIEW", 900] as const
+      : state === "CLOUD_REVIEW" ? ["locate", "LOCATING", 1000] as const
+      : state === "LOCATED" ? ["assign", "ROBOT_ASSIGNED", 1250] as const
+      : state === "ASSIGNED" ? ["start-navigation", "NAVIGATING", 1000] as const
+      : state === "NAVIGATING" ? ["complete-navigation", undefined, event.scenario.id === "can" ? 5200 : 2800] as const
+      : state === "ARRIVED" ? ["complete-cleaning", "CLEANING", 900] as const
+      : state === "CLEANING_COMPLETED" ? ["verify", "VERIFYING", 1800] as const
+      : null;
+    if (!next) return;
+    const timer = window.setTimeout(() => { void callStage(next[0], next[1]); }, next[2]);
     return () => window.clearTimeout(timer);
-  }, [event, running]);
-  const trigger = async (id: typeof scenarios[number]["id"], mode: "live" | "replay" = "live") => {
+  }, [event?.backendState, event?.processing, event?.scenario.id]);
+
+  const trigger = async (id: typeof scenarios[number]["id"]) => {
     const scenario = scenarios.find((item) => item.id === id);
     if (!scenario) return;
     const demoId = { outdoor: "demo01", liquid: "demo02", can: "demo03", oversized: "demo04" }[id];
-    setEvent({ scenario, stageIndex: 0, startedAt: new Date().toISOString(), cloudLoading: true });
-    setRunning(false);
+    setEvent({ scenario, stageIndex: 0, startedAt: new Date().toISOString(), processing: true });
     try {
-      const response = await fetch(`/api/demo-v1/runs/${demoId}?mode=${mode}`, { method: "POST" });
-      const liveResult = await response.json() as Record<string, unknown>;
-      if (!response.ok) throw new Error(String(liveResult.detail ?? "云端服务暂不可用"));
-      // The UI starts at discovery and only reveals later states in order.
-      setEvent((current) => {
-        if (!current) return current;
-        const requiresHuman = liveResult.status === "HUMAN_REVIEW" || liveResult.status === "HUMAN_FALLBACK";
-        const steps = requiresHuman && !current.scenario.steps.includes("HUMAN_FALLBACK")
-          ? [...current.scenario.steps.slice(0, current.scenario.steps.indexOf("CLOUD_REVIEW") + 1), "HUMAN_FALLBACK" as const]
-          : current.scenario.steps;
-        return { ...current, scenario: { ...current.scenario, steps }, liveResult, cloudLoading: false };
-      });
-      setRunning(true);
-    } catch (error) { setEvent((current) => current && ({ ...current, liveResult: { status: "HUMAN_REVIEW", reason: "无法连接云端综合研判；未创建机器人任务。" }, cloudLoading: false })); }
+      const response = await fetch(`/api/demo-v1/events?demo_id=${demoId}`, { method: "POST" });
+      const result = await response.json() as Record<string, unknown>;
+      if (!response.ok) throw new Error(String(result.detail ?? "无法创建事件"));
+      applyStageResponse(result);
+    } catch (error) { setEvent((current) => current && ({ ...current, processing: false, liveResult: { status: "HUMAN_REVIEW", reason: error instanceof Error ? error.message : "无法创建事件" } })); }
   };
   const completeManual = async () => {
     const eventId = String(event?.liveResult?.event_id ?? "");
     if (!eventId || !event) return;
-    const response = await fetch(`/api/demo-v1/manual-work-orders/${encodeURIComponent(eventId)}/complete`, { method: "POST" });
-    const liveResult = await response.json() as Record<string, unknown>;
-    if (!response.ok) return setEvent((current) => current && ({ ...current, liveResult: { ...current.liveResult, reason: liveResult.detail ?? "人工验收服务不可用" } }));
-    setEvent((current) => current && ({ ...current, stageIndex: current.scenario.steps.indexOf("VERIFYING"), liveResult, cloudLoading: false })); setRunning(true);
+    setEvent((current) => current && ({ ...current, inFlightState: "VERIFYING", processing: true, stageIndex: stageIndexFor(current.scenario.steps, "VERIFYING") }));
+    try {
+      const response = await fetch(`/api/demo-v1/manual-work-orders/${encodeURIComponent(eventId)}/complete`, { method: "POST" });
+      const result = await response.json() as Record<string, unknown>;
+      if (!response.ok) throw new Error(String(result.detail ?? "人工验收服务不可用"));
+      applyStageResponse(result);
+    } catch (error) { setEvent((current) => current && ({ ...current, processing: false, inFlightState: undefined, liveResult: { ...current.liveResult, reason: error instanceof Error ? error.message : "人工验收服务不可用" } })); }
   };
-  const state = event ? event.scenario.steps[event.stageIndex] : "IDLE";
+  const state = event ? currentDisplayState(event) : "IDLE";
   return <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-[9px] font-bold text-white">CO</div><div><p className="text-sm font-semibold">CleanOps</p><p className="text-[9px] tracking-[0.12em] text-slate-400">自主清洁</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="自主清洁工作台" active={view === "workbench"} onClick={() => setView("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => setView("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => setView("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => setView("advanced")} /></nav></aside>
-    <div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "自主清洁工作台" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p>{view === "workbench" && <span className={`hidden items-center gap-1.5 text-[11px] md:flex ${event ? "text-slate-700" : "text-slate-500"}`}><CircleDot size={12} className={event && running ? "animate-pulse text-rose-500" : "text-emerald-500"} />{stageCopy[state].title}</span>}</div><span className="flex items-center gap-1.5 text-[11px] text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-500" />系统在线</span></header>
+    <div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "自主清洁工作台" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p>{view === "workbench" && <span className={`hidden items-center gap-1.5 text-[11px] md:flex ${event ? "text-slate-700" : "text-slate-500"}`}><CircleDot size={12} className={event?.processing ? "animate-pulse text-rose-500" : "text-emerald-500"} />{stageCopy[state].title}</span>}</div><span className="flex items-center gap-1.5 text-[11px] text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-500" />系统在线</span></header>
       {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[auto_minmax(180px,1fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><SpatialDispatchView event={event} /></div><EventDetailPanel event={event} onCompleteManual={completeManual} /></div></main>}
       {view === "events" && <EventCenter />}{view === "analytics" && <AnalyticsView />}{view === "advanced" && <AdvancedView event={event} />}
     </div>
   </div>;
 }
 
-function stageDelay(event: ActiveEvent) {
-  const state = event.scenario.steps[event.stageIndex];
-  if (state === "NAVIGATING") return event.scenario.id === "can" ? 3200 : 8500;
-  if (state === "ELEVATOR_TRANSFER") return 1600;
-  if (state === "SKYBRIDGE_TRANSFER") return 4300;
-  if (state === "ROBOT_ASSIGNED") return 1800;
-  if (state === "CLEANING") return 2000;
-  if (state === "VERIFYING") return 1600;
-  return 1150;
+function stepsFor(scenario: ActiveEvent["scenario"], backendState: string): ActiveEvent["scenario"]["steps"] {
+  if (backendState === "HUMAN_FALLBACK") return ["DISCOVERED", "EDGE_DETECTED", "CLOUD_REVIEW", "HUMAN_FALLBACK"];
+  if (backendState === "HUMAN_REVIEW") return [...scenario.steps.slice(0, scenario.steps.indexOf("CLOUD_REVIEW") + 1), "HUMAN_REVIEW"];
+  return scenario.steps;
 }
+
+function stateIndex(state: string): number {
+  return { DETECTED: 0, EDGE_DETECTED: 1, MULTI_VIEW: 2, CLOUD_REVIEW: 3, LOCATED: 4, ASSIGNED: 5, NAVIGATING: 6, ARRIVED: 7, CLEANING_COMPLETED: 8, VERIFYING: 9, CLOSED: 10, HUMAN_FALLBACK: 11, HUMAN_REVIEW: 12 }[state] ?? 0;
+}
+
+function stageIndexFor(steps: ActiveEvent["scenario"]["steps"], state: string): number {
+  const presentation: Record<string, ActiveEvent["scenario"]["steps"][number]> = { DETECTED: "DISCOVERED", EDGE_DETECTED: "EDGE_DETECTED", MULTI_VIEW: "MULTI_VIEW", CLOUD_REVIEW: "CLOUD_REVIEW", LOCATED: "LOCATING", ASSIGNED: "ROBOT_ASSIGNED", NAVIGATING: "NAVIGATING", ARRIVED: "CLEANING", CLEANING_COMPLETED: "CLEANING", VERIFYING: "VERIFYING", CLOSED: "CLOSED", HUMAN_FALLBACK: "HUMAN_FALLBACK", HUMAN_REVIEW: "HUMAN_REVIEW" };
+  const target = presentation[state] ?? "DISCOVERED";
+  const index = steps.indexOf(target);
+  return index >= 0 ? index : Math.min(stateIndex(state), steps.length - 1);
+}
+
+function currentDisplayState(event: ActiveEvent) { return event.inFlightState ?? event.scenario.steps[event.stageIndex]; }
 
 function NavItem({ icon: Icon, label, active = false, onClick }: { icon: typeof LayoutDashboard; label: string; active?: boolean; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors ${active ? "bg-slate-900 font-medium text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={16} strokeWidth={1.7} />{label}</button>;

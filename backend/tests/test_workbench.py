@@ -19,7 +19,7 @@ class WorkbenchTests(unittest.TestCase):
         connection.DATABASE_PATH = cls._database_path
         cls._temp_dir.cleanup()
 
-    def test_asset_manifests_expose_all_supplied_views_without_fabricating_a_human_after_image(self):
+    def test_asset_manifests_expose_all_supplied_views_and_the_human_completion_after_image(self):
         manifest = scenario_02_assets()
         self.assertEqual(manifest["event_id"], "event-beverage-spill-002")
         self.assertEqual({asset["camera_id"] for asset in manifest["assets"]}, {"CAM-A1-01", "CAM-A1-02", "CAM-A1-04"})
@@ -28,7 +28,7 @@ class WorkbenchTests(unittest.TestCase):
         all_scenarios = {scenario["event_id"]: scenario for scenario in list_scenario_assets()}
         self.assertEqual(set(all_scenarios), {"event-outdoor-tissue-001", "event-beverage-spill-002", "event-indoor-can-003", "event-oversized-box-004"})
         self.assertEqual(all_scenarios["event-oversized-box-004"]["verification_mode"], "HUMAN_REQUIRED")
-        self.assertFalse(any(asset["role"] == "after" for asset in all_scenarios["event-oversized-box-004"]["assets"]))
+        self.assertTrue(any(asset["role"] == "after" for asset in all_scenarios["event-oversized-box-004"]["assets"]))
 
     def test_workbench_composes_existing_ai_schema_multiview_and_robot_b_workflow(self):
         result = run_scenario_02_workbench()

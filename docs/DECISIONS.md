@@ -51,6 +51,12 @@
 
 **LOCKED**：运营数据来源是“30 天结构化演示历史基线 + 新运行 Demo 写入 SQLite 的实时增量”；KPI、热力、利用率由程序计算，模型不能编造数字。运营建议与两个 AI 助手若实现，必须是同一只读云端 Assistant 后端，只允许查询/分析/建议，不能创建任务、调机器人或改配置。
 
+## D13｜客户 Demo 运行时真实性
+
+**LOCKED**：客户工作台必须通过阶段化 REST 状态推进，不得先计算整次云端/派单/验收结果再由前端播放。`cloud-review` 是唯一首次/二次云端语义调用边界；`assign` 是唯一 Capability Engine + Scheduler 边界；`verify`（或 Demo04 人工完成接口）是唯一加载 after 图并调用云端验收的边界。每一阶段写入 SQLite transition audit。
+
+**LOCKED**：客户空间投影的行动机器人唯一事实源是 `assignment_decision.selected_robot_id/name`。路线由持久化 `navigation_plan.anchor_sequence` 和 `campusTopology` 渲染；Demo 素材可以定义事件锚点，但不能预设实际机器人。
+
 ## SUPERSEDED 决策索引
 
 以下历史决策不再有效，保留仅用于追溯：

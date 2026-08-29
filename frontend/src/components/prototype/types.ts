@@ -12,7 +12,8 @@ export type PrototypeState =
   | "CLEANING"
   | "VERIFYING"
   | "CLOSED"
-  | "HUMAN_FALLBACK";
+  | "HUMAN_FALLBACK"
+  | "HUMAN_REVIEW";
 
 export type Overlay = {
   label: string;
@@ -38,8 +39,6 @@ export type DemoScenario = {
   confidence: number;
   qwenConfidence: number;
   qwenSummary: string;
-  robot?: "Robot A" | "Robot B" | "Robot C";
-  route?: string;
   afterImage?: string;
   steps: PrototypeState[];
 };
@@ -49,5 +48,7 @@ export type ActiveEvent = {
   stageIndex: number;
   startedAt: string;
   liveResult?: Record<string, unknown>;
-  cloudLoading?: boolean;
+  backendState?: string;
+  inFlightState?: PrototypeState;
+  processing?: boolean;
 };

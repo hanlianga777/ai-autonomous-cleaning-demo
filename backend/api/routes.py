@@ -15,7 +15,20 @@ from spatial.service import get_map, spatial_overview
 from workflow.engine import WorkflowError, create_mock_event, evaluate_event, event_detail, run_event, run_scenario_02
 from workflow.fixtures import EVENT_TEMPLATES
 from workbench.service import list_scenario_assets, run_scenario_02_workbench, run_workbench_event, run_workbench_upload, scenario_02_assets
-from demo_v1.service import complete_demo04_manual, run_demo, scenario_catalog
+from demo_v1.service import (
+    assign_event,
+    cloud_review,
+    complete_cleaning,
+    complete_demo04_manual,
+    complete_navigation,
+    create_demo_event,
+    edge_review,
+    locate_event,
+    multi_view_review,
+    scenario_catalog,
+    start_navigation,
+    verify_event,
+)
 
 router = APIRouter(prefix="/api", tags=["Demo API"])
 API_CONTRACT = "operations.v1"
@@ -26,14 +39,71 @@ def get_demo_v1_scenarios() -> list[dict]:
     return scenario_catalog()
 
 
+def _demo_stage(handler, *args, **kwargs) -> dict:
+    try:
+        return handler(*args, **kwargs)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post("/demo-v1/events", tags=["Integrated Customer Demo"])
+def post_demo_v1_event(demo_id: str = Query(..., pattern="^demo0[1-4]$")) -> dict:
+    return _demo_stage(create_demo_event, demo_id)
+
+
+@router.post("/demo-v1/events/{event_id}/edge-review", tags=["Integrated Customer Demo"])
+def post_demo_v1_edge_review(event_id: str) -> dict:
+    return _demo_stage(edge_review, event_id)
+
+
+@router.post("/demo-v1/events/{event_id}/multi-view", tags=["Integrated Customer Demo"])
+def post_demo_v1_multi_view(event_id: str) -> dict:
+    return _demo_stage(multi_view_review, event_id)
+
+
+@router.post("/demo-v1/events/{event_id}/cloud-review", tags=["Integrated Customer Demo"])
+def post_demo_v1_cloud_review(event_id: str, simulate_unavailable: bool = Query(False)) -> dict:
+    return _demo_stage(cloud_review, event_id, force_unavailable=simulate_unavailable)
+
+
+@router.post("/demo-v1/events/{event_id}/locate", tags=["Integrated Customer Demo"])
+def post_demo_v1_locate(event_id: str) -> dict:
+    return _demo_stage(locate_event, event_id)
+
+
+@router.post("/demo-v1/events/{event_id}/assign", tags=["Integrated Customer Demo"])
+def post_demo_v1_assign(event_id: str) -> dict:
+    return _demo_stage(assign_event, event_id)
+
+
+@router.post("/demo-v1/events/{event_id}/start-navigation", tags=["Integrated Customer Demo"])
+def post_demo_v1_start_navigation(event_id: str) -> dict:
+    return _demo_stage(start_navigation, event_id)
+
+
+@router.post("/demo-v1/events/{event_id}/complete-navigation", tags=["Integrated Customer Demo"])
+def post_demo_v1_complete_navigation(event_id: str) -> dict:
+    return _demo_stage(complete_navigation, event_id)
+
+
+@router.post("/demo-v1/events/{event_id}/complete-cleaning", tags=["Integrated Customer Demo"])
+def post_demo_v1_complete_cleaning(event_id: str) -> dict:
+    return _demo_stage(complete_cleaning, event_id)
+
+
+@router.post("/demo-v1/events/{event_id}/verify", tags=["Integrated Customer Demo"])
+def post_demo_v1_verify(event_id: str) -> dict:
+    return _demo_stage(verify_event, event_id)
+
+
 @router.post("/demo-v1/runs/{demo_id}", tags=["Integrated Customer Demo"])
 def post_demo_v1_run(demo_id: str, mode: str = Query("live", pattern="^(live|replay)$")) -> dict:
-    return run_demo(demo_id, mode=mode)
+    raise HTTPException(status_code=410, detail="This one-shot endpoint is retired. Create /demo-v1/events and advance one stage at a time.")
 
 
 @router.post("/demo-v1/runs/{demo_id}/simulate-unavailable", tags=["Integrated Customer Demo"])
 def post_demo_v1_unavailable(demo_id: str) -> dict:
-    return run_demo(demo_id, force_unavailable=True)
+    raise HTTPException(status_code=410, detail="This one-shot endpoint is retired. Use /demo-v1/events/{event_id}/cloud-review?simulate_unavailable=true.")
 
 
 @router.post("/demo-v1/manual-work-orders/{event_id}/complete", tags=["Integrated Customer Demo"])

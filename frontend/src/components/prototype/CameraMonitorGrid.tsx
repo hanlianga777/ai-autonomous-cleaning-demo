@@ -17,7 +17,7 @@ function CameraTile({ camera, active, supplemental, selected, onSelect }: { came
   </button>;
 }
 
-export function CameraMonitorGrid({ event, onTrigger }: { event: ActiveEvent | null; onTrigger: (id: typeof scenarios[number]["id"], mode?: "live" | "replay") => void }) {
+export function CameraMonitorGrid({ event, onTrigger }: { event: ActiveEvent | null; onTrigger: (id: typeof scenarios[number]["id"]) => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -34,7 +34,7 @@ export function CameraMonitorGrid({ event, onTrigger }: { event: ActiveEvent | n
         {menuOpen && <div className="absolute right-0 top-10 z-[70] w-72 border border-slate-200 bg-white p-2 shadow-lg">
           <div className="flex items-center gap-2 px-2 py-2 text-xs font-medium text-slate-700"><Settings2 size={14} />摄像头视图设置</div>
           <div className="border-t border-slate-100 px-2 pb-1 pt-3"><p className="mb-2 text-[11px] font-semibold text-slate-500">演示控制</p>
-            {scenarios.map((scenario, index) => <button key={scenario.id} data-testid={`trigger-${scenario.id}`} onClick={() => { setMenuOpen(false); onTrigger(scenario.id, "live"); }} className="flex w-full items-center gap-2 border-b border-slate-100 px-2 py-2 text-left text-xs text-slate-700 last:border-0 hover:bg-slate-50"><span className="flex h-5 w-5 items-center justify-center border border-slate-300 font-mono text-[10px] text-slate-500">{index + 1}</span><Play size={12} className="text-slate-400" />{scenario.triggerLabel}</button>)}
+            {scenarios.map((scenario, index) => <button key={scenario.id} data-testid={`trigger-${scenario.id}`} onClick={() => { setMenuOpen(false); onTrigger(scenario.id); }} className="flex w-full items-center gap-2 border-b border-slate-100 px-2 py-2 text-left text-xs text-slate-700 last:border-0 hover:bg-slate-50"><span className="flex h-5 w-5 items-center justify-center border border-slate-300 font-mono text-[10px] text-slate-500">{index + 1}</span><Play size={12} className="text-slate-400" />{scenario.triggerLabel}</button>)}
           </div>
         </div>}
       </div>

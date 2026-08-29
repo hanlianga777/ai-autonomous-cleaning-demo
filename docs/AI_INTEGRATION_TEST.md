@@ -13,11 +13,11 @@
 - 仅 TaskProfile 进入既有 Capability Engine + Scheduler；云端模型不选择 Robot A/B/C。
 - Demo04 人工完成 endpoint 以清洁前/后同机位图调用 `run_verification_qwen_vl`。
 
-### 当前已知实现缺口
+### 当前已知限制
 
-1. 首轮多图 Prompt 没有明确说明 Demo02 三图为同地点、同时间段、同一地面区域、三台固定摄像头；二次 Prompt 已明确，但不能替代首轮。
-2. API 在请求中完成整次组合计算，前端随后以定时器展示阶段；这不是逐阶段 E2E 执行。
-3. 当前无真实 YOLO 权重通过验收；不要把 controlled bbox 写成 REAL YOLO。
+1. 当前无真实 YOLO 权重通过验收；不要把 controlled bbox 写成 REAL YOLO。
+2. Demo03 本轮真实云端验收返回 `retry`，因此正确停在 `HUMAN_REVIEW`；不能声称四个场景均已自动闭环。
+3. P0 已完成技术与浏览器回归，但仍等待用户最终验收，不能自行进入 P1。
 
 ## 2. 历史结果（Historical Result / Previous Test）
 
@@ -56,10 +56,10 @@
 
 ## 5. 当前待重测（Pending Real Re-test）
 
-- [ ] 修改首轮 Demo02 Prompt 后，重跑 Demo02，保存首轮、独立复核、融合分、延迟、选中摄像头与最终状态。
-- [ ] 真实逐阶段执行实现后，重跑 Demo01–04，验证前一阶段完成前后一阶段不可执行。
-- [ ] assignment_decision 驱动地图后，验证 A/B/C 真实选择与运动投影；重点验证 Robot C 拓扑路径。
-- [ ] Demo04：人工工单 → after 图 → 真实云端验收 → CLOSED 的浏览器端端到端回归。
+- [x] 修改首轮 Demo02 Prompt 后，重跑 Demo02 三次，保存首轮、独立复核、融合分、延迟、选中摄像头与最终状态。
+- [x] 阶段化执行已重跑 Demo01–04；阶段单元测试证明前一阶段完成前不会调用后一阶段。
+- [x] assignment_decision 已驱动地图；Robot C `navigation_plan.anchor_sequence` 已验证为完整 B1→电梯→B2→连廊→A2 路径。
+- [x] Demo04：人工工单 → after 图 → 真实云端验收 → CLOSED 已重新验证。
 - [ ] 云端超时、无 Key、无效 JSON、模型 veto、验收失败的可见错误与不派单回归。
 - [ ] 五个只读 AI Assistant 问答及禁止创建任务/改阈值测试（当前未实现后端）。
 
@@ -68,3 +68,22 @@
 - 不得声称本地 Custom YOLO、完整 REAL MODE、真实多机位帧同步、真实机器人遥测或生产阈值已验收。
 - 不得把稳定回放、固定前端建议或旧 Mock Verification 写成真实云端结果。
 - 任何新测试必须注明日期、代码版本、模式、调用次数与是否真实云端；失败/未测不可省略。
+
+## 7. P0 阶段化真实回归（2026-08-29，待提交 commit）
+
+**环境**：本地 FastAPI + SQLite，`DASHSCOPE_API_KEY` 已配置；受控边缘证据仍为 `CONTROLLED_EDGE_DEMO`。每个场景经 `/events → edge-review → [multi-view] → cloud-review → locate → assign → navigation → cleaning → verify` 顺序执行；Demo04 经人工完成接口。调用次数和模型输出均会自然波动。
+
+| Case | 首轮云端 / 延迟 | 独立复核 / 延迟 | Fusion | 多视角 | 派单 | 验收 / 延迟 | 最终状态 |
+|---|---|---|---:|---|---|---|---|
+| Demo01 | `.81` / `5517ms` | `.95` / `3973ms` | `.89` | — | Robot A (`robot-a`) | PASS `.95` / `3452ms` | `CLOSED` |
+| Demo02 #1 | `.85` / `4854ms` | 未触发 | `.91` | CAM-A1-02、CAM-A1-04 | Robot B (`robot-b`) | PASS `.95` / `3307ms` | `CLOSED` |
+| Demo02 #2 | `.75` / `6545ms` | `.95` / `7547ms` | `.97` | CAM-A1-02、CAM-A1-04 | Robot B (`robot-b`) | PASS `.95` / `3150ms` | `CLOSED` |
+| Demo02 #3 | `.85` / `4521ms` | 未触发 | `.91` | CAM-A1-02、CAM-A1-04 | Robot B (`robot-b`) | PASS `.95` / `3392ms` | `CLOSED` |
+| Demo03 | `.84` / `3559ms` | `.95` / `4671ms` | `.89` | — | Robot C (`robot-c`) | `retry` `.95` / `3296ms` | `HUMAN_REVIEW` |
+| Demo04 | large_object / `.92` / `4722ms` | 未触发 | 不派发 | — | 人工工单 | 人工完成后 PASS `.98` / `3684ms` | `CLOSED` |
+
+**Demo03 topology audit**：`B_1F_ROBOT_C_STANDBY → B_1F_ELEVATOR_ENTRY → B_2F_ELEVATOR_EXIT → B_2F_SKYBRIDGE_ENTRY → A_2F_SKYBRIDGE_EXIT → A_2F_CAN_EVENT`。Scheduler 的真实选择为 Robot C；验收失败不会被前端改写为 CLOSED。
+
+**云端不可用异常**：Demo01 执行至 `EDGE_DETECTED` 后以 `cloud-review?simulate_unavailable=true` 模拟不可用，状态为 `HUMAN_REVIEW`，`assignment_decision=null`、`verification=null`；SQLite audit 仅有 `DETECTED → EDGE_DETECTED → HUMAN_REVIEW`。
+
+**浏览器真实性观察**：在 Demo02 点击开始后，首先只看到发现阶段和全部机器人空闲；边缘、多视角完成后，云端阶段显示“正在分析 3 路现场图像”，此时尚无派单/路线/验收结论。云端响应后才进入派单和导航。浏览器 Console error 为 0。前端构建通过；后端单元测试 35/35 通过。

@@ -47,7 +47,7 @@ Demo04 的清洁后图已提交：`sample_data/camera_events/CAM-A2-11/event-ove
 - 系统可计算与模型原始置信度分开的 `Evidence Fusion Composite Disposal Score`：`0.60 × 原始云端置信度 + 0.20 × YOLO 类别一致性 + 0.12 × 摄像头/地点/时间映射一致性 + 0.08 × 多视角一致性`。
 - `need_clean=false`、`unknown` 或 `ignore` 是绝对 veto，不能通过融合分数强行派机器人。
 
-**PARTIAL**：二次独立复核和融合分数已实现；首次多图 Prompt 尚未明确写出“三张图为同地点、同一时间段、同一地面区域、三个固定摄像头”，仅二次 Prompt 明确该约束。
+**IMPLEMENTED（待用户最终验收）**：二次独立复核和融合分数已实现；Demo02 的首次三图 Prompt 现在明确“三张图为同地点、同一时间段、同一地面区域、三个固定摄像头”，并要求联合判断空间对齐、反光/眩光、污染真实性和清洁必要性。
 
 ## 5. 技术实现事实
 
@@ -55,13 +55,15 @@ Demo04 的清洁后图已提交：`sample_data/camera_events/CAM-A2-11/event-ove
 - **IMPLEMENTED**：6 张模拟 2D SLAM map、Global Spatial Graph、Camera Coverage、CAM-A1-01 四点映射、Dijkstra/A*、Phase 3 CleaningEvent/TaskProfile/Capability/Scheduler/SQLite 审计。
 - **IMPLEMENTED**：Phase 5 Multi-view Agent 限定三个工具、最多两个补充摄像头、最多两轮迭代；不展示 Chain-of-Thought。
 - **IMPLEMENTED**：每次 `demo_v1` API 运行写入 `cleaning_events` 和 transition audit；Analytics 在 30 天 300 条演示历史基线上读取这些增量。
+- **IMPLEMENTED（待用户最终验收）**：客户 Demo 已改为 REST 阶段状态推进。创建、边缘、多视角、云端研判、定位、派单、导航、抵达、清洁完成、验收分别持久化；云端、Scheduler、验收均不能由更早接口提前触发。
 - **IMPLEMENTED**：云端调用共用 `perception.qwen._request_qwen`；密钥只在本地环境变量，不进入 Git 或客户 UI。
 
 ## 6. 当前明确差距
 
-- **P0 / PARTIAL**：客户工作台的时间线是“后端先完成整次调用 + 前端 `setTimeout` 播放阶段”，不是真正逐阶段执行/推送。不得称为实时串行业务闭环。
-- **P0 / PARTIAL**：空间图使用前端归一化坐标与 SVG 路线预设，未以完整的可验证拓扑锚点和 Phase 2 路由输出驱动；Robot C 路径的视觉顺序存在，但非真实 route projection。
-- **P0 / PARTIAL**：地图机器人移动主要由 `scenario.robot` 驱动，而不是实际 `assignment_decision` 的唯一投影。
+- **P0 / IMPLEMENTED（待用户最终验收）**：客户工作台在每个真实后端响应后才请求下一阶段；前端短暂停顿只控制展示节奏，不预先获得最终答案。
+- **P0 / IMPLEMENTED（待用户最终验收）**：空间图采用 `campusTopology` 锚点与后端 `navigation_plan.anchor_sequence`。Robot C 顺序锁定为 B1 待命→B1 电梯入口→B2 电梯出口→B2 连廊入口→A2 连廊出口→A2 易拉罐目标。
+- **P0 / IMPLEMENTED（待用户最终验收）**：地图高亮、路线和移动机器人仅由 `assignment_decision.selected_robot_name` 与已生成的 `navigation_plan` 投影，不再使用 `scenario.robot` 作为实际机器人事实源。
+- **P0 / PARTIAL**：Demo03 本轮真实验收返回 `retry`，正确停在 `HUMAN_REVIEW`；需要补充/优化该场景 after 素材后再争取自动闭环。
 - **P1 / PARTIAL**：事件中心是独立简化详情 Drawer，不复用工作台 `EventDetailPanel`；筛选、字段和异常视图未满足锁定规格。
 - **P1 / TODO**：运营“重新分析”是前端固定建议；工作台浮动助手不存在，运营助手也是前端固定回答，均未共用真实云端 Assistant 后端。
 - **P1 / PARTIAL**：菜单、资产栏、地图文案、路线视觉及右侧详情仍需按最新锁定设计逐项浏览器复验；不要把此前 build/初始页检查误写成完整验收。
