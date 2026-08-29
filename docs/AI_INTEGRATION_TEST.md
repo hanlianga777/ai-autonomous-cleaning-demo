@@ -69,7 +69,7 @@
 - 不得把稳定回放、固定前端建议或旧 Mock Verification 写成真实云端结果。
 - 任何新测试必须注明日期、代码版本、模式、调用次数与是否真实云端；失败/未测不可省略。
 
-## 7. P0 阶段化真实回归（2026-08-29，待提交 commit）
+## 7. P0 阶段化真实回归（2026-08-29，代码提交 `e6b1eb9`）
 
 **环境**：本地 FastAPI + SQLite，`DASHSCOPE_API_KEY` 已配置；受控边缘证据仍为 `CONTROLLED_EDGE_DEMO`。每个场景经 `/events → edge-review → [multi-view] → cloud-review → locate → assign → navigation → cleaning → verify` 顺序执行；Demo04 经人工完成接口。调用次数和模型输出均会自然波动。
 
