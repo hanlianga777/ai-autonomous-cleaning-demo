@@ -1,89 +1,51 @@
-# Integrated Demo｜AI 集成测试事实记录
+# Integrated Demo｜AI 集成与回归事实记录
 
-> **状态：PARTIAL · 2026-08-29**
-> 本文件严格区分历史结果、当前实现与待重测项；不将旧测试结果扩写为当前逻辑验收。
+> **状态：IMPLEMENTED 基线 + LOCKED/TODO 验收计划 · 2026-08-29**
+> 本文区分已发生的真实调用、当前已实现边界和下一轮必须达到的验收标准。固定 bbox 仍是 `CONTROLLED_EDGE_DEMO`，不是本地 REAL YOLO。
 
-## 1. 当前实现（Current Implementation）
+## 1. 当前 AI / Runtime 事实（IMPLEMENTED）
 
-- 云端调用通过 `perception.qwen._request_qwen`，本地环境变量提供 Key；Key 不记录在本文件。
-- 边缘框是 `CONTROLLED_EDGE_DEMO`，固定值而非真实 YOLO 权重输出。
-- 首次云端语义调用：`run_event_qwen_vl`。
-- `.50–.85` 首轮置信度：调用 `run_targeted_event_qwen_vl` 进行**独立**二次复核；其 Prompt 不传入首轮模型回答。
-- `Evidence Fusion Composite Disposal Score` 按 `0.60 raw cloud + 0.20 category + 0.12 camera/location/time mapping + 0.08 multi-view` 计算。veto（`need_clean=false`、`unknown`、`ignore`）仍转人工。
-- 仅 TaskProfile 进入既有 Capability Engine + Scheduler；云端模型不选择 Robot A/B/C。
-- Demo04 人工完成 endpoint 以清洁前/后同机位图调用 `run_verification_qwen_vl`。
+- 云端 transport 唯一入口为 `perception.qwen._request_qwen`；密钥只在本地环境变量。
+- 首轮 `run_event_qwen_vl`；置信度 `.50–.85` 时 `run_targeted_event_qwen_vl` 独立二审，二审不接收首轮答案。
+- Fusion 公式为 `0.60 raw cloud + 0.20 category + 0.12 camera/location/time + 0.08 multiview`；明确 veto 不被融合覆盖；通用 raw next_action 不负责系统派单。
+- Cloud 只在 cloud-review，Scheduler 只在 assign，Verification 只在 verify/人工完成后。LIVE 不可用时停止在 Human Review，无 silent replay。
+- Demo02 初轮三图 Prompt 已明确：同一物理地面、同一时间窗、三个固定摄像头、一个事件；联合判断对齐、反光、污染真实性、是否需清洁。
 
-### 当前已知限制
+## 2. 真实历史记录（不可当作未来成功保证）
 
-1. 当前无真实 YOLO 权重通过验收；不要把 controlled bbox 写成 REAL YOLO。
-2. Demo03 本轮真实云端验收返回 `retry`，因此正确停在 `HUMAN_REVIEW`；不能声称四个场景均已自动闭环。
-3. P0 已完成技术与浏览器回归，但仍等待用户最终验收，不能自行进入 P1。
-
-## 2. 历史结果（Historical Result / Previous Test）
-
-**日期：2026-08-28。** 下列结果来自旧“单次云端置信度 + `next_action=dispatch_robot`”门控，早于当前独立复核/融合逻辑，不能作为当前验收：
-
-| Case | 图数 | 云端结论 | 原始置信度 | 当时状态 |
-|---|---:|---|---:|---|
-| Demo01 | 1 | small_litter / need_clean=true | .81 | HUMAN_REVIEW |
-| Demo02（三次） | 3 | liquid / need_clean=true | .61 | HUMAN_REVIEW |
-| Demo03 | 1 | can / need_clean=true | .84 | HUMAN_REVIEW |
-| Demo04 | 1 | large_object / need_clean=false | .95 | HUMAN_REVIEW |
-
-当时单元测试为 4/4，覆盖三图限制、Robot B 的可调度分支、Demo04 人工边界和云端不可用。它们仍可作为历史回归参考，但不能证明当前门控或完整 LIVE E2E。
-
-## 3. 当前代码后的真实运行记录（Not a full regression）
-
-**日期：2026-08-29，本地开发机。** 这些是实现后运行的单次观察，模型输出可能波动；未构成四场景统一正式验收。
-
-| Case | 观察结果 | 状态解释 |
+| 日期 / 代码 | Case | 结论 |
 |---|---|---|
-| Demo01 | 云端 `need_clean=true`、原始 .92、融合 .872；Robot A | CLOSED |
-| Demo02 | 首轮 .61；独立复核 .95；融合 .97；Robot B | CLOSED；独立复核调用 1 次 |
-| Demo03 | Robot C 被选择；该次验收未满足门控 | HUMAN_REVIEW |
-| Demo04 | 首轮 `need_clean=false` / large_object / .92 | 正确进入人工；随后人工完成后云端验收 .98、CLOSED |
-| 云端不可用模拟 | 写入 HUMAN_REVIEW、无机器人任务 | 通过 API 观察 |
+| 2026-08-28，旧单次门控 | Demo01–04 | 历史结果，不适用于独立二审/Fusion/阶段 Runtime 验收 |
+| 2026-08-29，`e6b1eb9` | Demo01 | 首轮 `.81`、二审 `.95`、Fusion `.89`、Robot A、验收 `.95`，CLOSED |
+| 同上 | Demo02 #1/#2/#3 | 均 Robot B + CLOSED；首轮 `.85/.75/.85`，仅 #2 二审 `.95`，Fusion `.91/.97/.91` |
+| 同上 | Demo03 | Robot C 被选、完整演示锚点路径；验收 `retry`，HUMAN_REVIEW |
+| 同上 | Demo04 | cloud large_object 后人工完成、验收 `.98`，CLOSED；但其 cloud 直接人工分支已被新 LOCKED 目标替代 |
+| 同上 | cloud unavailable | `HUMAN_REVIEW`，无 assignment/verification |
 
-这些记录证明部分真实调用和人工闭环路径曾运行；**不能**证明真实逐阶段状态、真实 YOLO、真实拓扑投影、浏览器四场景 E2E 或生产稳定性。
+这些结果证明 transport、阶段边界和部分真实调用存在；不证明本地 YOLO、真实生产设备、MapCanvas、Camera→SLAM Runtime、Dijkstra Runtime、Demo03 ROI 验收或 Stable Replay 已完成。
 
-## 4. 本轮已执行的非模型检查
+## 3. LOCKED 测试语义
 
-- `npm run build`：通过。
-- `GET /api/health`：通过。
-- `GET /api/dashboard`：通过。
-- 浏览器：四个一级页面和演示菜单可打开；本次基础检查未发现 Console error。
-- SQLite：模拟不可用和真实 demo run 均可在 `/api/events` 查询，Analytics 总事件数随运行增加。
+- **LIVE**：真实云端模型请求；失败必须可见并停在 `HUMAN_REVIEW`，不得自动切换 replay。
+- **Stable Replay（TODO）**：只允许使用过去真实成功调用保存的结构化 AI 响应；Camera→SLAM、Scheduler、Dijkstra、机器人移动、SQLite transitions、验收流程仍需现场运行。
+- **Demo03 verification（TODO）**：是目标 ROI 任务，不是整图找不同。输入原类别、bbox/ROI、before/after 全图和 ROI；机器人、人员、阴影、光照、无关变化不能单独导致失败。因非目标干扰失败时独立 ROI 二审，不读取第一次答案。
+- **Demo04（TODO）**：必须验证 Cloud → Locate → Capability Engine zero candidate → HUMAN_FALLBACK → 人工完成 → after → 云端验收，不允许按 Demo ID 或 cloud 直接跳人工。
 
-## 5. 当前待重测（Pending Real Re-test）
+## 4. 下一代码阶段强制回归标准（LOCKED / TODO）
 
-- [x] 修改首轮 Demo02 Prompt 后，重跑 Demo02 三次，保存首轮、独立复核、融合分、延迟、选中摄像头与最终状态。
-- [x] 阶段化执行已重跑 Demo01–04；阶段单元测试证明前一阶段完成前不会调用后一阶段。
-- [x] assignment_decision 已驱动地图；Robot C `navigation_plan.anchor_sequence` 已验证为完整 B1→电梯→B2→连廊→A2 路径。
-- [x] Demo04：人工工单 → after 图 → 真实云端验收 → CLOSED 已重新验证。
-- [ ] 云端超时、无 Key、无效 JSON、模型 veto、验收失败的可见错误与不派单回归。
-- [ ] 五个只读 AI Assistant 问答及禁止创建任务/改阈值测试（当前未实现后端）。
+| 模式 | 场景 | 次数与通过条件 |
+|---|---|---|
+| LIVE | Demo01 | 连续 5 次，至少 4 次 Robot A → verify → CLOSED |
+| LIVE | Demo02 | 连续 5 次，至少 4 次真实 Multi-view → Cloud → Robot B → verify → CLOSED |
+| LIVE | Demo03 | 连续 5 次，至少 4 次 Robot C → Dijkstra 跨楼/电梯/连廊 → ROI verify → CLOSED |
+| LIVE | Demo04 | 连续 3 次，全部 Cloud → Locate → zero candidate → Human → verify → CLOSED |
+| Stable Replay | 四个 Demo | 每个连续 3 次，100% 正确流程；不得跳过非 AI Runtime |
 
-## 6. 禁止性结论
+每次必须记录：run id / commit、模式、时间；raw cloud confidence；是否二审及二审 confidence；Fusion/composite score；系统决策；selected robot；Dijkstra route；verification raw result；最终状态；每个云端请求 latency。主场景合理业务成功率低于约 80% 时，先调查 Prompt、ROI、ontology、输入上下文、parser、模型/系统决策分离，而不是仅称“随机”。
 
-- 不得声称本地 Custom YOLO、完整 REAL MODE、真实多机位帧同步、真实机器人遥测或生产阈值已验收。
-- 不得把稳定回放、固定前端建议或旧 Mock Verification 写成真实云端结果。
-- 任何新测试必须注明日期、代码版本、模式、调用次数与是否真实云端；失败/未测不可省略。
+## 5. 当前限制与禁止性结论
 
-## 7. P0 阶段化真实回归（2026-08-29，代码提交 `e6b1eb9`）
-
-**环境**：本地 FastAPI + SQLite，`DASHSCOPE_API_KEY` 已配置；受控边缘证据仍为 `CONTROLLED_EDGE_DEMO`。每个场景经 `/events → edge-review → [multi-view] → cloud-review → locate → assign → navigation → cleaning → verify` 顺序执行；Demo04 经人工完成接口。调用次数和模型输出均会自然波动。
-
-| Case | 首轮云端 / 延迟 | 独立复核 / 延迟 | Fusion | 多视角 | 派单 | 验收 / 延迟 | 最终状态 |
-|---|---|---|---:|---|---|---|---|
-| Demo01 | `.81` / `5517ms` | `.95` / `3973ms` | `.89` | — | Robot A (`robot-a`) | PASS `.95` / `3452ms` | `CLOSED` |
-| Demo02 #1 | `.85` / `4854ms` | 未触发 | `.91` | CAM-A1-02、CAM-A1-04 | Robot B (`robot-b`) | PASS `.95` / `3307ms` | `CLOSED` |
-| Demo02 #2 | `.75` / `6545ms` | `.95` / `7547ms` | `.97` | CAM-A1-02、CAM-A1-04 | Robot B (`robot-b`) | PASS `.95` / `3150ms` | `CLOSED` |
-| Demo02 #3 | `.85` / `4521ms` | 未触发 | `.91` | CAM-A1-02、CAM-A1-04 | Robot B (`robot-b`) | PASS `.95` / `3392ms` | `CLOSED` |
-| Demo03 | `.84` / `3559ms` | `.95` / `4671ms` | `.89` | — | Robot C (`robot-c`) | `retry` `.95` / `3296ms` | `HUMAN_REVIEW` |
-| Demo04 | large_object / `.92` / `4722ms` | 未触发 | 不派发 | — | 人工工单 | 人工完成后 PASS `.98` / `3684ms` | `CLOSED` |
-
-**Demo03 topology audit**：`B_1F_ROBOT_C_STANDBY → B_1F_ELEVATOR_ENTRY → B_2F_ELEVATOR_EXIT → B_2F_SKYBRIDGE_ENTRY → A_2F_SKYBRIDGE_EXIT → A_2F_CAN_EVENT`。Scheduler 的真实选择为 Robot C；验收失败不会被前端改写为 CLOSED。
-
-**云端不可用异常**：Demo01 执行至 `EDGE_DETECTED` 后以 `cloud-review?simulate_unavailable=true` 模拟不可用，状态为 `HUMAN_REVIEW`，`assignment_decision=null`、`verification=null`；SQLite audit 仅有 `DETECTED → EDGE_DETECTED → HUMAN_REVIEW`。
-
-**浏览器真实性观察**：在 Demo02 点击开始后，首先只看到发现阶段和全部机器人空闲；边缘、多视角完成后，云端阶段显示“正在分析 3 路现场图像”，此时尚无派单/路线/验收结论。云端响应后才进入派单和导航。浏览器 Console error 为 0。前端构建通过；后端单元测试 35/35 通过。
+- 当前不宣称 REAL YOLO、生产多机位同步、真实机器人遥测、真实电梯或生产阈值。
+- 旧 Stable Replay 不能被叫作完整稳定回归，直到满足本文件第 3 节定义。
+- Demo03 目前的 `retry` 必须如实保留；不能通过 Demo ID 特判或写死 PASS 修复。
+- 本轮是 docs-only；没有运行新的代码、模型、浏览器或 API 测试。

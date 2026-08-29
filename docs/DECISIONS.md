@@ -1,76 +1,69 @@
 # AI 自主清洁 Demo｜锁定决策
 
 > **状态：LOCKED · 2026-08-29**
-> 本文件只保留当前有效决策和已明确替代关系。未列出的历史结论不应被当作当前要求。
+> 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
-## D01｜产品目标与真实性边界
+## D01｜产品边界与技术底座
 
-**LOCKED**：项目是面试用、可解释的自主清洁 PoC，不宣称真实机器人、真实电梯、真实多机位时间同步或生产阈值已经部署。真实项目基础与 PoC 增强需区分。
+**LOCKED**：这是可解释、可演示的园区自主清洁 PoC，不宣称真实生产机器人、电梯、时间同步、动态避障或生产阈值已部署。React + TypeScript + Vite + Tailwind + shadcn/ui 是唯一 UI 底座；ECharts 用于数据可视化，React Flow 仅用于确有必要的关系/流程。后端维持 FastAPI 模块化单体 + SQLite；禁止第二 UI System、Three.js、ROS/RMF runtime、Docker/K8s、大型本地模型。
 
-## D02｜技术与架构边界
+## D02｜第一部分与工作台信息架构
 
-**LOCKED**：React + TypeScript + Vite + Tailwind + shadcn/ui 是唯一 UI 底座；ECharts 用于数据可视化；React Flow 仅在确有流程/关系展示需求时引入。禁止 MUI、Mantine 等第二套设计系统。后端保持 FastAPI 模块化单体 + SQLite；不引入 ROS/RMF runtime、Docker、K8s 或大本地模型。
+**LOCKED**：本批只完成自主清洁工作台及四个 Demo。左主区约 72%、右详情约 28%；左上双固定摄像头约 31%、地图约 69%。右详情从 Header 下方开始、独立滚动。整体是浅色、克制、低饱和蓝的企业 SaaS；删除“系统在线”和无意义装饰状态。
 
-## D03｜机器人职责
+**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”，但后三者完整建设不是本批范围。
 
-**LOCKED**：Robot A 处理室外小垃圾；Robot B 处理液体/重污；Robot C 处理室内轻量干垃圾并可经 B1→电梯→B2→空中连廊→A2 跨楼；Robot D 只作配送扩展资产，不进入清洁 Scheduler。采用 Robot-first + Human Fallback；人工不是调度候选。
+## D03｜机器人、Agent 与确定性决策
 
-## D04｜确定性调度与 Agent 边界
+**LOCKED**：Robot A 处理室外其他小型垃圾；Robot B 处理液体/重污；Robot C 处理室内轻量干垃圾且可 B1→电梯→B2→连廊→A2；Robot D 仅未来配送资产，不进清洁 Scheduler。保持 Robot-first + Human Fallback，人工不是候选。
 
-**LOCKED**：Capability Engine + Scheduler 是唯一 Robot A/B/C 选择器，LLM 不得选择或控制机器人。Camera→SLAM、Route Planner、Scheduler、Verification、Heatmap 不是 Agent。仅保留 Multi-view Perception Agent 与 Optimization Agent；任何新 Agent 必须由用户确认。
+**LOCKED**：LLM 只做事件语义、所需能力建议、清洁验收；Capability Engine + Scheduler 是 Robot A/B/C 的唯一选择器。Camera→SLAM、Route Planner、Scheduler、Verification 不是 Agent。Multi-view Agent 只在 Demo02 灰区触发，只能使用已锁定工具、最多 2 补充摄像头/2 轮，且客户不展示 Chain-of-Thought。
 
-## D05｜空间与地图
+## D04｜云端模型、门控与 Replay
 
-**LOCKED**：园区使用 6 张模拟 SLAM map、Global Spatial Graph、四点 Camera→SLAM 映射和确定性路由；白模为静态背景，动态信息使用 SVG/DOM，不引入 Three.js。客户地图主体只保留 A栋、B栋、1F、2F；目标用图形 Marker，不显示“清洁目标”、道路、电梯或连廊技术文字。
+**LOCKED**：LIVE 必须调用真实 Qwen-VL/DashScope，禁止写死结果、特判成功、人工加置信度或 silent fallback。Prompt 提供 camera/location/surface、YOLO 类别/置信度/ROI、限定 ontology；Qwen 不选机器人。首次 `>=.85` 进入系统判断；`.50–.85` 必须独立二审且不得收到首轮回答；`<.50` 人工复核。`need_clean=false`（语义确为无需处置）、unknown、ignore 是 veto；通用 raw `next_action=human_review` 不能覆盖满足 Fusion 的系统决策，raw action 只在 Advanced。
 
-## D06｜客户信息架构与语言
+**LOCKED**：Fusion 仅为 `0.60 raw cloud + 0.20 YOLO 类别一致性 + 0.12 camera/location/time 一致性 + 0.08 multiview 一致性`。客户展示 raw 模型百分比和“综合处置评分：N分”，不把 Fusion 写成百分比。
 
-**LOCKED**：一级导航固定为“自主清洁工作台、事件中心、运营分析、高级模式”。客户层只使用业务中文；YOLO/Qwen-VL/DashScope/Scheduler/JSON/raw 字段只在高级模式或技术详情显示。
+**LOCKED**：Stable Replay 仅回放此前真实成功调用的结构化 AI 证据；Camera→SLAM、Capability、Scheduler、Dijkstra、机器人状态、SQLite transitions 必须仍现场执行。默认 LIVE；仅 Advanced 可主动选 Replay，并在主工作台轻量透明标识。LIVE 失败一律 `HUMAN_REVIEW`。
 
-## D07｜工作台布局和监控
+## D05｜MapCanvas、路线与 Fleet 状态
 
-**LOCKED**：工作台由左导航、中间主业务区（约 70–72%）和右侧独立滚动事件详情（约 28–30%）组成，尽量一屏。默认两路监控：左 Demo01 后图、右 Demo03 后图，均 `object-contain`。运行时：Demo01 左换前图；Demo02 左换 CAM-A1-01；Demo03 右换前图；Demo04 右换主摄像头；验收结束后恢复默认后图。
+**LOCKED / TODO**：白模、anchor、机器人、路线、marker 使用唯一 MapCanvas 坐标系，基于 object-contain 内层真实画布，不得依据外层 div 百分比。地图文字只允许 A栋、B栋、1F、2F。目标使用小型低饱和红 marker，路线/移动规范遵从项目事实源；机器人持续插值，电梯入口暂停约 1 秒并显示“乘梯中”，不做 3D。
 
-## D08｜受控边缘证据
+**LOCKED / TODO**：任务后机器人保留任务终点与低透明路线；Demo03 Human Review 仍在 A2F，Demo04 人工路径无人移动。仅新 Demo 或“重置演示”复位。地图、hover、Scheduler、未来 Event Center/Assistant 必须读同一 Fleet 状态。
 
-**LOCKED**：Demo bbox/置信度是 `CONTROLLED_EDGE_DEMO`，不得说成真实 YOLO。数值固定为 Demo01 81%；Demo02 58/63/61%；Demo03 84%；Demo04 82%。bbox 比目标外扩约 8–12%，线宽约 1.5–2px；Demo02 三视角统一命名“液体污渍”。
+## D06｜定位、路径与时间的真实数据源
 
-## D09｜云端大模型与融合门控
+**LOCKED / TODO**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker，Scheduler/Route 读取同一目标坐标。客户仅显示可读位置/SLAM 坐标，Advanced 才显示 pixel/mapping 细节。
 
-**LOCKED**：面客称“云端大模型”。首次 `>=.85` 进入业务判断；`.50–.85` 必须独立二次复核；`<.50` 人工复核。二次提示不得携带首轮答案。系统综合处置评分与模型原始置信度分开，使用 D10 的公式；显式 `need_clean=false`、`unknown`、`ignore` 始终 veto 自动派发。
+**LOCKED / TODO**：路线必须由 Scheduler 当前 map 与 target map 调 `plan_route()` 的 Dijkstra 全局拓扑生成，再投影为前端 anchor sequence；不是 Demo ID 固定路线。Demo03 从 B1F 至 A2F，并展开电梯/连廊锚点。
 
-## D10｜Evidence Fusion Composite Disposal Score
+**LOCKED / TODO**：客户时间轴只读 SQLite transition timestamp；处理中显示真实持续时间，模型可显示真实 latency。自动跟随只有一次 smooth scroll，用户手动上滚暂停并出现“回到当前进度”；CLOSED 后不强制滚动。
 
-**LOCKED**：`0.60 × 原始云端置信度 + 0.20 × YOLO类别一致性 + 0.12 × 摄像头/地点/时间映射一致性 + 0.08 × 多视角一致性`。禁止给 Qwen 置信度直接加固定百分点，也不得以融合覆盖模型 veto。
+## D07｜四场景与面客表达
 
-## D11｜Demo04 人工闭环
+**LOCKED**：客户类目固定为“其他小型垃圾、液体污渍、易拉罐、大件物品、树叶”。bbox 为受控边缘证据：1.5–2px 低饱和红、外扩 8–12%、小标签外置、相邻标签错位。
 
-**LOCKED**：Demo04 必须遵循：大件纸箱 → 云端确认/人工边界 → 人工工单 → 模拟人工完成 → 同机位 after 图 → 真实云端验收 → PASS 后闭环。after 图仅删除两只纸箱，路径为 `sample_data/camera_events/CAM-A2-11/event-oversized-box-004/after.png`，已入 Git。
+**LOCKED**：双监控默认左 Demo01 after、右 Demo03 after；各 Demo 运行/验收/关闭的切换严格按 `PROJECT_CONTEXT.md` 的锁定矩阵执行。Demo02 补充摄像头只能在详情 Multi-view 阶段展示，不能替换顶部双监控；该阶段只并排展示 A1-02/A1-04，不重复 A1-01。
 
-## D12｜运营数据和 AI 助手
+**LOCKED / TODO**：Demo03 验收为目标 ROI 验收：输入原类别、bbox/ROI、before/after 全图与 ROI，忽略任务机器人、人员、光影、无关变化；因非目标干扰 retry 时做独立 ROI 二审。Demo04 必须经 Cloud → Locate → Capability 零候选 → Human Fallback，面客语义是“需要处置：是 / 机器人清洁：不适用”，不可把“不需要清洁”作为核心结论。
 
-**LOCKED**：运营数据来源是“30 天结构化演示历史基线 + 新运行 Demo 写入 SQLite 的实时增量”；KPI、热力、利用率由程序计算，模型不能编造数字。运营建议与两个 AI 助手若实现，必须是同一只读云端 Assistant 后端，只允许查询/分析/建议，不能创建任务、调机器人或改配置。
+## D08｜阶段 Runtime（已实现，继续锁定）
 
-## D13｜客户 Demo 运行时真实性
-
-**LOCKED**：客户工作台必须通过阶段化 REST 状态推进，不得先计算整次云端/派单/验收结果再由前端播放。`cloud-review` 是唯一首次/二次云端语义调用边界；`assign` 是唯一 Capability Engine + Scheduler 边界；`verify`（或 Demo04 人工完成接口）是唯一加载 after 图并调用云端验收的边界。每一阶段写入 SQLite transition audit。
-
-**LOCKED**：客户空间投影的行动机器人唯一事实源是 `assignment_decision.selected_robot_id/name`。路线由持久化 `navigation_plan.anchor_sequence` 和 `campusTopology` 渲染；Demo 素材可以定义事件锚点，但不能预设实际机器人。
+**IMPLEMENTED / LOCKED**：阶段 API 与 SQLite 审计已拆分；Cloud 仅在 cloud-review，Scheduler 仅在 assign，Verification 仅在 verify 或 Demo04 人工完成后。`assignment_decision` 是当前行动机器人的唯一事实源；旧 `/runs/*` 已 410。后续实现必须保留该边界，不能回到“先算完整结果再播放”。
 
 ## SUPERSEDED 决策索引
 
-以下历史决策不再有效，保留仅用于追溯：
-
-| 历史主题 | 状态 | 由何替代 |
-|---|---|---|
-| 固定 Scenario 与真实 AI Lab 完全分离、Qwen 仅 secondary evidence | **SUPERSEDED** | D07–D10：受控证据可进入真实云端语义和既有调度链路；AI Lab 仍保留独立测试职责 |
-| 旧 REAL/MOCK 把“稳定回放”作为客户菜单多行入口 | **SUPERSEDED** | D06、D07：客户演示菜单只保留四个场景；REAL/MOCK/回放仅在高级技术语义中明确 |
-| 旧 YOLO 灰区阈值（0.55）及单次 Qwen `next_action=dispatch_robot` 是唯一门控 | **SUPERSEDED** | D09、D10：`.50–.85` 独立二次复核 + 融合分数，模型 veto 保留 |
-| 三入口（工作台/工单中心/运营分析）或五入口技术后台 | **SUPERSEDED** | D06：四个一级页面 |
-| 四宫格监控、仅上传入口、独立低保真 prototype 不 fetch | **SUPERSEDED** | D07：双监控、集成工作台与 SQLite 事件 |
-| “Demo04 无 after 图且直接结束” | **SUPERSEDED** | D11：人工完成后真实云端验收闭环 |
-
-## 当前未锁定项
-
-- 真实生产 Camera→SLAM 数学、真实多机位时间同步、阈值标定、Scheduler 权重、设备遥测、真实机器人/电梯接口均未确认。
-- UI 细节及 P0/P1 实现路线必须以 `TODO.md` 为准；不得把它们误写为已验收决策。
+| 旧方案 | 新决策 |
+|---|---|
+| demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（TODO） |
+| demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra（TODO） |
+| Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（TODO） |
+| HUMAN_REVIEW 截断/重建时间轴 | 完整历史永久保留（TODO） |
+| CLOSED 自动复位机器人 | 终点保留，new demo/reset 才复位（TODO） |
+| raw Qwen next_action 当客户系统建议 | 模型判断与系统业务决策分离 |
+| “地面纸巾”“大型纸箱”面客类目 | 其他小型垃圾 / 大件物品 |
+| 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（TODO） |
+| Multi-view 再次展示主视角大图 | EDGE 展示主视角；Multi-view 仅两补充图 |
+| LIVE 失败偷偷成功回放 | NO SILENT FALLBACK |
