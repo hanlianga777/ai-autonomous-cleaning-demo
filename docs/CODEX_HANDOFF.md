@@ -22,13 +22,13 @@
 
 1. 机器人客户名称固定：赛特净界 S5、高仙 Omnie、蜗小白 SC50、普渡 FlashBot Max；Product Capability 与 Deployment Policy / Demo Configuration 必须分开。蜗小白 SC50 的地毯轻量垃圾是 Demo 配置，不是厂商原生公开宣称。
 2. LLM 不能选机器人；Capability Engine + Scheduler 是唯一 `robot-a` / `robot-b` / `robot-c` 选择器，人工不是候选。FlashBot Max `cleaning capability = none`，不进 Cleaning Scheduler。
-3. 首次 Cloud：`confidence >= 0.85` 不独立二审；`0.50 <= confidence < 0.85` 独立 targeted second review；`confidence < 0.50` 必须 `HUMAN_REVIEW`。LIVE 无云端可用时绝不 silent fallback；Replay 透明且不替代非 AI Runtime。
-4. 新 Multi-view：主视角 Single-view VLM 先判断 `evidence_sufficient` / `ambiguity_type`；真实模型 `tool_choice=auto` 自主选择是否调用 evidence tools、哪 1–2 路、最多 2 rounds。禁止 `demo_id`、固定 threshold、强制 tool choice、初轮三图和前端假 Trace。
+3. Evidence Sufficiency Gate 高于最终 confidence disposition：Single-view `evidence_sufficient=false` 且 reflection / occlusion / perspective / lens_contamination / insufficient_view 可被合法 supporting camera 缓解时，先以 `tool_choice=auto` 补证，即使 raw confidence `<0.50` 也不得提前 `HUMAN_REVIEW`。最终充分 evidence 后：`confidence >= 0.85` 不独立二审；`0.50 <= confidence < 0.85` 独立 targeted second review；`confidence < 0.50` 为 `HUMAN_REVIEW`。没有合法 camera、fetch 失败、最多 2 rounds 后仍不充分、或最终不充分即使 raw confidence 高，均为 `HUMAN_REVIEW`。二审可读本次合法 evidence set，不得读上一轮答案/reasoning。LIVE 无云端可用时绝不 silent fallback；Replay 透明且不替代非 AI Runtime。
+4. 新 Multi-view：主视角 Single-view VLM 先判断 `evidence_sufficient` / `ambiguity_type`；真实模型 `tool_choice=auto` 自主选择是否调用 evidence tools、哪 1–2 路、最多 2 rounds。禁止 `demo_id`、固定 confidence threshold、强制 tool choice、初轮三图和前端假 Trace。
 5. 新路线必须来自 Camera→SLAM + Dijkstra global topology planner / `plan_route()`，不得以 demo_id 固定；Demo03 固定 B1F→elevator→B2F→Skybridge→A2F carpet can；Demo04 必经 zero-candidate Human Fallback。
 6. MapCanvas 是 white model、anchor、route、marker、robot 的唯一坐标系；终态机器人不自动回出生点；历史详情以 event-time snapshot 为准，不能由当前 Fleet 覆盖。
 7. Event Center 是 read-only archive：正常 `HUMAN_FALLBACK` 绝不是异常；只复用 `EventDetailPanel(mode="history")`，保留 URL selected event 且不抢用户焦点。
 8. 系统仅有 Multi-view Perception Agent 与 Robot Operations Agent 两个 Agent。后者可以在低风险白名单内做 task-level action / observe / replan，但绝不拥有地图、能力、Coverage、标定、Scheduler、阈值、速度、门禁、电梯等基础设施 Write Tool。
-9. 一个 Robot Operations Agent：Workbench/Event Center 浮窗，Analytics 固定 Panel，Session/Audit/Task context 共享；语音只是 real ASR 输入。Analytics Advice 不是第三个 Agent，也不能自动改运营配置。
+9. 一个 Robot Operations Agent：Workbench/Event Center 共享浮窗，无 localStorage 保存位置时默认左下角，保存位置优先；只可从 Header/Drag Handle 拖动、不能出 viewport，展开/收起/跨页/刷新保持。Analytics 固定 Panel，Session/Audit/Task context 共享。语音只是 Microphone → real ASR → transcript 输入，不是主演示路径；ASR 未配置时麦克风 disabled 或显示“语音服务未配置”，不得伪造 transcript。Analytics Advice 不是第三个 Agent，也不能自动改运营配置。
 10. 不引入第二 UI System、Three.js、ROS/RMF、Docker/K8s、真实设备 runtime 或大型本地模型。
 
 ## 获得统一 implementation prompt 后的建议顺序

@@ -6,7 +6,7 @@
 ## 1. 当前 AI / Runtime 事实（IMPLEMENTED）
 
 - 云端 transport 唯一入口为 `perception.qwen._request_qwen`；密钥只在本地环境变量。
-- 首轮 `run_event_qwen_vl`：`confidence >= 0.85` 时不触发独立二审，进入系统 Fusion / 业务判断；`0.50 <= confidence < 0.85` 时调用 `run_targeted_event_qwen_vl` 独立二审，二审不接收首轮答案；`confidence < 0.50` 时进入 `HUMAN_REVIEW`。
+- 当前实现的首轮 `run_event_qwen_vl` 使用 `confidence >= 0.85` 不触发独立二审、`0.50 <= confidence < 0.85` 调用 `run_targeted_event_qwen_vl`、`confidence < 0.50` 进入 `HUMAN_REVIEW`。未来新 Multi-view Runtime 必须按第 4 节先完成 Evidence Sufficiency Gate，再执行最终 confidence disposition。
 - Fusion 为 `0.60 raw cloud + 0.20 category + 0.12 camera/location/time + 0.08 multiview`；veto 不被融合覆盖；raw next_action 不负责系统派单。
 - Cloud 只在 cloud-review，Scheduler 只在 assign，Verification 只在 verify / Demo04 人工完成后。LIVE 不可用时停止在 Human Review，无 silent replay。
 - 当前 Multi-view 是有 2 路摄像头 / 2 iteration 上限的受控 LangGraph；其触发条件是当前灰区阈值，coverage/frame/VLM 工具顺序固定，使用 controlled evidence assets。这是 IMPLEMENTED 基线，不是下一节锁定的主动视觉取证验收。
@@ -37,16 +37,17 @@
 ### 通用不变量
 
 1. 第一轮 Cloud 只获得主视角、YOLO bbox/detection 和必要 Camera Context，并输出 `confidence`、`evidence_sufficient`、`ambiguity_type`；二者不能混为一谈。
-2. `confidence >= 0.85` / `0.50 <= confidence < 0.85` / `< 0.50` 仅决定独立 second review / `HUMAN_REVIEW` 边界；**不能单独决定 Multi-view**。
-3. Multi-view 只能通过真实模型的 `tool_choice=auto` Tool Call 进入；Agent 可选 1–2 路，最多 2 evidence acquisition rounds。
-4. `find_supporting_cameras()` 返回 Coverage Graph 的真实候选；`fetch_camera_evidence()` 返回合法 evidence；`finish_visual_judgment()` 结束。PoC 可以使用 controlled evidence assets，测试报告必须显式写明，不能假称生产 RTSP 同步。
-5. 严禁 `if demo_id == "demo02"`、固定 confidence threshold、`tool_choice=required`、初轮三图、前端 `setTimeout` 伪 Trace、静态选择 CAM-A1-02/A1-04。
+2. **Evidence Sufficiency Gate 优先**：当 `evidence_sufficient=false`，且 reflection / occlusion / perspective / lens_contamination / insufficient_view 可通过额外视角缓解，并存在合法 supporting cameras 时，先进行自主 Multi-view acquisition；不可仅因 Single-view `confidence < 0.50` 转 `HUMAN_REVIEW`。
+3. Multi-view 只能通过真实模型的 `tool_choice=auto` Tool Call 进入；Agent 可选 1–2 路，最多 2 evidence acquisition rounds。没有合法 camera、Evidence Fetch 失败或最多 2 rounds 后仍 `evidence_sufficient=false` 时必须 `HUMAN_REVIEW`；最终 evidence 不充分即使 raw confidence 高也不得自动处置。
+4. final semantic judgment 的最终充分 evidence 才进入 confidence disposition：`confidence >= 0.85` 不独立二审；`0.50 <= confidence < 0.85` 做 independent targeted second review；`confidence < 0.50` 为 `HUMAN_REVIEW`。该二审可读本次合法完整 evidence set，不得读上一轮模型答案或 reasoning。
+5. `find_supporting_cameras()` 返回 Coverage Graph 的真实候选；`fetch_camera_evidence()` 返回合法 evidence；`finish_visual_judgment()` 结束。PoC 可以使用 controlled evidence assets，测试报告必须显式写明，不能假称生产 RTSP 同步。
+6. 严禁 `if demo_id == "demo02"`、固定 confidence threshold、`tool_choice=required`、初轮三图、前端 `setTimeout` 伪 Trace、静态选择 CAM-A1-02/A1-04。
 
 ### Demo02 LIVE
 
 | 场景 | 次数与通过条件 | 必须记录 |
 |---|---|---|
-| A栋 1F 液体污渍 / 高仙 Omnie | 连续真实运行 5 次，至少 4 次由模型自主发起 Multi-view Tool Calling，并完成 candidate search → 1–2 路 evidence fetch → multi-view Cloud → Capability / Scheduler → 高仙 Omnie → verification → CLOSED | single-view result、sufficiency、ambiguity、每次 Tool Call、candidate/selected cameras、evidence、multi-view result、final decision、latency、run/commit |
+| A栋 1F 液体污渍 / 高仙 Omnie | 连续真实运行 5 次，至少 4 次由模型在 recoverable evidence insufficiency 下自主发起 Multi-view Tool Calling，并完成 candidate search → 1–2 路 evidence fetch → final semantic judgment → final confidence disposition → Capability / Scheduler → 高仙 Omnie → verification → CLOSED | single-view result、sufficiency、ambiguity、每次 Tool Call、candidate/selected cameras、evidence、final judgment、是否二审及 evidence-set 来源、final decision、latency、run/commit |
 
 模型不稳定时只允许优化主视角、Prompt、Tool Description、Camera Metadata、Evidence Assets；严禁增加 demo_id 分支或强制前端阶段。客户 UI 步骤必须能回溯 Agent Trace / Tool Audit / Cloud Response / backend transition，且不展示 Chain-of-Thought。
 
@@ -65,7 +66,7 @@
 - **Action**：低风险 cleaning / delivery / relocation standby 任务必须经 Policy Guard、生成真实 backend Task 与 Action Card，并与 Fleet / Workbench 共享 Task ID / state。
 - **Audit**：每个影响物理世界的 Action 记录原始指令/ASR、intent、tool/args、guard、Task ID、robot、结果、异常、replan、final state。
 - **禁止工具测试**：Agent 无法获得或调用改 map、禁行区、范围、capability、Coverage/calibration、Scheduler policy、threshold、速度、门禁、电梯权限的 Write Tool。
-- **UI**：Workbench/Event Center 同一可拖动浮窗（刷新/跨页保留），Analytics 仅固定 Panel；不出现第二 Agent 或 fake voice animation。
+- **UI / ASR**：Workbench/Event Center 同一可拖动浮窗；无已保存位置默认左下角，localStorage 位置优先，刷新/跨页/展开/收起保持，拖动不出 viewport。Analytics 仅固定 Panel；不出现第二 Agent。Microphone 只有配置的真实 ASR provider 可调用时才可用；未配置时必须 disabled 或显示“语音服务未配置”，不得使用预设文本、timer、mock transcript 或 fake voice animation。
 - **Delivery Adapter**：没有真实平台授权必须是 `ADAPTER READY` / `AUTH REQUIRED`；不得显示 `CONNECTED` 或模拟外部 callback。真实授权后才测试 webhook / 双向状态同步。
 
 ## 7. 清洁主场景总体回归（LOCKED / TODO）

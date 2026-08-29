@@ -29,9 +29,9 @@
 
 ## P1-C｜新 Multi-view Perception Agent
 
-- [ ] **Single-view Cloud schema**：第一次仅输入主视角、YOLO bbox/detection、必要 Camera Context；输出 `event_type`、`need_action`、`confidence`、`evidence_sufficient`、`ambiguity_type`，且 confidence 不等于 evidence sufficiency。
-- [ ] **Evidence acquisition Agent**：以 `tool_choice=auto` 实现 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 等价工具；模型自主选择补证摄像头，最多 2 路、最多 2 rounds；不允许 demo_id 或固定 confidence branch。
-- [ ] **PoC Evidence Adapter 与审计**：明确 controlled evidence assets，不伪称真实 RTSP 同步；持久化 Agent Start、single-view result、sufficiency、ambiguity、tool call、candidates、selected cameras、fetch、multi-view result、final decision、latency。
+- [ ] **Single-view Cloud schema 与 Gate 顺序**：第一次仅输入主视角、YOLO bbox/detection、必要 Camera Context；输出 `event_type`、`need_action`、`confidence`、`evidence_sufficient`、`ambiguity_type`。Evidence Sufficiency Gate 优先于最终 confidence disposition：可恢复不足先补证，最终充分 evidence 才进入 `>=0.85` / `0.50 <= confidence < 0.85` / `<0.50` 处置。
+- [ ] **Evidence acquisition Agent**：以 `tool_choice=auto` 实现 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 等价工具；当证据不足、歧义可由额外视角缓解且存在合法 camera 时，模型自主选择补证摄像头，最多 2 路、最多 2 rounds；无合法 camera、fetch 失败或最终仍不充分则 `HUMAN_REVIEW`，不允许 demo_id 或固定 confidence branch。
+- [ ] **PoC Evidence Adapter、二审与审计**：明确 controlled evidence assets，不伪称真实 RTSP 同步；持久化 Agent Start、single-view result、sufficiency、ambiguity、tool call、candidates、selected cameras、fetch、multi-view result、final decision、latency。最终 `0.50 <= confidence < 0.85` 的 independent second review 可读取合法 evidence set，但不读取上一轮模型答案或 reasoning。
 - [ ] **Demo02 真实演示**：CAM-A1-01 单视角的液体/反光歧义必须由模型自己发起 Tool Call；补充图来自 tool audit，客户只显示 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision，不显示 Chain-of-Thought。
 
 ## P1-D｜Event Center（AI 事件处置档案中心）
@@ -52,7 +52,7 @@
 
 - [ ] **Agent runtime / Policy Guard / Audit**：实现白名单 Read Tools、低风险 Action Tools、代码级禁止 Write Tools、Observe/Replan/Close 与 Action Audit；不得产生 Scheduler / Dijkstra / Heatmap / RAG 等额外 Agent。
 - [ ] **Task 与 Action Card**：实现 Cleaning / Delivery / Relocation Standby Task；POI 白名单；真实 backend Task ID 与 Fleet/Workbench/Agent 共享同一状态；Agent 不直接操作底盘坐标。
-- [ ] **一个 Agent、两种 UI**：Workbench/Event Center 可拖动浮窗（viewport 与 localStorage 规则），Analytics 固定右侧 Panel；共享 session / messages / audit / Page Context；语音仅预留 real ASR → transcript 接入，禁止 fake animation。
+- [ ] **一个 Agent、两种 UI 与真实语音边界**：Workbench/Event Center 共享可拖动浮窗；无已保存位置默认左下角，localStorage 位置优先，Header/Drag Handle 拖动、viewport 限制、展开/收起/跨页/刷新保持。Analytics 固定右侧 Panel；共享 session / messages / audit / Page Context。语音链路为 Microphone → real ASR → transcript；只有已配置 ASR provider 才能启用麦克风，未配置时 disabled 或显示“语音服务未配置”，禁止预设文本、timer、mock transcript 或 fake animation。
 - [ ] **Analytics Advice**：成为 Robot Operations Agent 的只读能力，最多 3–4 Read Tool calls、3–4 条含数据依据的建议；默认 snapshot，用户点击才重新生成；不自动改变运营配置。
 - [ ] **Delivery Adapter boundary**：FlashBot Max Demo Fleet / DeliveryTask state machine 可未来实现；外部平台仅在合法授权后接入，未授权显示 `ADAPTER READY` / `AUTH REQUIRED`，不得伪造 webhook / callback。
 

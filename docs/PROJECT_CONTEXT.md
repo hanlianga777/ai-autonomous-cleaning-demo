@@ -45,7 +45,7 @@
 | Demo | 锁定业务事实 | 正常目标 |
 |---|---|---|
 | 01 | 室外、**其他小型垃圾**、赛特净界 S5、before/after | 自动闭环 |
-| 02 | A栋 1F 高反光地面疑似液体污渍；主摄像头 `CAM-A1-01` 的受控 YOLO 58%；`CAM-A1-02` / `CAM-A1-04` 是受控补充证据资产（63% / 61%） | Single-view Cloud 判断证据是否不足；只有模型自主请求补证后才进入 Multi-view，最终由高仙 Omnie 自动闭环 |
+| 02 | A栋 1F 高反光地面疑似液体污渍；主摄像头 `CAM-A1-01` 的受控 YOLO 58%；`CAM-A1-02` / `CAM-A1-04` 是受控补充证据资产（63% / 61%） | Single-view Cloud 先作 Evidence Sufficiency Judgment；若证据不足且可由合法补充视角缓解，先由模型自主请求 Multi-view，再以最终充分证据进入 confidence disposition，最终由高仙 Omnie自动闭环 |
 | 03 | A栋 2F 地毯易拉罐；蜗小白 SC50 从 B1F 经电梯、B2F、Skybridge 至 A2F；after 有约 3m 外机器人 | 目标 ROI 验收后闭环 |
 | 04 | A栋 2F 逃生/通道附近两纸箱、**大件物品**；A/B/C 无搬运能力 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` → 人工搬运 → after → AI 验收 → CLOSED |
 
@@ -69,7 +69,7 @@
 
 ### Robot Operations Agent
 
-唯一的运营与自然语言任务编排层：Workbench / Event Center 使用同一个可拖动 Floating Window；Analytics 改用右侧固定 Agent Panel；三页共享 `AgentSession`、Action Audit、Task context，只随 Page Context 改变呈现。它有任务级自主权，不具有基础设施级配置权；具体界限见 `DECISIONS.md` 与 `ARCHITECTURE.md`。
+唯一的运营与自然语言任务编排层：Workbench / Event Center 使用同一个可拖动 Floating Window；没有已保存 UI position 时默认在左下角，用户拖动后的 localStorage 位置优先；Analytics 改用右侧固定 Agent Panel；三页共享 `AgentSession`、Action Audit、Task context，只随 Page Context 改变呈现。它有任务级自主权，不具有基础设施级配置权；具体界限见 `DECISIONS.md` 与 `ARCHITECTURE.md`。
 
 ## 6. CURRENT IMPLEMENTATION vs LOCKED TARGET
 
@@ -77,7 +77,7 @@
 |---|---|---|
 | 定位 | `locate` 主要保存模板 location | bbox 地面接触点调用 `map_pixel_to_slam()`，保存 map/x/y 并驱动 marker、Scheduler、Route |
 | 路径 | `navigation_plan` 当前按 Demo 演示锚点生成 | 共享机器人当前 map + Camera→SLAM target map 调 Dijkstra global topology planner / `plan_route()` |
-| Multi-view | YOLO/受控置信度灰区会进入固定工具流程，初轮可使用三图上下文 | Single-view Cloud VLM 先判断 `evidence_sufficient` / `ambiguity_type`；模型以 `tool_choice=auto` 自主选择 1–2 路补证，最多 2 轮 |
+| Multi-view | YOLO/受控置信度灰区会进入固定工具流程，初轮可使用三图上下文 | Evidence Sufficiency Gate 优先于最终 confidence disposition：Single-view Cloud 先判断 `evidence_sufficient` / `ambiguity_type`；可恢复不足才以 `tool_choice=auto` 自主选择 1–2 路补证，最多 2 轮；最终充分证据才进入 confidence gate |
 | Demo04 | cloud 阶段有大件直接人工分支 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` |
 | Event Center | 基础列表与独立简版 detail | 紧凑 archive list + 同一 `EventDetailPanel(mode="history")` + URL state + 正确状态分类 |
 | Analytics | 存在演示历史聚合、固定利用率/建议和基础图 | 可追溯的 KPI、Heatmap、drill-down、真实 increment、无虚构 trend / utilization |

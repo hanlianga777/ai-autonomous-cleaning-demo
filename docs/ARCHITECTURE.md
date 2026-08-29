@@ -63,7 +63,7 @@ Fixed Camera
   → CLOSED / HUMAN_REVIEW / HUMAN_FALLBACK
 ```
 
-`confidence` 与 `evidence_sufficient` 必须是不同输出。首次 Cloud 的自动处置门控固定为 `confidence >= 0.85` 不独立二审、`0.50 <= confidence < 0.85` 独立 targeted second review、`confidence < 0.50` 为 `HUMAN_REVIEW`；而是否 Multi-view 由单视角证据是否充分与歧义类型决定，不能仅由 confidence 决定。
+`confidence` 与 `evidence_sufficient` 必须是不同输出，且 **Evidence Sufficiency Gate 优先于最终 confidence disposition**。Single-view `evidence_sufficient=false`、ambiguity 属于 reflection / occlusion / perspective / lens_contamination / insufficient_view 等可由额外视角缓解的问题、并存在合法 supporting cameras 时，先进入自主 Multi-view evidence acquisition；不能仅因 Single-view `confidence < 0.50` 提前 `HUMAN_REVIEW`。取得最终充分 evidence 后，才执行 `confidence >= 0.85` 不独立二审、`0.50 <= confidence < 0.85` 独立 targeted second review、`confidence < 0.50` 为 `HUMAN_REVIEW`。没有合法 supporting camera、Evidence Fetch 失败、或最多 2 rounds 后仍不充分时必须 `HUMAN_REVIEW`；最终 evidence 不充分即使 raw confidence 高也不得自动机器人处置。
 
 **CURRENT vs TARGET**：当前 `locate` 尚未把 bbox 接地点送入 `map_pixel_to_slam()`；当前 navigation plan 仍是演示锚点生成；当前 Multi-view 是固定灰区工具序列，且初轮可使用多图上下文。三者完成前均不能宣称真实空间 Runtime 或真实主动视觉取证。
 
@@ -81,6 +81,7 @@ Single-view VLM
             → finish_visual_judgment()
 ```
 
+- 执行顺序固定为 Single-view evidence → Evidence Sufficiency Gate → recoverable insufficiency 时自主 acquisition → final semantic judgment → final confidence disposition。若最终落在 `0.50 <= confidence < 0.85`，独立 second review 可读取本次合法取得的 evidence set，但不得读取上一轮模型答案或 reasoning。
 - Agent 只拥有视觉证据获取自主权：找 Camera Coverage candidate、读取合法 evidence、结束视觉判断；最多 2 路补充摄像头、最多 2 个 acquisition rounds。
 - PoC Evidence Adapter 可以返回 controlled evidence assets，必须显式标示；未来可替换 RTSP/VMS/NVR/Camera Platform。它不是生产级多摄像头同步。
 - Agent 不拥有配置权：不能修改 Camera Coverage、邻接关系、calibration、SLAM、地图、机器人、confidence、阈值、Capability 或 Scheduler。
@@ -148,7 +149,7 @@ Shared AgentSession / Message / ActionAudit / Task context
   └── Analytics: fixed right panel + KPI/hotspot/chart context
 ```
 
-浮窗只能从 Header/Drag Handle 拖动，不能超 viewport，并跨页面与刷新保留位置；Analytics 仅显示固定 Panel，不与 Floating Window 重复。语音只是同一 Agent 的 real ASR 输入适配，不是独立 Agent。
+没有已保存 UI position 时，Workbench / Event Center 的共享浮窗默认位于左下角；有 localStorage position 时以其为准。浮窗只能从 Header/Drag Handle 拖动，不能超 viewport，展开/收起、跨 Workbench/Event Center 与刷新均保持位置；Analytics 仅显示固定 Panel，不与 Floating Window 重复。语音只是同一 Agent 的 Microphone → real ASR → transcript 输入适配，不是独立 Agent，也不是当前清洁 Demo 主秀；麦克风只有在真实 ASR provider 已配置时可用，否则 disabled 或明确显示“语音服务未配置”，不得 fake voice interaction。
 
 ## 9. External Delivery Adapter（LOCKED / TODO）
 

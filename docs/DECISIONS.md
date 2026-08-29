@@ -27,7 +27,7 @@
 
 **LOCKED**：LIVE 必须调用真实 Qwen-VL/DashScope，禁止写死结果、特判成功、人工加置信度或 silent fallback。Prompt 可提供 camera/location/surface、YOLO 类别/置信度/ROI、限定 ontology；Qwen 不选机器人。
 
-**LOCKED**：第一次真实 Cloud VLM 的边界固定为：`confidence >= 0.85` 不触发独立 second review，进入系统 Fusion / 业务判断；`0.50 <= confidence < 0.85` 进入独立 targeted second review，二审不得收到首轮回答；`confidence < 0.50` 进入 `HUMAN_REVIEW`，禁止自动执行。`need_clean=false`（语义确为无需处置）、unknown、ignore 是 veto；通用 raw `next_action=human_review` 不能覆盖满足 Fusion 的系统决策，raw action 只在 Advanced。
+**LOCKED**：第一次真实 Cloud VLM 的 confidence disposition 只在最终充分证据产生后执行，Evidence Sufficiency Gate 优先。最终 `confidence >= 0.85` 不触发独立 second review，进入系统 Fusion / 业务判断；`0.50 <= confidence < 0.85` 进入独立 targeted second review；`confidence < 0.50` 进入 `HUMAN_REVIEW`，禁止自动执行。二审不得读取上一轮模型答案或 reasoning；若该最终结论来自合法 Multi-view evidence set，二审可读取该 evidence set。`need_clean=false`（语义确为无需处置）、unknown、ignore 是 veto；通用 raw `next_action=human_review` 不能覆盖满足 Fusion 的系统决策，raw action 只在 Advanced。
 
 **LOCKED**：Fusion 仅为 `0.60 raw cloud + 0.20 YOLO 类别一致性 + 0.12 camera/location/time 一致性 + 0.08 multiview 一致性`。客户展示 raw 模型百分比和“综合处置评分：N分”，不把 Fusion 写成百分比。
 
@@ -71,9 +71,9 @@
 
 ## D09｜Agent 页面形态、Analytics Advice 与语音
 
-**LOCKED / TODO**：只有一个共享 Robot Operations Agent。Workbench 与 Event Center 是可拖动 Floating Window（仅 Header/Drag Handle 可拖、不能出 viewport、跨页/刷新保留 localStorage 位置）；Analytics 不显示 Floating Agent，改为右侧固定 Panel：上半 AI 运营优化建议，下半同一 Agent 对话。切页不丢 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。
+**LOCKED / TODO**：只有一个共享 Robot Operations Agent。Workbench 与 Event Center 是可拖动 Floating Window：没有已保存 UI position 时默认左下角，已保存的 localStorage position 优先；仅 Header/Drag Handle 可拖、不能出 viewport、展开/收起保持位置、跨 Workbench/Event Center 与刷新保持。Analytics 不显示 Floating Agent，改为右侧固定 Panel：上半 AI 运营优化建议，下半同一 Agent 对话。切页不丢 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。
 
-**LOCKED / TODO**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent；禁止 fake voice animation。
+**LOCKED / TODO**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
 
 **LOCKED / TODO**：Analytics Advice 不是第三个 Optimization Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
 
@@ -81,11 +81,13 @@
 
 **LOCKED / TODO**：新链路固定为：Fixed Camera → Edge YOLO / controlled edge evidence → **Single-view Cloud VLM** → Evidence Sufficiency Judgment → conditional Multi-view Perception Agent → Multi-view Cloud VLM → Business Decision → Camera→SLAM → Capability → Scheduler → Robot → Verification。`confidence` 与 `evidence_sufficient` 是不同字段；Single-view VLM 应输出 event type、need action、confidence、evidence sufficient、ambiguity type（reflection / occlusion / perspective / lens contamination / insufficient view / small object / semantic uncertainty / other）。
 
-**LOCKED / TODO**：Multi-view 是 Active Visual Evidence Acquisition，不是 “if confidence < threshold” Workflow。模型先只看 Main Camera Image、YOLO bbox/detection、必要 Camera Context；以 `tool_choice=auto` 自主决定证据是否不足、是否补证、选哪 1–2 路、是否继续、何时停止。不得按 `demo_id` 强制、不得初轮塞三图、不得 `tool_choice=required`、不得前端 `setTimeout` 假装 Agent。
+**LOCKED / TODO**：Evidence Sufficiency Gate 的优先级高于最终 confidence disposition。Single-view VLM 同时返回 `confidence`、`evidence_sufficient`、`ambiguity_type`；当 `evidence_sufficient=false`，且 ambiguity 为 reflection / occlusion / perspective / lens_contamination / insufficient_view 等可由额外视角缓解的问题，并存在合法 supporting cameras 时，Multi-view Agent 可通过真实 model tool calling 先主动补证。此时不得仅因 Single-view `confidence < 0.50` 提前终止为 `HUMAN_REVIEW`。正确顺序为 Single-view evidence → evidence sufficiency → 可恢复时自主 Multi-view evidence acquisition → final semantic judgment → confidence gate。
+
+**LOCKED / TODO**：Multi-view 是 Active Visual Evidence Acquisition，不是 “if confidence < threshold” Workflow。模型先只看 Main Camera Image、YOLO bbox/detection、必要 Camera Context；以 `tool_choice=auto` 自主决定是否补证、选哪 1–2 路、是否继续、何时停止。没有合法 supporting camera、Evidence Fetch 失败，或最多 2 rounds 后仍 `evidence_sufficient=false` 时，必须 `HUMAN_REVIEW`；即使 raw confidence 较高，最终 `evidence_sufficient=false` 也不得自动机器人处置。不得按 `demo_id` 强制、不得初轮塞三图、不得 `tool_choice=required`、不得前端 `setTimeout` 假装 Agent。
 
 **LOCKED / TODO**：Agent 只有 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 这类等价工具；最多 2 路额外摄像头、最多 2 个 evidence acquisition rounds。PoC Evidence Adapter 可返回 controlled evidence assets，必须如实说明，不得假装 RTSP 同步；未来可替换 RTSP/VMS/NVR/Camera Platform。Agent 不得改 Coverage、邻接、calibration、SLAM、地图、机器人、confidence 或自动处置阈值。
 
-**LOCKED / TODO**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → 高仙 Omnie → verification → CLOSED。客户 UI 只展示来自 Agent Trace / Tool Audit / Cloud Response / Transition 的精简中文步骤，不展示 Chain-of-Thought；Advanced 才看技术 trace。
+**LOCKED / TODO**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → final semantic judgment → confidence gate → 高仙 Omnie → verification → CLOSED。最终 `0.50 <= confidence < 0.85` 的 independent targeted second review 可读取本次合法取得的完整 evidence set，但不得读取上一轮模型答案或 reasoning。客户 UI 只展示来自 Agent Trace / Tool Audit / Cloud Response / Transition 的精简中文步骤，不展示 Chain-of-Thought；Advanced 才看技术 trace。
 
 ## D11｜External Delivery Platform Integration
 
