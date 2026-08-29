@@ -13,10 +13,10 @@
 ## P1-A｜先完成真实数据闭环（依赖最低）
 
 - [ ] **Camera→SLAM Runtime 接入**：`locate` 从主 bbox 计算接地点，调用 `map_pixel_to_slam()`，持久化 map/x/y/building/floor/zone；marker 只在定位后出现，客户/Advanced 各按锁定层级显示。
-- [ ] **Dijkstra Runtime 接入**：`start-navigation` 读取共享 Fleet 当前 map 与已定位 target map，调用 `plan_route()`，将真实 connector graph 转为可视 anchor path；删除 demo_id 固定路径。
+- [ ] **Dijkstra global topology planner / `plan_route()` Runtime 接入**：`start-navigation` 读取共享 Fleet 当前 map 与已定位 target map，调用 `plan_route()`，将真实 connector graph 转为可视 anchor path；删除 demo_id 固定路径。
 - [ ] **Demo04 正确能力边界**：移除 cloud 阶段大件直接人工特判；完整运行 Cloud → Locate → Capability Engine → zero candidate → HUMAN_FALLBACK → 人工完成 → verify。
 - [ ] **共享 Fleet 状态**：将机器人真实位置、电量、状态统一为同一读模型；任务终点保留，new demo/reset 才复位，所有后续模块读同一源。
-- [ ] **Stable Replay 重定义**：只保存/选择既有真实 AI 结构化证据回放，其他 Runtime 阶段仍真实执行；Advanced 提供透明选择与最近请求/latency，LIVE 永不 silent fallback。
+- [ ] **Stable Replay 重定义**：只保存/选择既有真实 AI 结构化证据回放，其他 Runtime 阶段仍真实执行；本批可在现有 Advanced shell 增加最小 AI Runtime 控制区，提供 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和最近 latency；不得重做完整 Advanced 页面，LIVE 永不 silent fallback。
 
 ## P1-B｜MapCanvas 与机器人执行视觉（依赖 P1-A）
 
@@ -37,7 +37,7 @@
 
 - [ ] **ROI verification**：before/after 全图 + 原 bbox ROI + 原事件类型进入验收 Prompt；忽略机器人、人员、阴影、光照、无关变化。
 - [ ] **独立 ROI 二审**：首次 retry/human review 主因属于非目标干扰时，独立复核且不输入首轮答案。
-- [ ] **完整 LIVE/Replay 回归**：Demo01/02/03 各 LIVE 5 次至少 4 次正确闭环；Demo04 LIVE 3 次全量正确人工闭环；四 Demo Stable Replay 各 3 次 100% 稳定。记录 raw confidence、二审、Fusion、system decision、robot、route、verification、final、latency。
+- [ ] **完整 LIVE/Replay 回归**：Demo01/03 各 LIVE 5 次至少 4 次正确闭环；Demo02 连续 5 次至少 4 次真实执行 Multi-view Agent workflow（使用受控多视角证据资产）后正确闭环；Demo04 LIVE 3 次全量正确人工闭环；四 Demo Stable Replay 各 3 次 100% 稳定。记录 raw confidence、二审、Fusion、system decision、robot、Dijkstra global topology planner / `plan_route()` route、verification、final、latency。
 
 ## 后续 Batch（非本批）
 

@@ -7,13 +7,13 @@
 
 这是面向 AI 解决方案专家岗位面试的园区自主清洁 PoC：固定摄像头发现地面事件，受控边缘证据提供候选，云端模型做语义理解，确定性空间/能力/调度系统决定处置，固摄 + 云端验收形成可解释闭环。
 
-**本批（第一部分）只聚焦自主清洁工作台和 Demo01–04**：双固定摄像头、事件详情、边缘证据、Multi-view Agent、云端研判、Camera→SLAM、Capability Engine、Scheduler、Dijkstra、机器人可视化、验收、Human Fallback、LIVE / Stable Replay。Event Center、Analytics、AI Assistant、Advanced 的完整产品化属于后续 Batch。
+**本批（第一部分）只聚焦自主清洁工作台和 Demo01–04**：双固定摄像头、事件详情、边缘证据、Multi-view Agent、云端研判、Camera→SLAM、Capability Engine、Scheduler、Dijkstra global topology planner / `plan_route()`、机器人可视化、验收、Human Fallback、LIVE / Stable Replay。Event Center、Analytics、AI Assistant、Advanced 的完整产品化属于后续 Batch；本批仅允许在现有 Advanced shell 增加最小 AI Runtime 控制区，不重做完整 Advanced 页面。
 
 真实生产机器人、电梯、近同步多摄像头和生产阈值均未部署；A/B 楼、电梯、连廊与机器人执行是 PoC 模拟。受控 bbox 不是本地真实 YOLO 权重推理，禁止对外声称 REAL YOLO 已通过。
 
 ## 2. 当前已实现事实（IMPLEMENTED）
 
-- React/Vite/Tailwind/shadcn、FastAPI/SQLite、6 张模拟 SLAM map、Global Spatial Graph、Camera Coverage、四点标定、Dijkstra/A*、Phase 3 Capability Engine + Scheduler 均存在。
+- React/Vite/Tailwind/shadcn、FastAPI/SQLite、6 张模拟 SLAM map、Global Spatial Graph、Camera Coverage、四点标定、Dijkstra global topology planner / `plan_route()`、Phase 3 Capability Engine + Scheduler 均存在。
 - `demo_v1` 已是阶段 REST Runtime：create → edge → conditional multi-view → cloud → locate → assign → navigation → cleaning → verify；每步写入 SQLite event transition。旧 `/runs/*` 一次性入口为 410。
 - 云端调用统一经 `perception.qwen._request_qwen`；灰区独立二审、Fusion、模型 veto、Demo02 首轮三图同地/同时间 Prompt 已实现。
 - 当前地图只会在 `assignment_decision` 后激活相应机器人；现有 `campusTopology` 与 `navigation_plan` 可投影 Robot C 的演示路线。
@@ -39,7 +39,7 @@
 
 | Demo | 锁定业务事实 | 正常目标 |
 |---|---|---|
-| 01 | 室外、**其他小型垃圾**、81%、Robot A、before/after | 自动闭环 |
+| 01 | 室外、**其他小型垃圾**、Robot A、before/after | 自动闭环 |
 | 02 | A1F 液体污渍；CAM-A1-01 58%、A1-02 63%、A1-04 61%；仅灰区触发 Multi-view | 联合研判后 Robot B 自动闭环 |
 | 03 | A2F 地毯易拉罐；Robot C 从 B1F 经电梯、B2F、连廊至 A2F；after 有约 3m 外 Robot C | 目标 ROI 验收后闭环 |
 | 04 | A2F 逃生/通道附近两纸箱、**大件物品**；A/B/C 无搬运能力 | Cloud → Locate → zero candidate → 人工 → after → AI 验收 → 闭环 |
@@ -61,5 +61,5 @@
 ## 6. 不可违反边界
 
 - Robot-first + Human Fallback；人工不是 Scheduler 候选。LLM 只理解事件/能力建议/验收，不能选 Robot A/B/C 或控制路线。
-- LIVE 失败必须 `HUMAN_REVIEW`，绝不 silent fallback；Stable Replay 只能由用户在 Advanced 主动选择且要透明标识。
+- LIVE 失败必须 `HUMAN_REVIEW`，绝不 silent fallback；Stable Replay 只能由用户在现有 Advanced shell 的最小 AI Runtime 控制区主动选择且要透明标识。该控制区仅包含 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和最近 latency；Advanced 完整产品化仍属于后续 Batch。
 - 不引入第二 UI System、Three.js、ROS/RMF runtime、Docker/K8s、大型本地模型。不得修改 Robot A/B/C 定义、Phase 2 空间基础、Phase 3 调度规则。

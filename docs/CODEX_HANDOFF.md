@@ -8,7 +8,7 @@
 - 仓库：`ai-autonomous-cleaning-demo`；分支：`main`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`。它不能被回退为一次性 `/runs` + 前端播放。
 - 本轮仅完成 docs-only Source-of-Truth 同步；本轮新产品决策大多为 **LOCKED/TODO**，尚未修改代码。
-- 下一代码工作应从 `TODO.md` 的 **P1-A 真实数据闭环** 开始，不要扩展 Event Center、Analytics、AI Assistant 或 Advanced。
+- 下一代码工作应从 `TODO.md` 的 **P1-A 真实数据闭环** 开始，不要扩展 Event Center、Analytics、AI Assistant，也不要重做完整 Advanced。唯一允许的 Advanced 工作是在现有 shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency。
 
 ## 先理解的不可违反规则
 
@@ -16,7 +16,7 @@
 2. LIVE 无云端可用时必须 Human Review，绝不 silent fallback；Replay 必须透明且不能变成固定动画。
 3. 受控 bbox 不是 REAL YOLO；Demo04 after 仅表示人工清除纸箱。
 4. 阶段边界：Cloud 只在 cloud-review，Scheduler 只在 assign，Verification 只在 verify/人工完成后；SQLite 记录真实状态历史。
-5. 新路线必须来自 Camera→SLAM + Dijkstra，不得以 demo_id 固定；Demo04 必须走 zero-candidate Human Fallback，不得 cloud 特判。
+5. 新路线必须来自 Camera→SLAM + Dijkstra global topology planner / `plan_route()`，不得以 demo_id 固定；Demo04 必须走 zero-candidate Human Fallback，不得 cloud 特判。
 6. 客户地图要走唯一 MapCanvas；终态机器人不自动回出生点；历史时间轴不因 Human Review 被截断。
 7. 不引入第二 UI System、Three.js、ROS/RMF、Docker/K8s、真实设备运行时或大模型权重。
 

@@ -11,7 +11,7 @@
 
 **LOCKED**：本批只完成自主清洁工作台及四个 Demo。左主区约 72%、右详情约 28%；左上双固定摄像头约 31%、地图约 69%。右详情从 Header 下方开始、独立滚动。整体是浅色、克制、低饱和蓝的企业 SaaS；删除“系统在线”和无意义装饰状态。
 
-**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”，但后三者完整建设不是本批范围。
+**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”；Event Center、Analytics、AI Assistant 和 Advanced 的完整建设不是本批范围。本批只允许在现有 Advanced shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；不得借此重做完整 Advanced 页面。
 
 ## D03｜机器人、Agent 与确定性决策
 
@@ -21,11 +21,11 @@
 
 ## D04｜云端模型、门控与 Replay
 
-**LOCKED**：LIVE 必须调用真实 Qwen-VL/DashScope，禁止写死结果、特判成功、人工加置信度或 silent fallback。Prompt 提供 camera/location/surface、YOLO 类别/置信度/ROI、限定 ontology；Qwen 不选机器人。首次 `>=.85` 进入系统判断；`.50–.85` 必须独立二审且不得收到首轮回答；`<.50` 人工复核。`need_clean=false`（语义确为无需处置）、unknown、ignore 是 veto；通用 raw `next_action=human_review` 不能覆盖满足 Fusion 的系统决策，raw action 只在 Advanced。
+**LOCKED**：LIVE 必须调用真实 Qwen-VL/DashScope，禁止写死结果、特判成功、人工加置信度或 silent fallback。Prompt 提供 camera/location/surface、YOLO 类别/置信度/ROI、限定 ontology；Qwen 不选机器人。首次 `confidence >= 0.85` 时不触发独立二审，进入系统 Fusion / 业务判断；`0.50 <= confidence < 0.85` 时必须独立二审且不得收到首轮回答；`confidence < 0.50` 时进入 `HUMAN_REVIEW`。`need_clean=false`（语义确为无需处置）、unknown、ignore 是 veto；通用 raw `next_action=human_review` 不能覆盖满足 Fusion 的系统决策，raw action 只在 Advanced。
 
 **LOCKED**：Fusion 仅为 `0.60 raw cloud + 0.20 YOLO 类别一致性 + 0.12 camera/location/time 一致性 + 0.08 multiview 一致性`。客户展示 raw 模型百分比和“综合处置评分：N分”，不把 Fusion 写成百分比。
 
-**LOCKED**：Stable Replay 仅回放此前真实成功调用的结构化 AI 证据；Camera→SLAM、Capability、Scheduler、Dijkstra、机器人状态、SQLite transitions 必须仍现场执行。默认 LIVE；仅 Advanced 可主动选 Replay，并在主工作台轻量透明标识。LIVE 失败一律 `HUMAN_REVIEW`。
+**LOCKED**：Stable Replay 仅回放此前真实成功调用的结构化 AI 证据；Camera→SLAM、Capability、Scheduler、Dijkstra global topology planner / `plan_route()`、机器人状态、SQLite transitions 必须仍现场执行。默认 LIVE；仅现有 Advanced shell 的最小 AI Runtime 控制区可主动选 Replay，并在主工作台轻量透明标识。该控制区只包含 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency，不构成 Advanced 完整产品化。LIVE 失败一律 `HUMAN_REVIEW`。
 
 ## D05｜MapCanvas、路线与 Fleet 状态
 
@@ -37,7 +37,7 @@
 
 **LOCKED / TODO**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker，Scheduler/Route 读取同一目标坐标。客户仅显示可读位置/SLAM 坐标，Advanced 才显示 pixel/mapping 细节。
 
-**LOCKED / TODO**：路线必须由 Scheduler 当前 map 与 target map 调 `plan_route()` 的 Dijkstra 全局拓扑生成，再投影为前端 anchor sequence；不是 Demo ID 固定路线。Demo03 从 B1F 至 A2F，并展开电梯/连廊锚点。
+**LOCKED / TODO**：路线必须由 Scheduler 当前 map 与 target map 调 Dijkstra global topology planner / `plan_route()` 生成，再投影为前端 anchor sequence；不是 Demo ID 固定路线。Demo03 从 B1F 至 A2F，并展开电梯/连廊锚点。
 
 **LOCKED / TODO**：客户时间轴只读 SQLite transition timestamp；处理中显示真实持续时间，模型可显示真实 latency。自动跟随只有一次 smooth scroll，用户手动上滚暂停并出现“回到当前进度”；CLOSED 后不强制滚动。
 

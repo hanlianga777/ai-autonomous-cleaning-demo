@@ -17,7 +17,7 @@ FastAPI /api
   ├── demo_v1.service（阶段 Runtime）
   ├── perception/qwen（唯一云端 transport）
   ├── perception/multiview（受限 Agent）
-  ├── spatial（地图、标定、Dijkstra）
+  ├── spatial（地图、标定、Dijkstra global topology planner / plan_route()）
   ├── scheduling（Capability Engine + Scheduler）
   └── SQLite（CleaningEvent / transitions / decisions / work orders）
 ```
@@ -52,7 +52,7 @@ Fixed Camera
   → Camera→SLAM
   → Capability Engine
   → Scheduler
-  → Dijkstra global topology path
+  → Dijkstra global topology planner / plan_route()
   → Robot Execution
   → Fixed Camera After
   → Cloud target-aware Verification
@@ -63,17 +63,17 @@ Fixed Camera
 
 ## 4. 空间与客户地图
 
-**IMPLEMENTED 基础**：6 map、Global Spatial Graph、`map_pixel_to_slam()`、`plan_route()`、`campusTopology` 与 Robot C 演示锚点存在。
+**IMPLEMENTED 基础**：6 map、Global Spatial Graph、`map_pixel_to_slam()`、Dijkstra global topology planner / `plan_route()`、`campusTopology` 与 Robot C 演示锚点存在。
 
-**LOCKED / TODO**：建立唯一 MapCanvas。白模 object-contain 的内层画布应成为所有 anchor、marker、robot、route 的唯一坐标系；动态物件不能使用外层元素百分比。定位完成前不得出现目标 marker。Scheduler 当前机器人位置和目标 SLAM map 进入 Dijkstra；前端仅把结果投影为路线。
+**LOCKED / TODO**：建立唯一 MapCanvas。白模 object-contain 的内层画布应成为所有 anchor、marker、robot、route 的唯一坐标系；动态物件不能使用外层元素百分比。定位完成前不得出现目标 marker。Scheduler 当前机器人位置和目标 SLAM map 进入 Dijkstra global topology planner / `plan_route()`；前端仅把结果投影为路线。
 
 Robot C 目标路线语义：B1F 待命 → B1F 电梯入口 → 乘梯暂停 → B2F 电梯出口 → B2F 连廊入口 → A2F 连廊出口 → A2F 易拉罐。任务后位置保留到 reset/new demo。
 
 ## 5. 云端、Fusion 与验收
 
 - LIVE 调真实 Qwen；失败转 `HUMAN_REVIEW`，禁止 silent fallback。
-- 首轮 `.50–.85` 时二审独立且不携带首轮答案；Fusion 与 raw confidence 分开，veto 优先。
-- Stable Replay 是 **LOCKED/TODO**：只回放历史真实 AI 结构化输出，其余 Runtime 仍真实运行；只能由 Advanced 主动选择。
+- `confidence >= 0.85` 时不触发独立二审，进入系统 Fusion / 业务判断；`0.50 <= confidence < 0.85` 时二审独立且不携带首轮答案；`confidence < 0.50` 时进入 `HUMAN_REVIEW`。Fusion 与 raw confidence 分开，veto 优先。
+- Stable Replay 是 **LOCKED/TODO**：只回放历史真实 AI 结构化输出，其余 Runtime 仍真实运行；只能在现有 Advanced shell 的最小 AI Runtime 控制区主动选择。控制区只包含 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；Advanced 完整产品化仍属于后续 Batch。
 - Demo03 是 **LOCKED/TODO** 目标 ROI 验收：before/after 全图和 ROI、原类别/bbox；忽略机器人等非目标变化，必要时独立 ROI 二审。
 - Demo04 是 **LOCKED/TODO** 零候选业务路径，不得 cloud 特判直接人工。
 
@@ -83,4 +83,4 @@ SQLite 是状态、transition、assignment、human work order 的事实源。下
 
 ## 7. 不进入本批的模块
 
-Event Center、Analytics、AI Assistant、Advanced 已有代码/壳不代表符合最新产品目标；它们在当前 Batch 不改造。禁止引入 ROS/RMF、Docker/K8s、第二 UI System、大型本地模型或真实设备接口。
+Event Center、Analytics、AI Assistant、Advanced 已有代码/壳不代表符合最新产品目标；它们在当前 Batch 不做完整改造。唯一例外是现有 Advanced shell 可增加最小 AI Runtime 控制区（LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency），不得据此重做完整 Advanced 页面。禁止引入 ROS/RMF、Docker/K8s、第二 UI System、大型本地模型或真实设备接口。
