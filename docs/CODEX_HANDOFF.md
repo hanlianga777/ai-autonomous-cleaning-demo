@@ -16,6 +16,16 @@
 - Analytics 与 Advanced 都是同一 SQLite/Runtime 的读取投影；Advanced 不能重跑模型、Scheduler 或 route。
 - P1-A/B/C/D/E/F/H/G 工程、自动化、浏览器验收均 IMPLEMENTED；正式 LIVE 为 Demo01 5/5、Demo02 5/5、Demo03 5/5、Demo04 3/3；四个 Stable Replay 各 3/3、无新 Cloud request。
 
+## Batch 2 当前 LOCKED TARGET（未实施）
+
+- OPS-AUTO-01：完整合法 Agent 指令应自动进入真实后端 Show Runtime，不再让客户反复 Advance；这不授权前端假动画、POI 猜测或绕过 Guard。
+- AGENT-SESSION-01：新 Show = 新 Agent Chat Session；同场跨页仍共享一条对话，合法业务历史/Advice 不随 Chat 清空。
+- AGENT-AUTHORITY-01：清洁选择继续只由 Capability/Scheduler/Deployment Policy；FlashBot 不清洁，Demo04 人工完成仍须明确用户/操作员 Action。
+- OPS-CONTINUITY-01：任务/Demo 不能因切页、收起 Chat、重挂载中断；唯一真相在后端 Runtime，前端 timer 只做投影。
+- AI-RESILIENCE-01：仅瞬时技术 provider 错误可自动重试一次；业务失败不刷答案，LIVE 永不隐藏切 Stable Replay。
+
+完整子项、当前偏差、Affected Active Code 与未来 Matrix 合同仅以 `INTERVIEW_DEMO_RECONCILIATION.md` 为准。本轮仍为 Docs-only；必须等待用户明确授权 `UNIFIED INTERVIEW DEMO RECOVERY` 才可修改代码。
+
 ## 当前模型与真实边界
 
 - 云端语义/验单：`qwen-vl-max`；多视角工具调用：`qwen3-vl-plus`。

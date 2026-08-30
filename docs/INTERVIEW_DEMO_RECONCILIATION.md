@@ -5,8 +5,8 @@
 
 ## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
 
-- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01、ADVANCED-01、SHOW-BASE-01、DATA-BOUNDARY-01、PRESENTATION-01、LAYOUT-01、DEMO-CONTRACT-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
-- 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement ID → Sub-item → Affected active code → Existing coverage → Implementation action → Tests → Visual acceptance → Cross-requirement regression → Status）。
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01、ADVANCED-01、SHOW-BASE-01、DATA-BOUNDARY-01、PRESENTATION-01、LAYOUT-01、DEMO-CONTRACT-01、OPS-AUTO-01、AGENT-SESSION-01、AGENT-AUTHORITY-01、OPS-CONTINUITY-01、AI-RESILIENCE-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → Sub-item → Affected active code → Current status → Implementation action → Backend tests → Frontend tests → Visual acceptance → Cross-regression → Final status）。
 - 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
 
 ## AI-UI-01｜AI 运营入口与聊天交互
@@ -1394,3 +1394,358 @@ Implementation Report 对每个 Demo 分别证明独特卖点、真实分支、�
 - `frontend/src/components/prototype/EventDetailPanel.tsx`
 - `frontend/src/components/prototype/SpatialDispatchView.tsx`
 - `frontend/src/components/prototype/CameraMonitorGrid.tsx`
+
+## OPS-AUTO-01｜AI机器人任务一次指令自动演示执行
+
+| Field | Value |
+| --- | --- |
+| ID | OPS-AUTO-01 |
+| Status | **LOCKED TARGET** |
+| Module | Robot Operations Agent task execution and presentation runtime |
+
+### User Intent
+
+用户对 Robot Operations Agent 下达完整、合法的业务指令后，任务应创建、派发并自动以真实后端状态机演示执行；客户不应反复点击“继续执行 / Advance / 推进PoC”才能完成。该目标只适用于 delivery、relocation 与 Agent 主动任务，不改变清洁任务的确定性选择和现有 Guard。
+
+### GitHub Previous Coverage and Current Implementation
+
+- 已覆盖：Agent 可经白名单工具创建/派发 Delivery、Relocation 或合法 Cleaning task；Delivery/Relocation 已有持久化状态机、Fleet reservation、POI、部署限制和 Dijkstra route；业务状态并非纯前端数据。
+- 当前 `tasks.py` 的 Delivery/Relocation 在 dispatch 后必须由 `/advance` 的显式 UI/operator action 一步步推进；`RobotOperationsPanel` 明确显示“推进 PoC 模拟”按钮，Agent system prompt 也要求操作员按钮推进。因此完整指令尚不能自动演示执行，属于 `IMPLEMENTATION_DIVERGENCE`。
+- 当前 Agent 已要求缺 POI 时先澄清、查询能力时不得写任务；这些正确边界保留。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`：既有 P1-F 锁定了真实、可审计的任务状态机和显式 PoC driver，却未定义一次明确业务指令后的自动演示执行合同。
+
+### Locked Target
+
+#### OPS-AUTO-01.1｜完整指令自动进入执行
+
+当业务意图、起点、终点、机器人/任务合法且后端校验通过时，例如“让普渡 FlashBot Max 把物料从A栋1F前台送到A栋2F会议室”，Agent 可创建任务 → 派发 → 正式进入自动演示执行；不得要求用户逐个推进内部状态。
+
+#### OPS-AUTO-01.2｜任务状态自动可视化推进
+
+配送按真实状态机依次呈现：任务已创建 → 前往取件点 → 到达取件点 → 已取件 → 乘梯中（仅路线包含电梯时）→ 前往目的地 → 已送达 → 完成。每个可感知业务阶段可展示约 1.5–3 秒；状态必须由后端 Runtime 持有，禁止用纯前端假动画直接替代真实 transition。
+
+#### OPS-AUTO-01.3｜信息不完整必须澄清
+
+如“帮我送点东西过去”缺取件位置或目的地，Agent 必须自然追问；不得虚构 origin/destination、POI 或路线。
+
+#### OPS-AUTO-01.4｜明确执行意图不增加机械确认
+
+明确自然语言执行指令本身可构成执行意图；不得额外增加“是否确认派发”的机械确认弹窗。纯能力咨询（如“FlashBot能不能送到A栋2F？”）只能回答，不创建或派发任务。
+
+#### OPS-AUTO-01.5｜不改变清洁机器人确定性选择
+
+本条不得使 Agent 绕过 Capability Engine、Scheduler、Route Planner 或 Fleet Guard。清洁机器人仍仅由确定性 Capability Engine + Scheduler + Deployment Policy 选择。
+
+### Must Not Do
+
+- 不得以 `setTimeout`/React 组件链伪造完成、跳过持久化状态机或把派发写成已送达。
+- 不得凭不完整指令猜测 POI，不得对咨询类问题创建任务，也不得额外强加确认弹窗。
+- 不得让 LLM 选择清洁机器人、绕过 backend POI/route/Fleet/部署校验，或把 FlashBot Max 纳入 Cleaning Scheduler。
+
+### Acceptance Criteria
+
+一次完整合法配送/待命指令后，用户不点击 Advance 仍可在 Chat、Task Card、Fleet、地图及终态中看到同一真实状态依序演进；缺地点会澄清，能力咨询无写入，清洁选择仍来自确定性系统。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/robot_operations/agent.py`
+- `backend/robot_operations/tools.py`
+- `backend/robot_operations/tasks.py`
+- `backend/robot_operations/routes.py`
+- `backend/robot_operations/repository.py`
+- `frontend/src/components/robot-operations/RobotOperationsProvider.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsPanel.tsx`
+- `frontend/src/components/robot-operations/robotOperationsModel.ts`
+
+## AGENT-SESSION-01｜Show Session 与 AI 对话 Session 生命周期一致
+
+| Field | Value |
+| --- | --- |
+| ID | AGENT-SESSION-01 |
+| Status | **LOCKED TARGET** |
+| Module | Show Session, Robot Operations Agent Session and advice lifecycle |
+
+### User Intent
+
+同一场面试中，AI 对话跨允许页面连续；每次双击启动下一场面试时，对话是干净的新 Session，而可查询的正式业务历史和近30天运营建议并不遗忘。
+
+### GitHub Previous Coverage and Current Implementation
+
+- 已覆盖：Workbench、Event Center、Analytics 都在同一个 `RobotOperationsProvider` 下并共享一个持久化 Agent Session；任务/审计按 session 关联，Advice 是独立的 Analytics read-only 快照。
+- 当前 Provider 把 session ID 写入 `localStorage` 并在页面初始化时恢复；`start_demo.command` 目前不建立 Show Session。因此重新双击启动后仍可能恢复上一场 Chat messages、任务上下文和 session ID，属 `IMPLEMENTATION_DIVERGENCE`。
+- 当前 Advice 由独立 read-only 生成/缓存，不等同于 Chat History；该数据生命周期分离方向保留。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`：SHOW-BASE-01 新定义了 Show Session，而旧 P1-F 仅定义跨页持久 Agent Session，未建立两者的创建、隔离及清理关系。
+
+### Locked Target
+
+#### AGENT-SESSION-01.1｜新 Show Session = 新 Agent Session
+
+每次 `start_demo.command` 建立新的 Show Session 时，必须同步建立新的 Robot Operations Agent Session；不得默认恢复上一场 Chat messages、当前 Agent 任务上下文、未完成对话或上一场 Session ID。
+
+#### AGENT-SESSION-01.2｜同场跨页面共享
+
+同一 Show Session 内，AI机器人调度大脑、Event Center、运营洞察、数据统计及其他允许接入 AI 助手的页面共享同一个 Robot Operations Agent Session；切换页面后聊天记录保持连续。
+
+#### AGENT-SESSION-01.3｜新 Chat 不等于业务数据失忆
+
+新 Session 仅重建 Conversation Context 和 Current Interaction Context。Agent 仍可按 DATA-BOUNDARY-01 查询 Canonical 30-day `DEMO_HISTORY`、正式 `INTERVIEW_RUNTIME`、Event Center、Analytics、Fleet 和已闭环正式业务任务；新场次仍可回答“过去30天哪个区域事件最多？”。
+
+#### AGENT-SESSION-01.4｜旧未完成任务不污染新场次
+
+上一场的 delivery、relocation、cleaning task interaction 不得自动成为新 Agent Session 的 Current Active Task。旧记录可按数据边界保留，但 Current Show State 必须干净。
+
+#### AGENT-SESSION-01.5｜运营建议与聊天生命周期分离
+
+横向 AI运营建议卡属于近30天运营分析结果，不是上一场 Chat History。新 Show Session 必须有新 Chat，但近30天建议仍可正常读取/生成。
+
+### Must Not Do
+
+- 不得为跨页连续性另建第二 Conversation Agent、第二 Task/Audit 真相或恢复上一 Show 的消息。
+- 不得因新 Chat 清空允许客户查询的历史业务数据，或把 Advice cache 当成 Chat History。
+- 不得让旧 active task 在新场次无明确新指令下继续作为 Current Active Task。
+
+### Acceptance Criteria
+
+同场在 Workbench/Event Center/Analytics 切换时仅有一条连续 Chat；新双击启动后 Chat 与当前任务上下文为空、新 Agent Session ID 生效；历史运营问题和横向 Advice 仍能按合法数据边界工作。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `start_demo.command`
+- `scripts/runtime_launcher_lib.sh`
+- `backend/database/connection.py`
+- `backend/robot_operations/repository.py`
+- `backend/robot_operations/routes.py`
+- `backend/robot_operations/agent.py`
+- `frontend/src/components/robot-operations/RobotOperationsProvider.tsx`
+- `frontend/src/components/robot-operations/robotOperationsModel.ts`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+
+## AGENT-AUTHORITY-01｜Robot Operations Agent 权限与确定性业务边界
+
+| Field | Value |
+| --- | --- |
+| ID | AGENT-AUTHORITY-01 |
+| Status | **LOCKED TARGET** |
+| Module | Agent tool policy, deterministic operations and human confirmation |
+
+### User Intent
+
+AI 负责理解意图、自然语言交互、调用受限工具和业务编排；不得越权替代 Capability Engine、Scheduler、Route Planner、Fleet Guard 或人工事实确认。
+
+### GitHub Previous Coverage and Current Implementation
+
+- 已覆盖：`create_cleaning_task` 拒绝 robot/position 指定；清洁 assignment 委托既有 workflow 的 Capability + Scheduler；Delivery 固定 FlashBot Max 且仍过 POI、route、Fleet、部署边界；Relocation schema 要求明确 robot。Demo04 `complete_manual` 只允许 task-owned `HUMAN_FALLBACK` 的 explicit operator action。
+- 当前 Agent system prompt、工具白名单与 Task machine 均已落实多数边界；这不是本条已实施声明，而是未来必须保留并扩展验证的实现基础。当前 UI 的显式 pause/resume/cancel 也符合“不能擅自变更”的方向。
+
+### Root Cause
+
+`SOURCE_MISSING`：既有 P1-F 的技术 Guard 已实现，但没有把 Agent 权限、客户可见交互与 Demo04 人工确认逐项固化为本批的统一产品合同。
+
+### Locked Target
+
+#### AGENT-AUTHORITY-01.1｜清洁机器人不得由 LLM 选择
+
+对清洁事件，Agent 可查询事件、创建/推进合法清洁任务、解释结果；不得自行在赛特净界 S5、高仙 Omnie、蜗小白 SC50 中选择机器人。选择必须继续来自 Capability Engine + Scheduler + Deployment Policy；LLM/Agent 永远不是 Cleaning Robot Selector。
+
+#### AGENT-AUTHORITY-01.2｜配送允许调用 FlashBot
+
+配送由普渡 FlashBot Max 承担。Agent 可根据用户明确合法指令创建配送任务，但仍必须经过 backend POI、路线、Fleet 状态、部署边界与任务占用校验。
+
+#### AGENT-AUTHORITY-01.3｜待命调度必须明确指定机器人
+
+“让高仙Omnie去A栋1F东入口待命”可执行；“派一台机器人去东入口待命”不得由 LLM 自行决定，必须追问具体机器人。除非未来另有正式 Requirement 定义智能待命推荐。
+
+#### AGENT-AUTHORITY-01.4｜不能伪造人工完成
+
+特别是 Demo04，进入 `HUMAN_FALLBACK` 后 Agent 不得调用流程伪称“人工已经搬运完成”。人工完成必须来自明确 Operator/User Action，之后才可进入 Fixed Camera After Evidence → AI Verification。
+
+#### AGENT-AUTHORITY-01.5｜暂停/取消需要明确用户意图
+
+Agent 不得擅自暂停机器人、取消任务、抢占任务或覆盖已有任务；只有用户明确表达相应意图才可调用受限动作。
+
+#### AGENT-AUTHORITY-01.6｜确定性 Guard 不可绕过
+
+机器人忙碌、电量不足、路线不可达、超出部署范围、能力不满足或资源占用时，Agent 必须诚实解释拒绝/失败原因；不得绕过 Guard、偷偷换机器人、伪造完成或直接修改 Fleet。
+
+### Must Not Do
+
+- 不得删除或以 Agent 编排替代 Cleaning Capability/Scheduler/Route/Fleet/Human guard。
+- 不得把 Delivery 的 FlashBot policy 扩展为清洁候选，或把缺机器人名的待命指令擅自优化为自动选择。
+- 不得用 AI 文字或内部 tool call 取代 Demo04 的明确人工确认。
+
+### Acceptance Criteria
+
+清洁任务的选择可追溯到确定性 assignment；配送和明确点名待命可通过全量 Guard；模糊待命会澄清；无明确意图不会暂停/取消；Demo04 没有明确人工 Action 绝不进入验收；任何 Guard failure 在同一事实源上诚实呈现。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/robot_operations/agent.py`
+- `backend/robot_operations/tools.py`
+- `backend/robot_operations/tasks.py`
+- `backend/robot_operations/catalog.py`
+- `backend/robot_operations/coordination.py`
+- `backend/scheduling/capability_engine.py`
+- `backend/scheduling/*`
+- `backend/spatial/route_planner.py`
+- `backend/demo_v1/service.py`
+- `frontend/src/components/robot-operations/RobotOperationsPanel.tsx`
+
+## OPS-CONTINUITY-01｜任务执行与前端生命周期解耦
+
+| Field | Value |
+| --- | --- |
+| ID | OPS-CONTINUITY-01 |
+| Status | **LOCKED TARGET** |
+| Module | Durable Show Runtime, task truth and cross-page projection |
+
+### User Intent
+
+任务一旦开始，就属于后端 Show Runtime，而不属于某个 React 组件。关闭/收起 Chat、切换 Workbench/Event Center/Analytics、组件重渲染均不能中断任务或令各页面出现互相矛盾的事实。
+
+### GitHub Previous Coverage and Current Implementation
+
+- 已覆盖：Ops sessions/tasks 与 Fleet 使用 SQLite 持久化；Provider 定时轮询是读取投影；Task、Fleet、Map 与 event workflow 有共享 Task ID/lease 基础。`tasks.py` 明确不以 process-local task 作为真相。
+- 当前 Workbench 原生 stage 自动推进只在 `view === "workbench"` 时执行，task-owned workflow 也刻意等待显式 action；Delivery/Relocation 依赖 Chat UI 的 Advance。因此当前不满足任务开始后脱离页面仍可持续执行，属 `IMPLEMENTATION_DIVERGENCE`。
+- 前端 `setInterval` 目前用于同步，不应成为未来业务驱动；这一正确边界保留。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`：既有持久化模型保证了部分恢复/同步，却未定义由后端 Show Runtime 自主连续推进的跨页面生命周期合同。
+
+### Locked Target
+
+#### OPS-CONTINUITY-01.1｜切页面不能中断任务
+
+任务开始后，关闭/收起 AI Chat、切换 Workbench、Event Center、Analytics 或组件重新渲染都不得停止任务。
+
+#### OPS-CONTINUITY-01.2｜前端 Timer 不能成为业务驱动源
+
+不得以 React lifecycle、`setTimeout` chain、`setInterval` chain 或页面可见性作为任务真实性唯一驱动。前端可做动画、过渡和 Presentation Delay，但 Business State 必须由 backend Runtime 持有。
+
+#### OPS-CONTINUITY-01.3｜一个任务一个 Truth
+
+同一任务的 Chat Task Card、Robot Asset Card、Map、Event Detail、Fleet State 与 Backend Task State 必须来自同一真实业务状态；不得出现 Chat 已完成、地图仍在起点、Fleet idle、backend 仍 `TO_DESTINATION` 的冲突。
+
+#### OPS-CONTINUITY-01.4｜失败状态也必须同步
+
+route error、robot busy、cancel、cloud error、verification error 或其他 terminal failure 必须在所有页面投影相同终态；不得有任一前端继续播放成功。
+
+#### OPS-CONTINUITY-01.5｜Show Session 边界
+
+同一 Show Session 中页面切换、Chat 收起和重挂载不影响任务；重新双击 `start_demo.command` 建立新 Show Session 后，旧未完成任务不得恢复为 Current Active Task，继续遵守 SHOW-BASE-01 与 AGENT-SESSION-01。
+
+#### OPS-CONTINUITY-01.6｜同样约束 Cleaning Demo
+
+Demo01–04 开始后，用户暂时切换 Event Center/Analytics 不得使清洁主流程失去后端执行连续性。不要求生产级长期异步平台，只要求当前 Demo Runtime 不依赖用户一直停留原页面。
+
+### Must Not Do
+
+- 不得将轮询/动画当成 Runtime，不得创建页面私有的任务状态或以不同页面分别推断终态。
+- 不得因切页、折叠 Chat、重挂载而取消/暂停工作，也不得以新 Show 恢复旧 active task。
+- 不得为了连续性伪造 Cloud、route、verification、robot telemetry 或成功结果。
+
+### Acceptance Criteria
+
+在任务运行中切换所有允许页面、收起 Chat 和重挂载后，后端任务仍演进；恢复后 Chat/Map/Fleet/详情呈现同一状态。成功、取消及各类失败都逐页一致；Demo01–04 在离开 Workbench 后仍能完成其真实后端流程。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/robot_operations/tasks.py`
+- `backend/robot_operations/repository.py`
+- `backend/robot_operations/coordination.py`
+- `backend/robot_operations/routes.py`
+- `backend/demo_v1/service.py`
+- `backend/database/connection.py`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/runtimeSession.ts`
+- `frontend/src/components/prototype/SpatialDispatchView.tsx`
+- `frontend/src/components/prototype/EventDetailPanel.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsProvider.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsPanel.tsx`
+
+## AI-RESILIENCE-01｜真实 AI 调用有限自动重试与诚实失败边界
+
+| Field | Value |
+| --- | --- |
+| ID | AI-RESILIENCE-01 |
+| Status | **LOCKED TARGET** |
+| Module | LIVE Cloud Review, Multi-view, Verification and safe failure handling |
+
+### User Intent
+
+正式 LIVE Demo 可对明确瞬时技术故障自动短暂重试一次，以提高稳定性；但不得为了“演示成功”刷模型答案、伪造结果或把 Stable Replay 偷换成 LIVE。
+
+### GitHub Previous Coverage and Current Implementation
+
+- 已覆盖：Cloud/Multi-view/Verification 的业务/安全失败会进入 `HUMAN_REVIEW`；LIVE failure 不 silent fallback 到 Stable Replay；Replay 只在显式工程/测试路径复用已保存的真实结构化记录。Multi-view evidence insufficiency、Camera→SLAM、Capability zero candidate、route 和 verification 均有各自确定性/诚实降级边界。
+- 当前 `cloud_review` 与 verification 捕获 `RealInferenceError` 后立即安全终止，无有限一次的瞬时 provider retry 分类；Agent transport 失败也直接记录 `AGENT_UNAVAILABLE`。这是 `IMPLEMENTATION_DIVERGENCE`，但“不能靠重试刷业务结论”和“不得 silent replay”必须保留。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`：既有失败安全与 LIVE/Replay 真实性已锁定，但未定义可恢复 provider 错误的一次、受限、非业务性自动重试合同。
+
+### Locked Target
+
+#### AI-RESILIENCE-01.1｜仅瞬时技术故障自动重试
+
+API timeout、temporary network error、provider 5xx、temporary rate limit 或其他明确可恢复 provider 错误，允许一次短暂自动重试。首次失败 → 自动重试一次 → 成功则正常继续；无需用户点击 Retry。
+
+#### AI-RESILIENCE-01.2｜业务结论不得靠重试刷答案
+
+模型明确证据不足、confidence 不足、Multi-view 仍不足、Camera→SLAM 失败、Capability 候选为0、路线确实不可达及业务硬约束失败均不属于自动重试范围。不得反复调用模型直到得到期望答案。
+
+#### AI-RESILIENCE-01.3｜重试仍失败 = 诚实降级
+
+瞬时技术故障重试仍失败时，必须正式进入 `HUMAN_REVIEW` 或对应安全终止状态；客户层显示可理解的安全结论，例如“云端AI服务暂不可用，已安全转人工复核”。不得创建错误机器人任务或继续假执行。
+
+#### AI-RESILIENCE-01.4｜LIVE 不能偷偷切 Stable Replay
+
+LIVE 运行失败后严禁无提示切换 `STABLE_REPLAY`，并把历史模型答案伪装为实时推理。Stable Replay 可继续作为 Engineering、Testing、Regression 能力，但不得是正式 LIVE 的隐藏成功兜底。
+
+#### AI-RESILIENCE-01.5｜前端不展示技术重试细节
+
+自动重试期间客户层仅可显示“云端AI研判中”；不得暴露 Attempt 1、HTTP 429、Provider Timeout 或 Retry #1。技术细节进入 Advanced/Logs；最终失败才展示客户能理解的安全失败结论。
+
+#### AI-RESILIENCE-01.6｜失败释放 Demo 能力
+
+AI 最终失败时，当前事件必须进入明确 terminal/人工复核状态，不得永久 `PROCESSING`，不得锁死其它 Demo Trigger；继续遵守 SHOW-BASE-01。
+
+### Must Not Do
+
+- 不得将 evidence insufficiency、低 confidence、空间/能力/路线/验证业务失败归类为可重试 provider 错误。
+- 不得多于一次自动重试、不得用前端 timer fake retry、不得伪造机器人任务或最终成功。
+- 不得自动或隐藏地切换 Stable Replay，也不得在客户层泄露低层 HTTP/attempt 文本。
+
+### Acceptance Criteria
+
+可控瞬时 provider 故障仅触发一次真实自动重试并记录在技术审计；业务性失败零重试且走原有安全分支；二次技术失败进入明确 `HUMAN_REVIEW`/终态、释放其它 Demo；客户只见处理中或安全结论，LIVE 始终保持 LIVE，Replay 仅显式工程路径可用。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/demo_v1/service.py`
+- `backend/demo_v1/replay.py`
+- `backend/demo_v1/perception_records.py`
+- `backend/perception/*`
+- `backend/robot_operations/agent.py`
+- `backend/robot_operations/repository.py`
+- `backend/observability/*`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/EventDetailPanel.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsProvider.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsPanel.tsx`
+
+## BATCH 2 CROSS-REQUIREMENT CONTRACT
+
+- OPS-AUTO-01 实施必须同时回归 AGENT-AUTHORITY-01、OPS-CONTINUITY-01、PRESENTATION-01 和 AI-UI-01；自动演示不等于自动越权或工程式 UI。
+- AGENT-SESSION-01 必须同时回归 SHOW-BASE-01、DATA-BOUNDARY-01 和 AI-UI-01；新 Chat 只隔离对话/当前交互，不隔离合法历史查询。
+- AGENT-AUTHORITY-01 必须回归 Capability Engine、Scheduler、Route Planner、Fleet 与 Demo04 HUMAN_FALLBACK；清洁选择、人工作业确认、FlashBot 清洁排除均不得回退。
+- OPS-CONTINUITY-01 必须同时验证 Workbench、Map、Robot Cards、Chat、Event Center 与 Cleaning Demo Runtime 的同一事实投影。
+- AI-RESILIENCE-01 必须同时回归 Demo02 Evidence Sufficiency Gate、Cloud Review、Verification、SHOW-BASE-01 与 DEMO-CONTRACT-01；保留 Engineering Trace / Stable Replay 能力，但不进入正式客户 Presentation。
+
+未来 Unified Interview Demo Recovery 的 Implementation Report 必须为五条 Requirement 的每个子项建立 `Requirement → Sub-item → Affected active code → Current status → Implementation action → Backend tests → Frontend tests → Visual acceptance → Cross-regression → Final status` 映射。用户视觉验收前，五条均不得标记 `IMPLEMENTED` 或 `USER_ACCEPTED`。

@@ -56,7 +56,7 @@
 - 清洁只包装现有 eligible CleaningEvent；先 create、dispatch，再由原有 workflow stage 执行。不从自然语言伪造 TaskProfile，不改变 Robot-first + Human Fallback。Task lease 同时保护 Agent 与原 Workbench stage，暂停/取消不能由另一入口绕过。
 - Task/Fleet 短事务使用 SQLite BEGIN IMMEDIATE；云端调用在事务外并持有 durable task lease。清洁暂停/恢复同步 Fleet 并恢复实际原状态。终点/电量/Task 保留到重启；有活动 Operations 任务时必须先取消再 Reset Fleet。
 - `X-Operations-Session` 校验 UI task action 与 task.session_id 一致；这是本地 PoC 会话边界，不是生产登录权限系统。清洁完整阶段事实仍以 CleaningEvent transitions 为准，Task 的 workflow_transitions 是只读投影，不复制第二份真相。
-- 原生 DeliveryTask 绑定 robot-d，Approved POI + Dijkstra；仅操作员显式推进 POC SIMULATION 取件/乘梯/送达状态，不 fake 外部 callback。robot-d 室内/电梯/连廊为明确的 PoC deployment policy；缺失/拒绝权限 fail closed。美团/饿了么/京东/淘宝闪购仅 Adapter registry + AUTH REQUIRED。
+- 原生 DeliveryTask 绑定 robot-d，Approved POI + Dijkstra；其“仅操作员显式推进 POC SIMULATION 取件/乘梯/送达”的旧客户交互已被 **OPS-AUTO-01 SUPERSEDED**。未来由后端 Show Runtime 自动演示真实持久化状态，仍不 fake 外部 callback。robot-d 室内/电梯/连廊为明确的 PoC deployment policy；缺失/拒绝权限 fail closed。美团/饿了么/京东/淘宝闪购仅 Adapter registry + AUTH REQUIRED。
 - Advice 使用同一个 Operations Agent 的只读工具能力，显式请求后缓存 3–4 条，包含实际 Data Window/Generated At/关联事件，验证引用来自所读集合；不能自动改配置。旧 `/api/optimization/recommend` 410。模型定性建议不是统计显著性证明或生产收益承诺。
 - 档案列表/详情继续只读；共享 Agent 中由用户主动发起的白名单 task action 是单独审计入口，不是档案浏览自动派单。ASR 未配置时 disabled，未实现真实语音 provider。
 
@@ -72,7 +72,7 @@
 
 `GET /api/event-archive` 是 CleaningEvent + transition 的只读投影，不建立第二份事件数据库，也不读取当前 Fleet 覆盖历史。正常 Human Fallback 属于待人工处理；人工完成后的 CLOSED 仅在“全部”中标为人工处置后闭环，不混入“已自主闭环”或仍待人工。各分类计数先应用其它筛选，再按类别统计，不要求相加等于全部。发现时间排序不使用最后更新时间。
 
-`/events?event=` 只恢复历史选择。非 Workbench 页面不自动推进阶段或轮询当前任务；档案浏览只做 GET；P1-F共享Agent的用户显式任务操作单独鉴权审计，不由档案自动触发。右侧 44% 保留 shell，内容必须与 selected event ID 相同；更换/失败时不显示另一事件快照。无时区 SQLite 时间按 UTC，操作员本地时间筛选显式转换为 UTC。新记录轮询不抢详情，不由前端补造状态。
+`/events?event=` 只恢复历史选择，档案浏览本身只做 GET；P1-F共享Agent的用户显式任务操作单独鉴权审计，不由档案浏览另行触发。旧“非 Workbench 页面不自动推进阶段”的页面绑定执行语义已被 **OPS-CONTINUITY-01 SUPERSEDED**：已开始任务必须由后端 Show Runtime 继续，Event Center 只读取投影。右侧 44% 保留 shell，内容必须与 selected event ID 相同；更换/失败时不显示另一事件快照。无时区 SQLite 时间按 UTC，操作员本地时间筛选显式转换为 UTC。新记录轮询不抢详情，不由前端补造状态。
 
 ## P1-C 工程决策补充（IMPLEMENTED · A/E PASS）
 
@@ -127,7 +127,7 @@
 
 **IMPLEMENTED / LOCKED（P1-B runtime） / WB-DETAIL-01 UI target**：任务后机器人保留终点与低透明路线；Demo03 验收失败 `HUMAN_REVIEW` 仍在 A2F，Demo04 人工路径无人移动。复位仍遵守 P1-A 显式 baseline/reset 边界，不因普通新事件或刷新自动复位。客户时间轴可只读 SQLite transition timestamp 与处理中真实持续时间；“客户层显示模型真实 latency”已被 **WB-DETAIL-01 SUPERSEDED**，真实 latency 仍由 Advanced 投影。路线起点取 ASSIGNED 快照，不用终态 Fleet 倒推。
 
-**P1-B 刷新/失败边界**：localStorage 仅保存当前 event ID；GET SQLite 重建，不保存第二份事件/Fleet/route。sessionStorage request keys 防止同一会话刷新重发；异步快照不得覆盖不同 event 或倒退 transition。网络结果不确定时保留记录、只读同步，不自动重试模型或 Replay。该机制不等于跨标签页/服务器端全局幂等，后者为 P2。创建失败只显示本地连接提示，不捏造已保存 HUMAN_REVIEW。
+**P1-B 刷新/失败边界**：localStorage 仅保存当前 event ID；GET SQLite 重建，不保存第二份事件/Fleet/route。sessionStorage request keys 防止同一会话刷新重发；异步快照不得覆盖不同 event 或倒退 transition。旧“任何网络结果均不自动重试模型”的表述被 **AI-RESILIENCE-01** 限定覆盖：仅由后端对已分类瞬时 provider 故障做一次重试，前端不得重试 storm 或 Replay。该机制不等于跨标签页/服务器端全局幂等，后者为 P2。创建失败只显示本地连接提示，不捏造已保存 HUMAN_REVIEW。
 
 ## D06｜Event Center
 
@@ -217,6 +217,16 @@
 
 **DEMO-CONTRACT-01**：Demo01 是 S5 室外标准闭环；Demo02 是真实证据不足后由 Agent 自主补证（`primary-ambiguous-v2.png`，不可 demo 特判）；Demo03 是 SC50 从 B1F 经电梯/B2F/空中连廊到 A2F 的跨楼调度；Demo04 是 A2F 大件零清洁候选、FlashBot Max 不得清洁、正确 HUMAN_FALLBACK。推荐讲解顺序 1→2→3→4，但不得强制 UI 顺序。四者同一 Runtime、不同真实分支；未来逐项 LIVE E2E 与一次连续 New Show Session E2E 均为强制验收。完整逐项锁定目标见 `INTERVIEW_DEMO_RECONCILIATION.md`。
 
+## D15｜Interview Demo Batch 2 Agent Runtime 合同（LOCKED TARGET）
+
+**OPS-AUTO-01 / OPS-CONTINUITY-01**：完整且合法的 Delivery、Relocation 或 Agent 主动任务指令可创建→派发→由后端 Show Runtime 自动演示执行；不得要求客户反复 Advance/推进PoC。Delivery 仍依序经过真实持久化状态，阶段可展示约 1.5–3 秒，但 React lifecycle、Timer、Chat 展开或页面可见性不是业务驱动。Chat/Map/Fleet/Event Detail/Backend Task 必须投影同一事实，切页/重挂载/收起 Chat 不得中断；成功、取消或失败全页一致。旧“Delivery/Relocation 必须由操作员逐步 Advance”的**客户执行交互**已被 **OPS-AUTO-01 SUPERSEDED**；底层真实状态机、持久化、route/Fleet Guard 与非伪造事实继续保留。
+
+**AGENT-SESSION-01**：新 Show Session 必须创建新 Robot Operations Agent Session，不能恢复上一场 Chat、interaction context 或 active task；同场所有允许 AI 的页面仍共享一条连续对话。新 Chat 不清空 DATA-BOUNDARY-01 允许的业务查询，且横向运营建议是近30天分析快照、不是 Chat History。
+
+**AGENT-AUTHORITY-01**：Agent 只能理解、编排和调用受限工具；清洁机器人永远由 Capability Engine + Scheduler + Deployment Policy 确定，FlashBot Max 只承担配送。待命必须由用户指定机器人；暂停/取消/抢占必须有明确意图；Demo04 人工完成只可由明确 Operator/User Action 触发。POI、route、Fleet、占用、电量和部署 Guard 均不可绕过，拒绝时必须诚实解释。
+
+**AI-RESILIENCE-01**：仅 provider timeout、临时网络/5xx/rate limit 等明确瞬时技术故障允许一次自动短暂重试；evidence/confidence、Multi-view、Camera→SLAM、Capability zero candidate、route 与其他业务硬约束绝不靠重试刷答案。二次技术失败安全转 HUMAN_REVIEW/终态并释放其它 Demo；LIVE 绝不 silent fallback 到 Stable Replay。客户只见“云端AI研判中”或最终可理解的安全结论，attempt/HTTP 细节留 Advanced/Logs。
+
 ## SUPERSEDED 决策索引
 
 | 旧方案 | 新决策 |
@@ -233,6 +243,7 @@
 | CLOSED 自动复位机器人 | 终点保留，仅显式 baseline/reset 才复位（P1-A/B 代码、测试与浏览器通过） |
 | 正式演示启动仅复用上次 Fleet/current event，需客户手动重置 | **SHOW-BASE-01**：双击启动自动建立新 Show Session、复位本场演示状态但保留历史；无客户 Reset 按钮 |
 | 右侧 Advice + Chat 上下分区 | **ANALYTICS-DELTA-01**：左侧 KPI 后横向 Advice，右侧固定区只保留共享完整 Chat |
+| 配送/待命必须由客户反复点击 Advance / 推进 PoC 才能走完整状态机 | **OPS-AUTO-01**：明确合法指令自动进入后端 Show Runtime 演示执行；业务状态仍真实持久化、Guard 不变 |
 | raw Qwen next_action 当客户系统建议 | 模型判断与系统业务决策分离 |
 | “地面纸巾”“大型纸箱”面客类目 | 其他小型垃圾 / 大件物品 |
 | 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（P1-A 代码与测试通过） |

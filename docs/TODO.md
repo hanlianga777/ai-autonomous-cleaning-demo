@@ -125,6 +125,14 @@
 - [ ] **LAYOUT-01｜全局面试视口、局部滚动与信息密度**：按 `1440×900` / `1920×1080` 验收 Workbench 首屏、Event Center 双栏独立滚动、Analytics 一屏/固定 Chat 输入、正常字号、业务操作可发现与无横滚/遮挡。未来报告须逐项交付 `.1`–`.8`。
 - [ ] **DEMO-CONTRACT-01｜四大官方 Demo 合同与 E2E**：锁定 Demo01 标准闭环、Demo02 条件自主补证、Demo03 SC50 跨楼调度、Demo04 zero-candidate 人工兜底；推荐而不强制 1→2→3→4，逐项 LIVE E2E + 连续 New Show Session E2E，不能用万能动画替代真实分支。未来报告须逐项交付 `.1`–`.8`。
 
+## Interview Demo Batch 2 Agent Runtime（LOCKED TARGET；未 IMPLEMENTED）
+
+- [ ] **OPS-AUTO-01｜一次指令自动演示执行**：完整合法 Delivery/Relocation/Agent 主动任务创建→派发→自动运行真实后端状态机，约 1.5–3 秒可感知阶段；不得反复 Advance、不得补全缺失 POI、能力咨询零写入、不加机械确认。清洁仍由 Capability/Scheduler/Route/Fleet Guard 选择。未来报告须交付 `.1`–`.5`。
+- [ ] **AGENT-SESSION-01｜Show 与 Agent Session 生命周期一致**：每个 New Show Session 创建干净 Chat/interaction session，同场跨页面共享；允许查询合法历史但旧未完成任务不成为新场 Current Active Task；Advice 与 Chat History 分离。未来报告须交付 `.1`–`.5`。
+- [ ] **AGENT-AUTHORITY-01｜Agent 权限与确定性边界**：LLM 不选清洁机器人；FlashBot 配送仍过 Guard；待命必须明确点名；Demo04 人工完成只可 explicit action；暂停/取消需明确意图；任何 Guard 失败诚实拒绝且不换机器人/不改 Fleet。未来报告须交付 `.1`–`.6`。
+- [ ] **OPS-CONTINUITY-01｜后端任务连续性与唯一事实**：任务和 Demo01–04 运行不依赖组件、页面、Chat 或前端 timer；各页统一投影成功/失败状态，新 Show 不恢复旧 active task。未来报告须交付 `.1`–`.6`。
+- [ ] **AI-RESILIENCE-01｜有限自动重试与诚实 LIVE 失败**：仅瞬时 provider 故障一次自动重试；业务结论零重试；二次失败安全终态/释放 Demo；LIVE 不 silent Replay；客户不见 HTTP/attempt 细节。未来报告须交付 `.1`–`.6`。
+
 ## 后续 Batch（不在 Unified Implementation Batch 的范围）
 
 - [ ] Advanced 的后续非必要工程增强须保留 observability capability，但不得恢复已被 **ADVANCED-01 SUPERSEDED** 的正式面试 Trace Inspector 前端范围。

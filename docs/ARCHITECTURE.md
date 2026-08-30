@@ -24,7 +24,7 @@ Event trace在创建时持久化；模型记录外层新增trace列，canonical 
 
 `runtime_transaction()` 让嵌套仓储调用共享 BEGIN IMMEDIATE；仅短确定性状态变更持锁。模型调用在事务外；单 backend worker 启动将未完成请求标 INTERRUPTED，不自动重发模型/硬件命令。并发派发只允许一个占用；Task action session header 与工具路径都验证归属。不是生产分布式执行引擎。
 
-CleaningTask 只关联现有集成事件，阶段完全委托 demo_v1；完整 trace 读取同一 CleaningEvent transitions。Delivery/Relocation 有持久化 task transitions、同一 Fleet active_task_id、合法 POI 与现有 Dijkstra。配送 CREATED→ASSIGNED→TO_PICKUP→ARRIVED_PICKUP→PICKED_UP→条件电梯→TO_DESTINATION→DELIVERED→CLOSED；无电梯路段不伪造 ELEVATOR_TRANSIT。物理推进来源为显式操作员 PoC driver。
+CleaningTask 只关联现有集成事件，阶段完全委托 demo_v1；完整 trace 读取同一 CleaningEvent transitions。Delivery/Relocation 有持久化 task transitions、同一 Fleet active_task_id、合法 POI 与现有 Dijkstra。配送 CREATED→ASSIGNED→TO_PICKUP→ARRIVED_PICKUP→PICKED_UP→条件电梯→TO_DESTINATION→DELIVERED→CLOSED；无电梯路段不伪造 ELEVATOR_TRANSIT。当前物理推进来源为显式操作员 PoC driver；这属于 current implementation，已被 **OPS-AUTO-01 SUPERSEDED** 为后端 Show Runtime 自动演示执行的 LOCKED TARGET。
 
 前端 `RobotOperationsProvider` 提供跨页 Session/错误/忙碌/串行只读同步；聊天和任务卡不生成本地替代结果。任务/对话真相在 SQLite，UI 位置只存 localStorage。Analytics 上半缓存建议、下半同一对话，无第二 Agent。Advice GET 不调用模型，POST 才真实执行只读 tool loop 并保留审计；provider/parser失败保留旧缓存。麦克风明确未配置。旧 P1-F 横向浮窗、仅 Header / Drag Handle 拖动及展开式 Tool/Task Panel 是现有实现的历史 UI Shell，**SUPERSEDED BY AI-UI-01**；AI-UI-01 是未实施的 LOCKED TARGET，详见 `INTERVIEW_DEMO_RECONCILIATION.md`。
 
@@ -249,6 +249,14 @@ Reality Source Metadata、System Reality Matrix、Current PoC Boundaries、adapt
 
 **Official Demo contract**：DEMO-CONTRACT-01 锁定四条真实差异化分支：Demo01 S5 室外闭环、Demo02 真实 Agent 条件补证、Demo03 SC50 B1F→电梯→B2F→连廊→A2F 跨楼调度、Demo04 zero-candidate HUMAN_FALLBACK 且 FlashBot Max 不清洁。每条和连续新 Show Session 均须做 LIVE E2E；不得用 demo 专用万能前端动画替代 Runtime。
 
-## 12. 不进入本轮与不允许的实现
+## 12. Interview Demo Batch 2 Agent Runtime（LOCKED TARGET；未实施）
+
+**自动执行与连续性**：当前 Agent Delivery/Relocation 在 dispatch 后仍靠显式 `/advance` / UI “推进 PoC 模拟”逐步运行，且 Workbench stage effect 仅在 Workbench view 中自动推进；这与 OPS-AUTO-01 / OPS-CONTINUITY-01 的后端 Show Runtime 自动执行、切页不间断目标是 `IMPLEMENTATION_DIVERGENCE`。未来业务 transition 必须持久化并成为 Chat、Map、Fleet、Event Detail 的唯一事实；前端 timer 只能同步/演示，不能驱动业务。Cleaning Demo 同样不能因离开 Workbench 中断。
+
+**Session 生命周期**：当前 Provider 用 localStorage 恢复 Robot Operations Session，launcher 未创建 Show Session，故新启动可能接回旧 Chat/active context，属 AGENT-SESSION-01 `IMPLEMENTATION_DIVERGENCE`。未来 New Show Session 同时创建干净的 Agent Session；同场跨页共享，允许查询 DATA-BOUNDARY-01 的正式历史；Advice snapshot 保持独立于 Chat History。
+
+**权限与可靠性**：已有工具/Task guard 是必须保留的基础：LLM 不选清洁机器人，FlashBot Max 不进清洁候选，待命必须明确点名，Demo04 人工完成需 explicit action，POI/Route/Fleet/Capability Guard 不可绕过。当前 Cloud/Verification provider 故障会直接诚实转 HUMAN_REVIEW 且 LIVE 不 silent Replay；AI-RESILIENCE-01 的新增目标仅为已分类瞬时技术故障的一次自动重试，不得重试业务结论或伪造成功。
+
+## 13. 不进入本轮与不允许的实现
 
 本轮仅完成 Docs-only reconciliation，不授权前后端、测试或 Runtime 变更。未来 `UNIFIED INTERVIEW DEMO RECOVERY` 在用户明确授权后才可实施；仍禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 或 Advanced 改基础设施配置。
