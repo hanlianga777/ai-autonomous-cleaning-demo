@@ -39,11 +39,13 @@
 
 ## D05｜MapCanvas、路线、Fleet 与时间
 
-**LOCKED / TODO**：白模、anchor、机器人、路线、marker 使用唯一 MapCanvas 坐标系，基于 `object-contain` 内层真实画布，不得依据外层 div 百分比。地图文字只允许 A栋、B栋、1F、2F；机器人持续插值，电梯入口暂停约 1 秒并显示“乘梯中”，不做 3D。
+**IMPLEMENTED / LOCKED（P1-B）**：白模、anchor、机器人、路线、marker 使用唯一 MapCanvas 坐标系，基于 `object-contain` 内层真实画布，不得依据外层 div 百分比。地图基础文字只保留 A栋、B栋、1F、2F；机器人持续插值，电梯入口暂停约 1 秒并显示“乘梯中”，不做 3D。该插值明确为 PoC 视觉节奏，完成后才提交真实 complete-navigation 阶段；无合法 node_path 不画路线。
 
-**LOCKED / TODO**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker。Scheduler 当前 map 与 target map 调 Dijkstra global topology planner / `plan_route()`；不是 Demo ID 固定路线。Demo03 必须为 B1F → 电梯 → B2F → Skybridge → A2F 地毯易拉罐。
+**IMPLEMENTED / LOCKED（P1-A/B）**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker。Scheduler 当前 map 与 target map 调 Dijkstra global topology planner / `plan_route()`；不是 Demo ID 固定路线。Demo03 基线故事为 B1F → 电梯 → B2F → Skybridge → A2F 地毯易拉罐；连续运行仍遵守当前 Fleet，不能偷偷重置位置以强制重复基线路线。
 
-**LOCKED / TODO**：任务后机器人保留终点与低透明路线；Demo03 `HUMAN_REVIEW` 仍在 A2F，Demo04 人工路径无人移动。仅新 Demo 或“重置演示”复位。客户时间轴只读 SQLite transition timestamp；处理中显示真实持续时间，模型可显示真实 latency。
+**IMPLEMENTED / LOCKED（P1-B）**：任务后机器人保留终点与低透明路线；Demo03 验收失败 `HUMAN_REVIEW` 仍在 A2F，Demo04 人工路径无人移动。复位仍遵守 P1-A 显式 baseline/reset 边界，不因普通新事件或刷新自动复位。客户时间轴只读 SQLite transition timestamp；处理中显示真实持续时间，模型可显示真实 latency。路线起点取 ASSIGNED 快照，不用终态 Fleet 倒推。
+
+**P1-B 刷新/失败边界**：localStorage 仅保存当前 event ID；GET SQLite 重建，不保存第二份事件/Fleet/route。sessionStorage request keys 防止同一会话刷新重发；异步快照不得覆盖不同 event 或倒退 transition。网络结果不确定时保留记录、只读同步，不自动重试模型或 Replay。该机制不等于跨标签页/服务器端全局幂等，后者仍待 P1-H。创建失败只显示本地连接提示，不捏造已保存 HUMAN_REVIEW。
 
 ## D06｜Event Center
 
@@ -135,8 +137,8 @@
 | demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（P1-A 代码与测试通过） |
 | demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（P1-A 代码与测试通过） |
 | Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（P1-A 代码与测试通过） |
-| HUMAN_REVIEW 截断/重建时间轴 | 完整历史永久保留（TODO） |
-| CLOSED 自动复位机器人 | 终点保留，new demo/reset 才复位（TODO） |
+| HUMAN_REVIEW 截断/重建时间轴 | 完整历史保留（P1-B 代码、测试与浏览器通过） |
+| CLOSED 自动复位机器人 | 终点保留，仅显式 baseline/reset 才复位（P1-A/B 代码、测试与浏览器通过） |
 | raw Qwen next_action 当客户系统建议 | 模型判断与系统业务决策分离 |
 | “地面纸巾”“大型纸箱”面客类目 | 其他小型垃圾 / 大件物品 |
 | 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（P1-A 代码与测试通过） |

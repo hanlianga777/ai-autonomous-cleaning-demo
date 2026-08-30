@@ -1,76 +1,56 @@
-import { Clock3, RotateCcw, ShieldCheck } from "lucide-react";
+import { Clock3, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { CameraViewport } from "./CameraViewport";
-import { cameras, stageCopy } from "./data";
-import type { ActiveEvent, PrototypeState } from "./types";
+import { EventStageEvidence } from "./EventStageEvidence";
+import { clockLabel, customerTerm, timelineFor, timestampMs } from "./eventViewModel";
+import type { ActiveEvent } from "./types";
 
-function transitionTime(event: ActiveEvent, state: string) {
-  const transitions = (event.liveResult?.transitions as Array<{ state?: string; created_at?: string }> | undefined) ?? [];
-  const value = transitions.find((item) => item.state === state)?.created_at;
-  return value ? new Date(`${value.replace(" ", "T")}Z`).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
-}
-
-function actualDuration(event: ActiveEvent) {
-  const start = event.liveResult?.created_at; const end = event.liveResult?.updated_at;
-  if (typeof start !== "string" || typeof end !== "string") return "—";
-  const milliseconds = new Date(`${end.replace(" ", "T")}Z`).getTime() - new Date(`${start.replace(" ", "T")}Z`).getTime();
-  return milliseconds >= 0 ? `${(milliseconds / 1000).toFixed(1)} 秒` : "—";
-}
-
-function cloudLatencyLabel(first?: Record<string, unknown>, second?: Record<string, unknown>, review?: Record<string, unknown>) {
-  if (review?.provider === "Stable Replay") return "稳定回放 · 不发起本次 API 请求";
-  const values = (first ? [first.elapsed_ms, second?.elapsed_ms] : [review?.elapsed_ms]).filter((value): value is number => typeof value === "number");
-  return values.length ? `API 耗时 ${Math.round(values.reduce((total, value) => total + value, 0))} ms` : "API 耗时 —";
-}
-
-function MultiViewEvidence({ event }: { event: ActiveEvent }) {
-  const selected = (event.liveResult?.multi_view as { selected_cameras?: Array<{ camera_id: string; reason?: string }> } | undefined)?.selected_cameras;
-  const cameraIds = selected?.map((item) => item.camera_id).filter((id) => cameras[id]) ?? ["CAM-A1-01", "CAM-A1-02", "CAM-A1-04"];
-  const [primary = "CAM-A1-01", ...additional] = cameraIds;
-  const render = (id: string, compact = false) => <div key={id} className="border border-amber-200 bg-amber-50 p-1"><CameraViewport camera={cameras[id]} showDetections compact={compact} /><p className="mt-1 text-[9px] font-medium text-amber-800">{id} · {Math.round((cameras[id].overlay?.[0].confidence ?? 0) * 100)}%</p></div>;
-  return <div className="mt-2"><p className="mb-1 text-[10px] font-medium text-slate-600">多视角证据（主视角 + 最多 2 路补充）</p><div className="grid gap-1.5">{render(primary)}<div className="grid grid-cols-2 gap-1.5">{additional.slice(0, 2).map((id) => render(id, true))}</div></div><p className="mt-1.5 text-[10px] leading-4 text-slate-500">3 路单视角证据均未达到自动处置条件；Multi-view Agent 已完成证据汇聚，正在提交云端综合研判。</p></div>;
-}
-
-function CapabilitySummary({ event }: { event: ActiveEvent }) {
-  const decision = event.liveResult?.assignment_decision as { selected_robot_name?: string; candidates?: Array<{ robot_id: string; robot_name: string; eligible: boolean; reject_reasons?: string[]; final_score?: number }> } | undefined;
-  const selected = decision?.selected_robot_name ?? "";
-  return <div className="mt-2 border border-slate-200 bg-slate-50 p-2 text-[10px]"><p className="font-medium text-slate-800">机器人能力匹配</p><div className="mt-1.5 divide-y divide-slate-200">{(decision?.candidates ?? []).map((candidate) => <div key={candidate.robot_id} className="py-1.5"><div className="flex items-center justify-between gap-2"><span className="font-medium text-slate-700">{candidate.robot_name}</span><span className={candidate.robot_name === selected ? "font-semibold text-emerald-700" : "text-slate-500"}>{candidate.eligible ? `候选评分 ${candidate.final_score ?? "—"}` : candidate.reject_reasons?.join("；") || "不满足硬约束"}</span></div><p className="mt-0.5 text-slate-500">内部运行 ID：{candidate.robot_id} · 选择由 Capability Engine 与 Scheduler 决定</p></div>)}</div><p className="mt-1.5 border-t border-slate-200 pt-1.5 text-slate-600">最终选择：<span className="font-semibold text-slate-800">{selected || "尚未生成派单"}</span>。</p></div>;
-}
-
-const customerTerm = (value: unknown, category: "event" | "severity" | "action" | "factor") => {
-  const maps = {
-    event: { can: "易拉罐", liquid: "液体污渍", small_litter: "小型垃圾", large_object: "大件物品", unknown: "未知现场情况" },
-    severity: { low: "轻度", medium: "中度", high: "重度" },
-    action: { dispatch_robot: "进入自动处置评估", human_review: "建议人工复核", ignore: "无需处置" },
-    factor: { low_lighting: "光照较弱", reflection: "地面反光", glare: "眩光干扰" },
-  } as const;
-  return (maps[category] as Record<string, string>)[String(value)] ?? String(value || "未明确");
-};
-
-function Evidence({ event, state, onCompleteManual }: { event: ActiveEvent; state: PrototypeState; onCompleteManual: () => void }) {
-  if (state === "EDGE_DETECTED") return <div className="mt-2 border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600"><p className="mb-1.5 font-medium text-slate-800">单视角目标定位</p><CameraViewport camera={cameras[event.scenario.cameraId]} showDetections compact /><p className="mt-1.5">{event.scenario.category} · {event.scenario.confidence}% · 受控边缘证据</p></div>;
-  if (state === "MULTI_VIEW") return <MultiViewEvidence event={event} />;
-  if (state === "CLOUD_REVIEW") { const review = event.liveResult?.qwen_review as Record<string, unknown> | undefined; const first = event.liveResult?.first_qwen_review as Record<string, unknown> | undefined; const second = event.liveResult?.second_qwen_review as Record<string, unknown> | undefined; const fusion = event.liveResult?.evidence_fusion as Record<string, unknown> | undefined; const status = event.liveResult?.status; const imageCount = event.scenario.id === "liquid" ? 3 : 1; if (event.processing) return <div className="mt-2 border border-slate-200 bg-white p-2 text-[11px] text-slate-600"><p className="font-medium text-slate-800">云端综合研判</p><p className="mt-1">正在分析 {imageCount} 路现场图像，等待云端大模型返回…</p></div>; if (!review) return <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-800">云端综合研判未完成：{String(event.liveResult?.reason ?? "请人工复核")}</div>; return <div className="mt-2 border border-slate-200 bg-white p-2 text-[11px]"><div className="flex items-center justify-between"><span className="font-medium text-slate-800">云端综合研判</span><span className={status === "HUMAN_REVIEW" ? "font-semibold text-amber-700" : "font-semibold text-emerald-700"}>{String(review.need_clean ? "需要清洁" : "不需清洁")} · {Math.round(Number(review.decision_confidence ?? 0) * 100)}%</span></div><p className="mt-1 text-slate-600">综合结论：{customerTerm(review.event_type, "event")} · 污染程度：{customerTerm(review.severity, "severity")}</p><p className="mt-1 text-slate-600">地面材质：{String(review.surface_type ?? "未明确")} · 建议：{customerTerm(review.next_action, "action")}</p>{Array.isArray(review.interference_factors) && review.interference_factors.length > 0 && <p className="mt-1 text-slate-600">干扰因素：{review.interference_factors.map((item) => customerTerm(item, "factor")).join("、")}</p>}<p className="mt-1 leading-5 text-slate-600">研判依据：{String(review.evidence_summary ?? "")}</p>{second && <p className="mt-1 text-slate-600">独立复核：{Math.round(Number(second.decision_confidence ?? 0) * 100)}% · {String(second.evidence_summary ?? "")}</p>}{fusion && <p className="mt-1 text-slate-600">证据融合处置评分：{Math.round(Number(fusion.score ?? 0) * 100)}分（与云端置信度分开）</p>}<p className="mt-1 text-[10px] text-slate-400">{second ? "首轮 + 独立复核" : "单轮研判"} · {cloudLatencyLabel(first, second, review)}</p></div>; }
-  if (state === "ROBOT_ASSIGNED") { const selected = (event.liveResult?.assignment_decision as Record<string, unknown> | undefined)?.selected_robot_name; const plan = event.liveResult?.navigation_plan as { display_path?: string[] } | undefined; return <><CapabilitySummary event={event} /><div className="mt-2 border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600"><p className="font-medium text-slate-800">{String(selected ?? "已生成派单")} 已接单</p><p className="mt-1">{Array.isArray(plan?.display_path) ? plan.display_path.join(" → ") : "正在生成后端空间拓扑路线"} · 能力匹配</p></div></>; }
-  if (state === "VERIFYING") { const verification = event.liveResult?.verification as Record<string, unknown> | undefined; const afterCamera = { ...cameras[event.scenario.cameraId], image: event.scenario.afterImage ?? cameras[event.scenario.cameraId].image }; return <div className="mt-2"><p className="mb-1 text-[9px] text-slate-500">清洁后验收画面</p><CameraViewport camera={afterCamera} compact /><p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-emerald-700"><ShieldCheck size={14} />{event.processing ? "正在发送云端 AI 验收请求…" : verification?.provider === "Stable Replay" ? "稳定回放验收通过" : `云端 AI 验收：${verification?.verification_pass ? "通过" : "待人工复核"}`}{!event.processing && ` · ${Math.round(Number(verification?.confidence ?? 0) * 100)}%`}</p></div>; }
-  if (state === "CLOSED") { const selected = (event.liveResult?.assignment_decision as Record<string, unknown> | undefined)?.selected_robot_name; return <div className="mt-2 border border-emerald-200 bg-emerald-50 p-2 text-[11px] text-emerald-800"><p className="flex items-center gap-1 font-semibold"><ShieldCheck size={14} />事件已闭环</p><p className="mt-1.5">闭环时间：{transitionTime(event, "CLOSED")}</p><p className="mt-1">自主处置：{String(selected ?? "人工处置")} · 实际阶段耗时：{actualDuration(event)}</p><p className="mt-1">完整事件记录已保存。</p></div>; }
-  if (state === "HUMAN_FALLBACK") return <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900"><p className="font-semibold">已生成人工搬运工单</p><p className="mt-1">机器人未移动。操作员完成纸箱移除后，可提交清洁后画面进行云端验收。</p><button onClick={onCompleteManual} className="mt-2 border border-amber-400 bg-white px-2 py-1 text-[11px] font-medium">确认人工清理完成并验收</button></div>;
-  if (state === "HUMAN_REVIEW") return <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900"><p className="font-semibold">自动处置已停止</p><p className="mt-1">{String(event.liveResult?.reason ?? "云端综合研判未满足自动处置条件；未创建机器人任务。")}</p></div>;
-  return null;
-}
-
-export function EventDetailPanel({ event, onCompleteManual }: { event: ActiveEvent | null; onCompleteManual: () => void }) {
+/** One durable-event renderer: history is read-only, live adds follow + actions. */
+export function EventDetailPanel({ event, mode = "live", onCompleteManual }: {
+  event: ActiveEvent | null; mode?: "live" | "history"; onCompleteManual?: () => void;
+}) {
   const [follow, setFollow] = useState(true);
+  const [now, setNow] = useState(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
-  const stage = event ? event.scenario.steps[event.stageIndex] : "IDLE";
-  useEffect(() => { if (follow && bodyRef.current) { const current = bodyRef.current.querySelector("[data-current-stage=true]") as HTMLElement | null; current?.scrollIntoView({ block: "start" }); } }, [event?.stageIndex, follow]);
-  useEffect(() => { setFollow(true); }, [event?.startedAt]);
-  const handleScroll = () => { const panel = bodyRef.current; if (panel && panel.scrollHeight - panel.scrollTop - panel.clientHeight > 28) setFollow(false); };
-  if (!event) return <aside className="relative flex h-full min-h-0 flex-col border border-slate-200 bg-white"><PanelHeader /><div className="flex flex-1 flex-col items-center justify-center px-8 text-center"><div className="mb-3 h-9 w-9 border border-slate-300 bg-slate-50" /><p className="text-sm font-medium text-slate-700">当前没有事件</p><p className="mt-2 text-xs leading-5 text-slate-500">园区摄像头持续监测中。可从监控卡片右上角的演示控制触发一项业务事件。</p></div></aside>;
-  const timeline = event.scenario.steps;
-  return <aside className="relative flex h-full min-h-0 flex-col border border-slate-200 bg-white"><PanelHeader /><div ref={bodyRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto p-4 pr-3"><div className="sticky top-0 z-10 -mt-4 border-b border-slate-100 bg-white pb-3 pt-4"><p className="text-sm font-semibold text-slate-900">{event.scenario.eventTitle}</p><div className="mt-2 flex flex-wrap gap-1.5"><span className="border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] text-slate-600">{event.scenario.cameraId}</span><span className="border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] text-slate-600">{event.scenario.category}</span><span className="border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] text-slate-600">{event.scenario.confidence}%</span></div></div>
-    <div className="mt-4 space-y-0.5">{timeline.map((item, index) => { const copy = stageCopy[item]; const isCurrent = index === event.stageIndex; const isFuture = index > event.stageIndex; const fallback = item === "HUMAN_FALLBACK"; const stateMap: Record<string, string> = { DISCOVERED: "DETECTED", LOCATING: "LOCATED", ROBOT_ASSIGNED: "ASSIGNED", CLEANING: "CLEANING_COMPLETED" }; const backendState = stateMap[item] ?? item; return <div data-current-stage={isCurrent || undefined} key={`${item}-${index}`} className={`relative border-l pl-4 ${isCurrent ? "border-slate-900" : isFuture ? "border-slate-100" : "border-slate-200"}`}><span className={`absolute -left-[5px] top-1.5 h-2 w-2 rounded-full ${fallback && !isFuture ? "bg-amber-500" : isFuture ? "bg-slate-200" : isCurrent ? "bg-slate-900" : "bg-emerald-500"}`} /><div className="pb-3"><div className="flex gap-2"><p className={`text-xs ${isFuture ? "text-slate-400" : isCurrent ? "font-semibold text-slate-900" : "font-medium text-slate-700"}`}>{copy.title}</p><span className="ml-auto whitespace-nowrap text-[10px] text-slate-400">{isFuture ? "等待" : transitionTime(event, backendState)}</span></div><p className={`mt-1 text-[11px] leading-4 ${isFuture ? "text-slate-400" : "text-slate-500"}`}>{copy.detail}</p>{!isFuture && (isCurrent || item === "EDGE_DETECTED" || item === "MULTI_VIEW" || item === "CLOUD_REVIEW" || item === "ROBOT_ASSIGNED" || item === "HUMAN_FALLBACK" || item === "VERIFYING" || item === "CLOSED") && <Evidence event={event} state={item} onCompleteManual={onCompleteManual} />}</div></div>; })}</div>
-  </div>{!follow && stage !== "CLOSED" && stage !== "HUMAN_FALLBACK" && <button onClick={() => { setFollow(true); const current = bodyRef.current?.querySelector("[data-current-stage=true]") as HTMLElement | null; current?.scrollIntoView({ block: "start" }); }} className="absolute bottom-3 right-3 flex items-center gap-1 border border-slate-300 bg-white px-2 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm"><RotateCcw size={12} />回到当前进度</button>}</aside>;
+  const timeline = event ? timelineFor(event, mode) : [];
+  const currentKey = timeline.map((entry) => `${entry.state}:${entry.pending ? "pending" : "saved"}`).join("|");
+  const terminal = ["CLOSED", "HUMAN_REVIEW"].includes(event?.backendState ?? "");
+  const scrollToCurrent = () => {
+    const panel = bodyRef.current;
+    const current = panel?.querySelector<HTMLElement>("[data-current-stage=true]");
+    if (panel && current) panel.scrollTo({ top: current.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 12, behavior: "smooth" });
+  };
+  useEffect(() => { setFollow(true); }, [event?.liveResult?.event_id]);
+  useEffect(() => { if (mode === "live" && follow) scrollToCurrent(); }, [currentKey, follow, mode]);
+  useEffect(() => {
+    if (mode === "history" || terminal || !event) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [mode, terminal, Boolean(event)]);
+  const start = timestampMs(event?.liveResult?.created_at);
+  const end = mode === "history" || terminal ? timestampMs(event?.liveResult?.updated_at) : now;
+  const elapsed = Number.isFinite(start) && Number.isFinite(end) ? `${Math.max(0, (end - start) / 1000).toFixed(0)} 秒` : "—";
+  // Programmatic smooth scrolling must not disable following. Only user input does.
+  const pauseFollow = () => { if (mode === "live") setFollow(false); };
+  return <aside data-testid="event-detail-panel" data-mode={mode} className="relative flex h-full min-h-0 flex-col border border-slate-200 bg-white">
+    <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
+      <div><p className="text-sm font-semibold">{mode === "history" ? "历史事件详情" : "最近事件处置详情"}</p><p className="mt-0.5 text-[10px] text-slate-500">{mode === "history" ? "事件快照 · 只读 · 不触发重跑" : "真实阶段记录 · 完整处置过程"}</p></div><Clock3 size={16} className="text-slate-400" />
+    </div>
+    {!event ? <div className="flex flex-1 flex-col items-center justify-center px-8 text-center"><p className="text-sm font-medium text-slate-700">当前没有事件</p><p className="mt-2 text-xs leading-5 text-slate-500">从监控区的摄像头设置中触发演示，即可查看识别、空间定位、派单、执行及验收全过程。</p></div> : <>
+      <div className="shrink-0 border-b border-slate-100 px-4 py-3">
+        <p className="text-sm font-semibold">{event.scenario.eventTitle}</p>
+        <p className="mt-1 text-[10px] text-slate-500">{event.scenario.cameraId} · {clockLabel(event.liveResult?.created_at)} · 耗时 {elapsed}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{event.liveResult?.mode === "STABLE_REPLAY" ? "历史 AI 记录回放" : "LIVE 云端研判"}</span></div>
+      </div>
+      <div ref={bodyRef} data-testid="event-timeline-scroll" tabIndex={0} onWheel={pauseFollow} onTouchStart={pauseFollow} onPointerDown={pauseFollow} onKeyDown={(e) => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"].includes(e.key)) pauseFollow(); }} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+        {!timeline.length && <p className="text-xs text-slate-500">{event.processing ? "正在创建事件…" : "尚无已保存的阶段记录。"}</p>}
+        {timeline.map((entry, index) => <div data-current-stage={index === timeline.length - 1 || undefined} data-stage={entry.state} key={`${entry.state}-${index}`} className="relative border-l border-slate-200 pb-5 pl-4">
+          <span className={`absolute -left-[5px] top-1 h-2 w-2 rounded-full ${entry.pending ? "animate-pulse bg-slate-500" : entry.state === "HUMAN_REVIEW" || entry.state === "HUMAN_FALLBACK" ? "bg-amber-500" : "bg-emerald-600"}`} />
+          <div className="flex items-start justify-between gap-2"><h3 className="text-xs font-semibold text-slate-800">{entry.label}</h3><span className="whitespace-nowrap text-[10px] text-slate-400">{entry.pending ? "处理中" : clockLabel(entry.timestamp)}</span></div>
+          <EventStageEvidence event={event} entry={entry} mode={mode} onCompleteManual={onCompleteManual} />
+        </div>)}
+        {!event.processing && Boolean(event.liveResult?.reason) && <p className="border-t border-slate-100 pt-2 text-[11px] leading-5 text-slate-500">当前记录：{customerTerm(event.liveResult?.reason)}</p>}
+      </div>
+      {mode === "live" && !follow && <button onClick={() => { setFollow(true); scrollToCurrent(); }} className="absolute bottom-3 right-3 flex items-center gap-1 border border-slate-300 bg-white px-2 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm"><RotateCcw size={12} />回到当前进度</button>}
+    </>}
+  </aside>;
 }
-
-function PanelHeader() { return <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3"><div><p className="text-sm font-semibold text-slate-900">最近事件处置详情</p><p className="mt-0.5 text-[10px] text-slate-500">仅展示当前或最近闭环事件</p></div><Clock3 size={16} className="text-slate-400" /></div>; }

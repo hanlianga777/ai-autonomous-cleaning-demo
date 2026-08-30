@@ -5,12 +5,27 @@
 
 ## 1. 当前 AI / Runtime 事实（IMPLEMENTED）
 
+### 2026-08-30 P1-B 浏览器与前端工程验收（IMPLEMENTED · Reviewer A/E PASS）
+
+P1-A 已提交推送 `fcd01d4`。P1-B 本次仅前端与文档改动，不修改模型返回、Capability/Scheduler、SLAM 或 Cloud gate。测试环境为独立临时 SQLite 后端 `127.0.0.1:8001` 与 Vite `5174`；没有往日常数据库写 fixture。
+
+- 前端 `npm test` **17/17 PASS**：7 空间/路径、6 时间线/监控、4 session 恢复。包含缺/未知 route 不画假线、拐点、电梯入口 1 秒停留、terminal 精确终点、history 不补 pending、四 Demo 主相机 before/after、Demo02 supporting 不进入顶栏、缺资产不捏造、GET 404、同会话防重复与倒退/外来快照拒绝。
+- `npm run build` PASS；完整 backend `unittest discover -s tests -q` **Ran 66 / 64 PASS + 2 opt-in skipped**；P1-A 真实 opt-in 已在上一阶段另行跑过。`git diff --check` PASS。
+- 主代理使用 Codex in-app 实际浏览器，不以 build 代替浏览器：1440×900 的主区/详情约 72/28、相机/地图约 31/69，资产栏 152px；1024×768、1920×1080 无水平溢出。1920 视口下白模和内层 overlay DOM 矩形完全相同（1058.48×595.70），letterbox 未改变坐标系统。
+- Demo04 `integrated-demo04-acebb0e0c9`：LIVE 首轮 .95、Fusion 89分、Locate→zero candidates→HUMAN_FALLBACK→用户人工完成→真实 verification .98→CLOSED。history 保留 7 条阶段（含 LOCATED/HUMAN_FALLBACK/VERIFYING），scrollTop=0，无人工完成按钮；打开档案只有 GET，没有模型/调度 POST。
+- Demo03 `integrated-demo03-ec4c7f8201`：LIVE .92、Fusion 87分、候选 robot-c、B1F→电梯→B2F→Skybridge→A2F；导航从 01:22:28 UTC 至 01:22:36 UTC 后才提交到达。真实 verification_pass=false / confidence=.95，正确转 HUMAN_REVIEW，10 条阶段不截断，after 与终态路线保留。**这不是 Demo03 最终闭环通过**，仍待 P1-G 的目标 ROI 验收优化；未改模型回答。
+- Demo03 刷新前后机器人视觉落点 `(33.664%,27.8536%)` 与完整 SVG route path 完全一致；Fleet 仍在 A2F、电量 89%，没有回到 B1F 基线。
+- Demo04 `integrated-demo04-6b02cb6896`：在真实 cloud-review 处理中刷新；服务访问日志证明该事件 cloud-review 只有 1 次 POST，刷新后 GET 读取 SQLite，再继续 locate/assign 至 zero-candidate HUMAN_FALLBACK。只验证同会话防重复，未声称跨新标签页幂等。
+- 浏览器发现并修复过 route Hook 等值数组引发的 maximum update depth、UTC 解析导致瞬间完成、已走路线拐点丢失；最终检查无新运行时错误。空间面板有独立错误边界，故障不清空工作台。
+
+Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。P1-C 新 Agent、P1-D 完整事件列表、P1-E/F/H 与最终多次 LIVE 稳定性尚未实施/验收。
+
 ### 2026-08-30 P1-A Closure 最新验收（IMPLEMENTED · Reviewer A/E PASS）
 
 - 用户确认 Demo04 两箱是废弃待清运，不是合法暂存/补货/待使用物资。源 metadata 的 zone_type/storage_policy/object_context/context_scope/context_source/context_confirmed_at 经 Scenario manifest 和匹配 camera 的 operational_context 进入一/二审，cloud_context 写入事件。未向模型传 expected_robot / HUMAN_FALLBACK 预期，也未改变 veto/Scheduler；模型仍可依据图像否决。
 - 最新真实 opt-in LIVE suite：**2/2 PASS**。Demo01 cloud `.95` / verify `.95`；Demo04 cloud `.95` / verify `.98`。各自持久化一条 event review、一条 verification record，并完成 Stable Replay CLOSED（Replay 期间阻止全部云端 transport，无新 LIVE call）。Demo04 LIVE/Replay 均经过 Locate→Camera→SLAM→Capability candidate_count=0→HUMAN_FALLBACK→human completion→after evidence→verification→CLOSED。
 - 新增 context 回归三项：真实 adapter 构建的一/二审请求包含 scoped context 且无期望人工/先前答案；context 不覆盖 model false/ignore；context 变化拒绝旧 record且不传播至其它场景。
-- Targeted：**39/39 PASS**。完整后端、构建与最终 Reviewer A/E 状态见下方收口记录；P1-B 尚未开始。上述模型数值是本次历史输出，不是固定业务值或未来成功保证。
+- Targeted：**39/39 PASS**。完整后端、构建与最终 Reviewer A/E 状态见下方收口记录；该 P1-A 记录时 P1-B 尚未开始，最新 P1-B 状态见本节上方。上述模型数值是本次历史输出，不是固定业务值或未来成功保证。
 
 **最新工程收口证据**：cwd=`backend/`，`PYTHONPATH=tests:. .venv/bin/python -m unittest test_demo_v1 test_spatial_engine test_p1a_closure test_fleet_restart -q` → 39/39 PASS；`.venv/bin/python -m unittest discover -s tests -q` → **Ran 66：64 PASS + 2 skipped**（两项 opt-in LIVE 已另行实际执行 2/2 PASS）。`frontend/` 的 `npm run build` PASS；`git diff --check` PASS。Reviewer A/E 最终均 PASS，P0/P1=0；P2 见 TODO。P1-A 标记 IMPLEMENTED；独立提交推送后才开始 P1-B。浏览器交互验收属于后续 P1-B，不能把本次 build 等同浏览器验收。
 

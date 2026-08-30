@@ -14,7 +14,7 @@
 - **AI 自主清洁运营分析中心（Analytics）**：回答“历史事件整体说明什么、下一步应如何优化”。
 - **Advanced Technical Observability / 高级模式**：回答“系统如何运行、哪些记录与能力是真实、确定性、受控证据或 PoC 模拟”。
 
-用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。当前进行 **P1-A Closure（IMPLEMENTED · Reviewer A/E PASS）**；只有新增测试、完整后端测试、前端构建及 Reviewer A/E 均 PASS 后才允许独立 commit/push，再进入 P1-B。不得把工作树中的实现写成整个阶段已 IMPLEMENTED。
+用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。P1-A 已独立提交并推送 `fcd01d4`；P1-B 代码、17 项前端测试、完整后端回归、构建、浏览器检查与 Reviewer A/E 均 PASS（工程 IMPLEMENTED），随后独立提交。P1-C/D/E/F/H/G 仍为后续任务，最终用户产品验收未被工程 PASS 替代。
 
 本轮已补齐版本化 AI response Replay、空间失败保护、共享 Fleet 与重启测试。用户已确认 Demo04 两纸箱是废弃待清运物品；该事实作为 event-scoped Scenario / Camera / Zone Context 传给云端，不写死输出。真实 Demo01 与 Demo04 均完成 LIVE→持久化→Replay 闭环；Demo04 人工兜底只由 Capability zero candidate 产生。旧失败保留为历史，测试证据见 `AI_INTEGRATION_TEST.md`。
 
@@ -39,9 +39,9 @@
 - `demo_v1` 是阶段 REST Runtime：create → edge → conditional multi-view → cloud → locate → assign → navigation → cleaning → verify；每步写入 SQLite `CleaningEvent` transition。旧 `/runs/*` 一次性入口为 410。
 - 云端调用统一经 `perception.qwen._request_qwen`；已有一次 Cloud 与独立 targeted second review/Fusion 的代码边界。`confidence >= 0.85` 不独立二审；`0.50 <= confidence < 0.85` 独立二审；`confidence < 0.50` 转 `HUMAN_REVIEW`。
 - 当前 Multi-view 是受限 LangGraph 流程：仅灰区触发、受控 evidence、固定 coverage / frame / VLM 工具顺序。它不是本轮锁定的“Single-view VLM evidence sufficiency 驱动的自主工具调用”实现。
-- 当前存在基础 Event Center、Analytics、Optimization、Advanced 页面/API：Event Center 是基础列表 + 独立简版详情；Analytics 使用结构化 Demo history + persisted event increment；Optimization 是确定性 mock recommendation；均不等于本文件锁定的目标产品。
+- P1-B Event Center 已复用同一只读历史 `EventDetailPanel`，列表/过滤/URL 产品化仍待 P1-D。Analytics 使用结构化 Demo history + persisted event increment；Optimization 是确定性 mock recommendation；均不等于最终目标产品。
 - 当前 Advanced 是技术状态卡片 + 当前事件 JSON 的基础 shell；它不具备最终 Trace → Node → Inspect、结构化 audit、Reality Matrix 或错误分层，不得称为 Advanced Trace Inspector。
-- 当前地图只会在 `assignment_decision` 后激活相应机器人；现有 `campusTopology` 与 `navigation_plan` 可投影蜗小白 SC50 的演示路线。
+- P1-B 的唯一 MapCanvas 使用 object-contain 内层平面，投影已存 SLAM target、Fleet 和 Dijkstra node_path；路线起点读 ASSIGNED 快照，终态位置读 Fleet 快照。连续移动是明确标识的 PoC 视觉插值，不是设备遥测。无后端路线不画假路线。
 - Demo01、Demo02 三次、Demo04 人工完成后曾真实 CLOSED；Demo03 曾真实选中 `robot-c`，但验收为 `retry → HUMAN_REVIEW`。完整原始记录见测试事实源。
 
 ## 4. 四个 Demo 的锁定故事
@@ -55,15 +55,15 @@
 
 客户业务名称固定：`small_litter → 其他小型垃圾`、`liquid → 液体污渍`、`can → 易拉罐`、`large_object → 大件物品`、`leaf → 树叶`。旧“地面纸巾”“大型纸箱”等过度具体面客类目已废弃。Demo01 的 LIVE confidence 不是锁定业务事实；历史 `.81 → .95 → Fusion .89` 仅能在 `AI_INTEGRATION_TEST.md` 中作为历史记录出现。
 
-## 5. LOCKED 产品结构（尚未实现，必须进入 TODO）
+## 5. LOCKED 产品结构（P1-B 范围已实现，其余仍 TODO）
 
-### Workbench 与统一 Event Detail
+### Workbench 与统一 Event Detail（P1-B 工程 IMPLEMENTED）
 
 - 左主区约 72%、右事件详情约 28%；左上双固定摄像头约 31%、SLAM/空间调度地图约 69%。地图是视觉主角，摄像头是感知入口；右详情从全局 Header 下沿开始、顶部贴齐、独立滚动。
 - 白模、Topology Anchor、机器人、路线、事件 marker 必须共享唯一 **MapCanvas** 坐标系，基于 `object-contain` 内层真实画布；不能以外层 container 百分比独立定位。
 - `EventDetailPanel` 是全产品唯一事件详情标准：`mode="live"` 动态跟随 Runtime，`mode="history"` 只读展示事件发生当时 snapshot，绝不重跑模型、Scheduler 或机器人；字段、卡片、图片、顺序、颜色和 stage hierarchy 一致。
 
-### Event Center
+### Event Center（LOCKED / P1-D 列表与 URL TODO）
 
 定位为 **AI Event Handling Archive Center / AI 事件处置档案中心**，不是普通告警列表。复用同一 `CleaningEvent` / SQLite，不得维护独立 Mock 数据。主状态固定为：全部、处理中、已自主闭环、待人工处理、异常；正常 `HUMAN_FALLBACK` 是合理业务兜底，绝不是异常。详情从紧凑两级 Event List 右侧以约 42–46% 宽历史 `EventDetailPanel` 打开；`/events?event=EVT-xxxx` 保存选中状态，刷新可恢复，首次进入不自动打开第一条。
 
@@ -85,15 +85,15 @@ Advanced 是 **Technical Observability & Execution Trace Inspector**，面向售
 
 | 范畴 | 当前实现事实 | 锁定目标 / 差距 |
 |---|---|---|
-| 定位 | P1-A 已实现已接入 bbox→共享四点映射；非法空间输入持久化 SPATIAL_ERROR 并停止派单（P1-A 工程验收通过） | 唯一 MapCanvas 的视觉投影仍属 P1-B |
-| 路径 | P1-A 已实现已从持久 Fleet map 调 Dijkstra `plan_route()`，保存 node_path/segments（P1-A 工程验收通过） | 连续插值与统一画布属 P1-B；不宣称 A* Runtime |
+| 定位 | P1-A bbox→共享四点映射，非法输入停止派单；P1-B 同一 MapCanvas 显示落点 | 不宣称真实生产 SLAM |
+| 路径 | P1-A Dijkstra `plan_route()` 保存 node_path/segments；P1-B 连续插值、电梯入口停留与终态路线保留 | 不宣称 A* Runtime 或真实机器人遥测 |
 | Multi-view | YOLO/受控置信度灰区会进入固定工具流程，初轮可使用三图上下文 | Evidence Sufficiency Gate 优先于最终 confidence disposition：Single-view Cloud 先判断 `evidence_sufficient` / `ambiguity_type`；可恢复不足才以 `tool_choice=auto` 自主选择 1–2 路补证，最多 2 轮；最终充分证据才进入 confidence gate |
 | Demo04 | 活跃阶段 API 已删除 cloud 大件直接人工分支；确定性回归通过，最新真实 LIVE→Replay 人工闭环通过，P1-A 工程验收通过 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` →人工完成→验收 |
-| Event Center | 基础列表与独立简版 detail | 紧凑 archive list + 同一 `EventDetailPanel(mode="history")` + URL state + 正确状态分类 |
+| Event Center | 基础列表 + 同一 `EventDetailPanel(mode="history")` 读取事件快照，保留完整阶段 | P1-D：紧凑 archive list、URL state、完整过滤与状态分类 |
 | Analytics | 存在演示历史聚合、固定利用率/建议和基础图 | 可追溯的 KPI、Heatmap、drill-down、真实 increment、无虚构 trend / utilization |
 | Optimization / Agent | 现有 Optimization 是确定性 mock recommendation；无 Robot Operations Agent | 一个具白名单工具、Policy Guard、Action Audit、Observe/Replan/Close 的 Agent |
 | Advanced | 技术状态卡片 + 当前事件 JSON 基础 shell | Read-mostly Trace Inspector：结构化 Trace / Node Detail、Reality Matrix、Runtime/Tool/Error Observability，只读真实 audit records |
-| MapCanvas / Fleet | P1-A 已实现有 SQLite Fleet 与独立进程重启测试；地图仍使用旧外层投影 | 唯一 MapCanvas 与连续路线属 P1-B |
+| MapCanvas / Fleet | P1-A SQLite Fleet 与进程重启测试；P1-B 唯一内层投影、正式资产栏、ID-only 刷新恢复 | 本地视觉映射是示意投影，不是第二套导航算法 |
 | Stable Replay | 活跃阶段 API 已接入版本化、证据/模型/Prompt 匹配的 LIVE records；Demo01 真实回放通过，P1-A 工程验收通过 | 不允许旧合成 replay 代替真实 records；其它 Runtime 重跑，无 silent fallback |
 
 ## 7. 不可违反边界

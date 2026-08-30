@@ -1,41 +1,161 @@
+import { BatteryCharging, Navigation, Route, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { stageCopy } from "./data";
+import { MapCanvas } from "./MapCanvas";
+import {
+  pointAtRouteDistance,
+  projectBackendRoute,
+  projectMapCoordinate,
+  svgPath,
+  type CanvasPoint,
+  type EventTarget,
+  type NavigationPlan,
+  type RouteSegment,
+} from "./spatialProjection";
 import type { ActiveEvent, PrototypeState } from "./types";
+import { useRoutePlayback } from "./useRoutePlayback";
 
-type FleetRobot = { id: string; name: string; status: string; battery: number; location: string; map_id: string; coordinates: { x: number; y: number } };
-type NavigationPlan = { node_path?: string[]; display_anchors?: string[] };
-type EventLocation = { map_id: string; x: number; y: number };
-type Point = { x: number; y: number; label: string };
-
-// Projection-only placement of existing Phase 2 topology nodes onto the campus
-// illustration. Runtime route order and all robot/target coordinates come from
-// the backend; this file never derives a route from a scenario id.
-const nodeProjection: Record<string, Point> = {
-  OUTDOOR: { x: 25, y: 78, label: "园区道路" }, A_B1: { x: 33, y: 66, label: "A栋 B1" }, A_1F: { x: 35, y: 52, label: "A栋 1F" }, A_2F: { x: 35, y: 28, label: "A栋 2F" },
-  B_1F: { x: 74, y: 57, label: "B栋 1F" }, B_2F: { x: 74, y: 34, label: "B栋 2F" }, A_ELEVATOR_1F: { x: 40, y: 49, label: "A栋电梯" }, A_ELEVATOR_2F: { x: 39, y: 31, label: "A栋电梯" },
-  B_ELEVATOR_1F: { x: 76, y: 52, label: "B栋电梯" }, B_ELEVATOR_2F: { x: 76, y: 37, label: "B栋电梯" }, SKYBRIDGE_B: { x: 61, y: 29, label: "连廊 B 端" }, SKYBRIDGE_A: { x: 50, y: 29, label: "连廊 A 端" },
+type FleetRobot = {
+  id: string;
+  name: string;
+  status: string;
+  battery: number;
+  location: string;
+  building?: string;
+  floor?: string | null;
+  zone?: string;
+  map_id: string;
+  coordinates: { x: number; y: number };
+  capabilities?: string[];
+  role?: string;
+  product_capability?: string;
+  demo_configuration?: string;
 };
 
-function projectSpatial(mapId: string, x: number, y: number): Point { const base = nodeProjection[mapId] ?? { x: 50, y: 50, label: mapId }; return { x: base.x + (x - 50) * 0.08, y: base.y + (y - 30) * 0.08, label: base.label }; }
-function displayState(event: ActiveEvent | null): PrototypeState { return event?.inFlightState ?? (event ? event.scenario.steps[event.stageIndex] : "IDLE"); }
-function routeFor(event: ActiveEvent | null): Point[] { const plan = event?.liveResult?.navigation_plan as NavigationPlan | undefined; return (plan?.node_path ?? plan?.display_anchors ?? []).map((node) => nodeProjection[node]).filter((point): point is Point => Boolean(point)); }
-function activeRobotId(event: ActiveEvent | null): string | null { return (event?.liveResult?.assignment_decision as { selected_robot_id?: string } | undefined)?.selected_robot_id ?? null; }
+type Transition = {
+  state?: string;
+  created_at?: string;
+  detail?: { fleet_robot?: FleetRobot };
+};
 
-function RouteLayer({ route }: { route: Point[] }) { if (route.length < 2) return null; const path = route.map((point, index) => `${index ? "L" : "M"}${point.x},${point.y}`).join(" "); return <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="后端 Dijkstra 规划路线"><path d={path} fill="none" stroke="#94a3b8" strokeWidth="1.4" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" /><path d={path} fill="none" stroke="#2563eb" strokeWidth="2" vectorEffect="non-scaling-stroke" /></svg>; }
+type SpatialDispatchViewProps = {
+  event: ActiveEvent | null;
+  /** Main workbench owns the durable backend POST after visual route completion. */
+  onNavigationComplete?: () => void;
+};
 
-export function SpatialDispatchView({ event }: { event: ActiveEvent | null }) {
-  const [fleet, setFleet] = useState<FleetRobot[]>([]); const state = displayState(event); const selectedRobot = activeRobotId(event); const route = routeFor(event);
-  useEffect(() => { void fetch("/api/robots").then((response) => response.ok ? response.json() : Promise.reject()).then(setFleet).catch(() => setFleet([])); }, [event?.liveResult?.updated_at, event?.liveResult?.state]);
-  const displayedFleet = useMemo(() => { const snapshot = event?.liveResult?.fleet_snapshot; return Array.isArray(snapshot) ? snapshot as FleetRobot[] : fleet; }, [event?.liveResult?.fleet_snapshot, fleet]);
-  // A fixture discovery location is not a spatial result.  The marker appears
-  // only after the backend has persisted the Camera→SLAM mapping.
-  const target = event?.liveResult?.spatial_location as EventLocation | undefined;
-  return <section className="relative grid min-h-[220px] grid-cols-[152px_1fr] overflow-hidden border border-slate-200 bg-[#f6f8f9]" aria-label="园区空间调度视图">
-    <aside className="z-30 border-r border-slate-200 bg-white p-2"><p className="mb-2 text-[10px] font-semibold text-slate-500">共享 Fleet 状态</p>{displayedFleet.map((robot) => <div key={robot.id} className="mb-1 flex items-center gap-1.5 border-b border-slate-100 py-1"><img src={`/visual-assets/robots/${robot.id}.png`} className="h-6 w-8 object-contain" /><span className="min-w-0 flex-1 truncate text-[9px] text-slate-700">{robot.name} · {robot.id === selectedRobot ? stageCopy[state].title : robot.status === "idle" ? "空闲" : robot.status}</span><span className="text-[8px] text-slate-400">{robot.battery}%</span></div>)}</aside>
-    <div className="relative overflow-hidden"><img src="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区白模" className="absolute inset-0 h-full w-full object-contain" /><RouteLayer route={route} />
-      {target && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: `${projectSpatial(target.map_id, target.x, target.y).x}%`, top: `${projectSpatial(target.map_id, target.x, target.y).y}%` }}><span className="block h-4 w-4 rounded-full border-2 border-rose-500 bg-rose-100/90" /></div>}
-      {displayedFleet.map((robot) => { const position = projectSpatial(robot.map_id, robot.coordinates.x, robot.coordinates.y); return <div key={robot.id} title={`${robot.name} · ${robot.location}`} className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: `${position.x}%`, top: `${position.y}%` }}><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className={`h-9 w-12 object-contain ${robot.id === selectedRobot ? "scale-110" : "opacity-80"}`} /><span className="mx-auto block h-1.5 w-1.5 rounded-full bg-slate-700" /></div>; })}
-      {route.length > 1 && <p className="absolute bottom-2 left-3 z-30 border border-slate-200 bg-white/95 px-2 py-1 text-[9px] text-slate-600">Dijkstra 园区拓扑路线 · {route.map((point) => point.label).join(" → ")}</p>}
-    </div>
+const statusCopy: Record<string, string> = {
+  idle: "待命", assigned: "已分配", navigating: "行驶中", arrived: "已到达",
+  cleaning: "清洁中", verifying: "验收中", charging: "充电中",
+};
+const EMPTY_ROUTE_SEGMENTS: RouteSegment[] = [];
+
+function displayState(event: ActiveEvent | null): PrototypeState {
+  return event?.inFlightState ?? (event ? event.scenario.steps[event.stageIndex] : "IDLE");
+}
+
+function activeRobotId(event: ActiveEvent | null): string | null {
+  const decision = event?.liveResult?.assignment_decision as { selected_robot_id?: string } | undefined;
+  return decision?.selected_robot_id ?? null;
+}
+
+function navigationStartedAt(event: ActiveEvent | null): string | undefined {
+  const transitions = event?.liveResult?.transitions;
+  if (!Array.isArray(transitions)) return undefined;
+  return [...(transitions as Transition[])].reverse().find((transition) => transition.state === "NAVIGATING")?.created_at;
+}
+
+function navigationPlan(event: ActiveEvent | null): NavigationPlan | undefined {
+  const value = event?.liveResult?.navigation_plan;
+  return value && typeof value === "object" ? value as NavigationPlan : undefined;
+}
+
+function fleetFromEvent(event: ActiveEvent | null, fallback: FleetRobot[]): FleetRobot[] {
+  const snapshot = event?.liveResult?.fleet_snapshot;
+  return Array.isArray(snapshot) ? snapshot as FleetRobot[] : fallback;
+}
+
+/** Route origin is the persisted assignment snapshot, never a later terminal fleet position. */
+function routeOrigin(event: ActiveEvent | null, selectedRobot: FleetRobot | null): FleetRobot | null {
+  const transitions = event?.liveResult?.transitions;
+  if (Array.isArray(transitions)) {
+    const assigned = [...(transitions as Transition[])].reverse().find((transition) => transition.state === "ASSIGNED");
+    if (assigned?.detail?.fleet_robot) return assigned.detail.fleet_robot;
+  }
+  return selectedRobot;
+}
+
+function routeArrowPoints(points: CanvasPoint[], travelledDistance: number, totalDistance: number): CanvasPoint[] {
+  if (points.length < 2 || !totalDistance) return [];
+  return [0.32, 0.7]
+    .map((ratio) => totalDistance * ratio)
+    .filter((distance) => distance <= travelledDistance + 0.5)
+    .map((distance) => pointAtRouteDistance(points, distance))
+    .filter((point): point is CanvasPoint => Boolean(point));
+}
+
+function RouteLayer({ points, travelledDistance, totalDistance, terminal }: { points: CanvasPoint[]; travelledDistance: number; totalDistance: number; terminal: boolean }) {
+  if (points.length < 2) return null;
+  const fullPath = svgPath(points);
+  const completedPath = svgPath(points, travelledDistance);
+  return <svg className={`pointer-events-none absolute inset-0 z-10 h-full w-full ${terminal ? "opacity-45" : "opacity-100"}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="后端 Dijkstra 园区拓扑路线">
+    <path d={fullPath} fill="none" stroke="#a7b7c9" strokeWidth="1.15" strokeDasharray="3.5 3" vectorEffect="non-scaling-stroke" />
+    {travelledDistance > 0 && <path d={completedPath} fill="none" stroke="#4f7798" strokeWidth="1.75" vectorEffect="non-scaling-stroke" />}
+    {routeArrowPoints(points, travelledDistance, totalDistance).map((point, index) => <g key={`${point.x}-${point.y}-${index}`} transform={`translate(${point.x} ${point.y})`}><path d="M-1.4,-1.4 L1.5,0 L-1.4,1.4" fill="none" stroke="#4f7798" strokeWidth="0.8" vectorEffect="non-scaling-stroke" /></g>)}
+  </svg>;
+}
+
+function FleetAssetCard({ robot, active }: { robot: FleetRobot; active: boolean }) {
+  const status = statusCopy[robot.status] ?? robot.status;
+  const coordinate = `(${robot.coordinates.x.toFixed(1)}, ${robot.coordinates.y.toFixed(1)})`;
+  return <article className={`group relative border px-2 py-2 transition-colors ${active ? "border-slate-500 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+    <p className="text-[10px] font-semibold leading-4 text-slate-800">{robot.name}</p><div className="mt-1 flex items-center gap-1.5"><img src={`/visual-assets/robots/${robot.id}.png`} alt="" className="h-7 w-8 shrink-0 object-contain" /><p className="flex-1 text-[9px] text-slate-500">{status}</p><span className="flex shrink-0 items-center gap-0.5 text-[9px] font-medium text-slate-600"><BatteryCharging size={11} strokeWidth={1.7} />{robot.battery}%</span></div>
+    <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-52 border border-slate-300 bg-white p-3 text-[10px] leading-5 text-slate-600 shadow-lg group-hover:block"><p className="font-semibold text-slate-800">{robot.name}</p><p>{robot.location}</p><p>{robot.map_id} · {robot.floor ?? "室外"} · {coordinate}</p><p className="mt-1 border-t border-slate-100 pt-1"><span className="text-slate-400">服务范围：</span>{robot.role ?? robot.zone ?? "PoC 服务区域"}</p><p><span className="text-slate-400">能力边界：</span>{robot.demo_configuration ?? robot.product_capability ?? robot.capabilities?.join(" / ") ?? "未配置"}</p></div>
+  </article>;
+}
+
+function RobotMarker({ robot, point, active }: { robot: FleetRobot; point: CanvasPoint; active: boolean }) {
+  return <div className="absolute z-30 -translate-x-1/2 -translate-y-1/2" style={{ left: `${point.x}%`, top: `${point.y}%` }}><div className={`relative ${active ? "scale-110" : "opacity-80"}`}><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className="h-8 w-11 object-contain drop-shadow-sm" /><span className={`absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${active ? "bg-[#4f7798]" : "bg-slate-600"}`} /></div></div>;
+}
+
+export function SpatialDispatchView({ event, onNavigationComplete }: SpatialDispatchViewProps) {
+  const [apiFleet, setApiFleet] = useState<FleetRobot[]>([]);
+  const state = displayState(event);
+  const selectedRobotId = activeRobotId(event);
+  const plan = navigationPlan(event);
+  const target = event?.liveResult?.spatial_location as EventTarget | undefined;
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/robots").then((response) => response.ok ? response.json() : Promise.reject(new Error("Fleet unavailable"))).then((fleet: FleetRobot[]) => { if (active) setApiFleet(fleet); }).catch(() => { if (active) setApiFleet([]); });
+    return () => { active = false; };
+  }, [event?.liveResult?.updated_at, event?.liveResult?.state]);
+
+  const displayedFleet = useMemo(() => fleetFromEvent(event, apiFleet), [apiFleet, event]);
+  const selectedRobot = displayedFleet.find((robot) => robot.id === selectedRobotId) ?? null;
+  const origin = routeOrigin(event, selectedRobot);
+  const routePoints = useMemo(() => projectBackendRoute(plan, origin, target), [plan, origin, target]);
+  const routeSegments = useMemo(
+    () => Array.isArray(plan?.segments) ? plan.segments as RouteSegment[] : EMPTY_ROUTE_SEGMENTS,
+    [plan],
+  );
+  const isNavigating = event?.backendState === "NAVIGATING";
+  const playback = useRoutePlayback({ active: Boolean(isNavigating && selectedRobot && routePoints.length > 1), navigationStartedAt: navigationStartedAt(event), points: routePoints, segments: routeSegments, onComplete: onNavigationComplete });
+  const routeReady = routePoints.length > 1;
+  const displayedTravel = isNavigating ? playback.travelledDistance : playback.totalDistance;
+  const activePosition = isNavigating ? playback.point : null;
+
+  return <section className="grid min-h-[248px] grid-cols-[152px_minmax(0,1fr)] overflow-hidden border border-slate-200 bg-[#f6f8f9]" aria-label="园区空间调度视图">
+    <aside className="z-40 overflow-visible border-r border-slate-200 bg-[#fbfcfd] p-2" aria-label="机器人资产栏"><div className="mb-2 border-b border-slate-200 pb-2"><p className="text-[10px] font-semibold tracking-[0.08em] text-slate-500">FLEET ASSETS</p><p className="mt-0.5 text-[9px] text-slate-400">PoC 模拟状态 · 共享 Fleet</p></div><div className="space-y-1.5">{displayedFleet.map((robot) => <FleetAssetCard key={robot.id} robot={robot} active={robot.id === selectedRobotId} />)}{!displayedFleet.length && <p className="py-4 text-center text-[10px] text-slate-400">Fleet 数据暂不可用</p>}</div></aside>
+    <MapCanvas imageSrc="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区空间白模" className="min-h-[248px] bg-[#eef2f5]">
+      <>
+        <RouteLayer points={routePoints} travelledDistance={displayedTravel} totalDistance={playback.totalDistance} terminal={!isNavigating && routeReady} />
+        {target && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: `${projectMapCoordinate(target.map_id, target.x, target.y).x}%`, top: `${projectMapCoordinate(target.map_id, target.x, target.y).y}%` }} aria-label="已定位事件位置"><span className="block h-4 w-4 rounded-full border-2 border-rose-500 bg-rose-100/95 shadow-sm" /><span className="absolute left-1/2 top-5 -translate-x-1/2 whitespace-nowrap text-[8px] font-medium text-rose-700">事件位置</span></div>}
+        {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId && activePosition ? activePosition : projectMapCoordinate(robot.map_id, robot.coordinates.x, robot.coordinates.y); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
+        {isNavigating && playback.isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white px-2 py-1 text-[10px] font-medium text-slate-700 shadow-sm" style={{ left: `${playback.point?.x ?? 50}%`, top: `${playback.point?.y ?? 50}%` }}>乘梯中</div>}
+        <div className="absolute bottom-[3%] left-[3%] z-40 flex max-w-[72%] items-center gap-1.5 border border-slate-200 bg-white/95 px-2 py-1 text-[9px] text-slate-600 shadow-sm"><Route size={11} strokeWidth={1.7} className="shrink-0 text-[#4f7798]" />{routeReady ? <span>后端 Dijkstra 园区拓扑路线 · {isNavigating ? "PoC 视觉插值（非实时遥测）" : "终态路线已保留"}</span> : <span>定位完成后显示后端空间路线</span>}</div>
+        {selectedRobot && isNavigating && <div className="absolute right-[3%] top-[3%] z-40 flex items-center gap-1 border border-slate-200 bg-white/95 px-2 py-1 text-[9px] text-slate-600 shadow-sm"><Navigation size={11} className="text-[#4f7798]" />{selectedRobot.name} · 行驶中</div>}
+        {!event && <div className="absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 border border-slate-200 bg-white/95 px-3 py-1.5 text-[10px] text-slate-500 shadow-sm"><Sparkles size={12} />等待固定摄像头发现事件</div>}
+      </>
+    </MapCanvas>
   </section>;
 }

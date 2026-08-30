@@ -8,7 +8,7 @@
 ```text
 React / Vite customer shell (/ and /prototype)
   ├── Workbench：CameraMonitorGrid + SpatialDispatchView + EventDetailPanel
-  ├── Event Center：基础列表 + 独立简版详情
+  ├── Event Center：基础列表 + 共用只读 history EventDetailPanel（P1-D URL/列表产品化 TODO）
   ├── Analytics：Demo history 聚合 + 基础热点 / KPI / 建议
   └── Advanced：状态与 trace shell
   ▼
@@ -101,9 +101,13 @@ Single-view VLM
 
 **IMPLEMENTED 基础**：6 map（OUTDOOR、A_B1、A_1F、A_2F、B_1F、B_2F）、Global Spatial Graph、Camera Coverage、`map_pixel_to_slam()`、Dijkstra global topology planner / `plan_route()`、`campusTopology` 与蜗小白 SC50 演示锚点存在。A2F 与 B2F 通过 Skybridge 连接。
 
-**LOCKED / TODO**：MapCanvas 的 object-contain 内层画布是 SLAM white model、anchor、marker、route、robot 的唯一坐标系；定位后才出现 marker。Scheduler 应以共享 Fleet 当前 map 与 target SLAM map 调 `plan_route()`，前端只投影其结果。蜗小白 SC50 的正式路线为 B1F → elevator → B2F → Skybridge → A2F carpet can event；终态保留到 new demo/reset。
+**IMPLEMENTED / LOCKED（P1-A/B）**：MapCanvas 的 object-contain 内层画布是 white model、anchor、marker、route、robot 的唯一坐标系；定位后才出现 marker。Scheduler 以共享 Fleet 当前 map 与 target SLAM map 调 `plan_route()`，前端只投影其结果。蜗小白 SC50 的基线路线为 B1F → elevator → B2F → Skybridge → A2F carpet can event；终态保留，只有显式 baseline/reset 才复位。
 
-## 6. Event Model、Event Center 与历史快照（LOCKED / TODO）
+P1-B 前端模块边界：`spatialProjection.ts` 提供纯坐标/路径/插值函数（缺少或未知 node_path 返回空）；`MapCanvas.tsx` 统一实际图像矩形；`useRoutePlayback.ts` 按 UTC NAVIGATING timestamp 恢复 rAF 插值与入口 1 秒停留；`SpatialDispatchView.tsx` 读取 Fleet 与 ASSIGNED 起点快照。插值不是遥测，也不构成第二个 Route Planner。
+
+`eventViewModel.ts` 只投影存档 transitions/asset_manifest；`EventStageEvidence.tsx` 展示可审计的 AI、能力、空间、路线与终态快照；`EventDetailPanel.tsx` 的 live/history 共用卡片，history 不执行 action、不自动滚动。`runtimeSession.ts` 保存 ID/请求防重键、GET-only 恢复、拒绝倒退/外来快照；`PanelBoundary.tsx` 隔离空间显示异常。图像缺失显示不可用，不用预设成功图片替换。
+
+## 6. Event Model、Event Center 与历史快照（P1-B 详情 IMPLEMENTED；P1-D 列表/URL TODO）
 
 ```text
 CleaningEvent
@@ -116,7 +120,7 @@ CleaningEvent
        └── Event Center EventDetailPanel(mode="history")
 ```
 
-Event Center 是 read-only archive：事件创建即进入列表，默认倒序；全部、处理中、已自主闭环、待人工处理、异常五类状态分离。`HUMAN_FALLBACK` 是业务兜底，不是异常。历史详情必须读事件发生当时 Fleet / robot / route / AI / verification snapshot，不能用当前状态覆盖；URL `?event=` 恢复选择但首次不自动打开。
+**LOCKED / P1-D TODO**：Event Center 的列表产品化要求事件创建即进入列表、默认倒序；全部、处理中、已自主闭环、待人工处理、异常五类状态分离。`HUMAN_FALLBACK` 是业务兜底，不是异常。URL `?event=` 恢复选择但首次不自动打开。**P1-B IMPLEMENTED**：历史详情只读事件发生当时 robot / route / AI / verification / terminal Fleet snapshot，不用当前状态覆盖；列表实时提示与 URL 尚未完成。
 
 ## 7. Analytics Engine（LOCKED / TODO）
 

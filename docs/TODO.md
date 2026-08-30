@@ -25,13 +25,18 @@
 - [x] **共享 Fleet 状态与真实时间**：机器人位置、电量、状态使用同一读模型；任务终点保留，new demo/reset 才复位；前端读取 SQLite transition timestamp、真实 duration、真实 cloud latency。
 - [x] **Stable Replay 重定义**：只保存/选择既有真实 AI structured evidence 回放，其他 Runtime 阶段仍真实执行；在现有 Advanced shell 加最小 AI Runtime 控制区，提供 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和 latency；不得重做完整 Advanced 页面。
 
-## P1-B｜Workbench、MapCanvas 与 EventDetailPanel
+## P1-B｜Workbench、MapCanvas 与 EventDetailPanel（工程 IMPLEMENTED · A/E PASS）
 
-- [ ] **唯一 MapCanvas**：建立 `object-contain` 内层画布转换；SLAM white model、anchor、route、marker、A/B/C/D 机器人统一投影，修复 letterbox 漂移。
-- [ ] **机器人执行体验**：真实 anchor path 连续插值；未走/已走路线、小 marker、少量箭头；蜗小白 SC50 在电梯入口停约 1 秒并显示“乘梯中”；CLOSED / HUMAN_REVIEW 保留终点和路线。
-- [ ] **布局与双监控矩阵**：实现 72/28、31/69、右详情独立滚动、145–155px 资产栏、相机 `object-contain` 规范；四个 Demo before/after 状态矩阵；Demo02 补充图永不替换顶部监控。
-- [ ] **统一 EventDetailPanel**：实现 `mode="live"` / `mode="history"`；实时自动跟随一次 smooth scroll，历史只读不滚动、不重跑；统一字段、卡片、颜色、stage hierarchy、历史 snapshot。
-- [ ] **客户表达收敛**：全量 enum 中文化；云端 raw confidence、Fusion “N分”、系统决策分层；客户层不展示 raw next_action / 公式 / Chain-of-Thought。
+- [x] **唯一 MapCanvas**：建立 `object-contain` 内层画布转换；SLAM white model、anchor、route、marker、A/B/C/D 机器人统一投影，修复 letterbox 漂移。
+- [x] **机器人执行体验**：真实 anchor path 连续插值；未走/已走路线、小 marker、少量箭头；蜗小白 SC50 在电梯入口停约 1 秒并显示“乘梯中”；CLOSED / HUMAN_REVIEW 保留终点和路线。
+- [x] **布局与双监控矩阵**：实现 72/28、31/69、右详情独立滚动、145–155px 资产栏、相机 `object-contain` 规范；四个 Demo before/after 状态矩阵；Demo02 补充图永不替换顶部监控。
+- [x] **统一 EventDetailPanel**：实现 `mode="live"` / `mode="history"`；实时自动跟随一次 smooth scroll，历史只读不滚动、不重跑；统一字段、卡片、颜色、stage hierarchy、历史 snapshot。
+- [x] **客户表达收敛**：全量 enum 中文化；云端 raw confidence、Fusion “N分”、系统决策分层；客户层不展示 raw next_action / 公式 / Chain-of-Thought。
+
+验收：前端 17/17、backend 64 PASS + 2 opt-in skipped、build 与 diff check PASS；主代理实际浏览器验证 Demo04 人工闭环、Demo03 跨楼导航/验收失败保留、同会话云端处理中刷新不重复请求、终态刷新、history 只读、1024/1440/1920 桌面布局。详情见测试事实源。最终产品/用户验收仍未代替。
+
+- [ ] **P1-B/P1-H P2**：同会话 request keys 的终态清理、跨标签页/后端全局幂等、网络结果不确定时的审计恢复流程；当前只读 GET 同步，绝不自动重发模型。未知模型 enum 统一中文待复核，不把未识别语义编造成肯定结论。
+- [ ] **P1-G Demo03 ROI 验收**：本轮真实模型返回“地面上仍有红色罐体未清理”，verification_pass=false 并转 HUMAN_REVIEW；具体误判/证据根因尚未核实。P1-B 如实呈现，未篡改输出。ROI/ontology/证据检查优化与重复 LIVE 稳定性仍待后续。
 
 ## P1-C｜新 Multi-view Perception Agent
 

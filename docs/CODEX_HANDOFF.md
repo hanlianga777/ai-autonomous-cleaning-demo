@@ -8,7 +8,13 @@
 - 仓库：`ai-autonomous-cleaning-demo`；实施分支：`codex/unified-implementation`；已验收文档基线：`00bd982982c81450e41f1755a3ba95be94c25b23`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`；它不能回退为一次性 `/runs` + 前端播放。
 - 当前最新文档已锁定第一、二、三部分：Event Center、Analytics、Robot Operations Agent、外部配送边界、新 Multi-view 架构与 Advanced Technical Observability；这些是 **LOCKED/TODO，不是 IMPLEMENTED**。
-- **Unified Implementation 已明确授权。当前只做 P1-A Closure。** 代码/新增测试/full backend/build/Reviewer A 与 E 必须全部 PASS 后才能将 P1-A 改 IMPLEMENTED，独立 commit/push 当前分支，再自动进入 P1-B。P1-A 代码、测试和 Reviewer A/E 已全部 PASS；独立提交推送后自动进入 P1-B；其余批次仍 LOCKED/TODO。
+- **Unified Implementation 已明确授权。P1-A 已提交推送 `fcd01d4`。P1-B 工程验收 PASS，独立提交后按顺序进入 P1-C。** P1-B 前端 17/17、后端 64 PASS + 2 opt-in skipped、build、浏览器、A/E 均 PASS；P1-C/D/E/F/H/G 仍 LOCKED/TODO，最终产品验收未完成。
+
+### 最新交接：P1-B MapCanvas / 统一详情工程完成
+
+唯一 MapCanvas 与影像 object-contain 内层平面、Dijkstra 路线连续插值/入口停留、正式 Fleet 资产栏、完整 before/after 双监控、同一 EventDetailPanel live/history 已完成。历史只 GET 事件快照，不调用 runtime。工作台刷新仅用保存的 event ID GET 恢复，session request keys 防止同会话重复请求；外来/倒退快照被拒绝，网络不确定不自动重试模型。不要把该浏览器防重等同服务器端幂等。
+
+实际浏览器 Demo04 LIVE 再次经 zero candidate→人工完成→verification CLOSED。Demo03 真实跨楼路线通过但云端 after 验收拒绝，正确保留终点/路线/全时间线并进入 HUMAN_REVIEW；这是待 P1-G 收敛的 ROI 验收限制，不能写为四 Demo 均已最终通过。P1-B 只改变前端和文档，未调整 Scheduler、Capability 或 Cloud gate。
 
 ### 本轮交接：P1-A IMPLEMENTED · Reviewer A/E PASS
 
@@ -18,9 +24,9 @@
 
 ## 先理解的实现事实与文档冲突
 
-1. 当前代码有基础 Event Center、Analytics、Optimization、Advanced 和 Multi-view，但它们不符合本轮 LOCKED 目标：基础 Event Center 不是复用的 history `EventDetailPanel`；Analytics 含演示 baseline / 固定聚合；Optimization 是确定性 mock recommendation；均不可称为最终产品。
+1. P1-B 已将 Event Center 详情改为复用 history `EventDetailPanel`；列表/URL/完整分类仍待 P1-D。Analytics 含演示 baseline / 固定聚合；Optimization 是确定性 mock recommendation；均不可称为最终产品。
 2. 当前 Multi-view 是“灰区阈值 + 固定 coverage/frame/VLM 顺序”的受控 LangGraph 流程，且当前 Demo Runtime 可按 Demo 场景进入。它不符合新目标的 Single-view Cloud `evidence_sufficient` + `tool_choice=auto` 自主补证，不能写作完成。
-3. 旧基线的模板 locate / 演示锚点路线已由 P1-A 改为 bbox→共享 `map_pixel_to_slam()` + Fleet current map→`plan_route()`；P1-A 工程验收已通过，唯一 MapCanvas 的视觉改造尚未进入 P1-B。
+3. 旧基线的模板 locate / 演示锚点路线已由 P1-A 改为 bbox→共享 `map_pixel_to_slam()` + Fleet current map→`plan_route()`；P1-B 唯一 MapCanvas 已接入这些事实并通过浏览器验收；不再使用旧外层独立路线投影。
 4. P1-A 的共享 Fleet 已有正式名称及 product_capability / demo_configuration，主工作台外仍有旧静态 mock 文案待清理；保持内部 ID `robot-a` / `robot-b` / `robot-c` / `robot-d`。
 5. Demo04 cloud 直接人工分支已删除，当前阶段 Runtime 只允许 Capability zero candidate 产生 HUMAN_FALLBACK；用户确认 context 后，真实完整路径与 Replay 已通过。
 6. 当前 Advanced 只是技术状态卡片 + 当前事件 JSON 的基础 shell；没有 Trace Inspector、node detail、structured Tool Audit、Reality Matrix、错误分类或 Trace ID，不能称为 Batch C 已完成。
@@ -33,7 +39,7 @@
 4. 新 Multi-view：主视角 Single-view VLM 先判断 `evidence_sufficient` / `ambiguity_type`；真实模型 `tool_choice=auto` 自主选择是否调用 evidence tools、哪 1–2 路、最多 2 rounds。禁止 `demo_id`、固定 confidence threshold、强制 tool choice、初轮三图和前端假 Trace。
 5. 新路线必须来自 Camera→SLAM + Dijkstra global topology planner / `plan_route()`，不得以 demo_id 固定；Demo03 固定 B1F→elevator→B2F→Skybridge→A2F carpet can；Demo04 必经 zero-candidate Human Fallback。
 6. MapCanvas 是 white model、anchor、route、marker、robot 的唯一坐标系；终态机器人不自动回出生点；历史详情以 event-time snapshot 为准，不能由当前 Fleet 覆盖。
-7. Event Center 是 read-only archive：正常 `HUMAN_FALLBACK` 绝不是异常；只复用 `EventDetailPanel(mode="history")`，保留 URL selected event 且不抢用户焦点。
+7. Event Center 是 read-only archive：正常 `HUMAN_FALLBACK` 绝不是异常。P1-B 已复用 `EventDetailPanel(mode="history")`；正确五类过滤、URL selected event、新记录不抢用户焦点仍为 **LOCKED / P1-D TODO**，不能宣称已实现。
 8. 系统仅有 Multi-view Perception Agent 与 Robot Operations Agent 两个 Agent。后者可以在低风险白名单内做 task-level action / observe / replan，但绝不拥有地图、能力、Coverage、标定、Scheduler、阈值、速度、门禁、电梯等基础设施 Write Tool。
 9. 一个 Robot Operations Agent：Workbench/Event Center 共享浮窗，无 localStorage 保存位置时默认左下角，保存位置优先；只可从 Header/Drag Handle 拖动、不能出 viewport，展开/收起/跨页/刷新保持。Analytics 固定 Panel，Session/Audit/Task context 共享。语音只是 Microphone → real ASR → transcript 输入，不是主演示路径；ASR 未配置时麦克风 disabled 或显示“语音服务未配置”，不得伪造 transcript。Analytics Advice 不是第三个 Agent，也不能自动改运营配置。
 10. 不引入第二 UI System、Three.js、ROS/RMF、Docker/K8s、真实设备 runtime 或大型本地模型。
