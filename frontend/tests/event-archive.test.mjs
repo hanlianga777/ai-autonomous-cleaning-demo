@@ -25,6 +25,17 @@ test("archive API query retains only meaningful filters and resets non-negative 
   assert.equal(query.get("event_type"), null);
 });
 
+test("Analytics drill-down URL filters restore map, type, time and locked time slot without inventing selection", () => {
+  const filters = archive.parseArchiveFilters("/events?map_id=A_1F&x=14.5&y=22.5&event_type=liquid&since=2026-08-01T00%3A00%3A00Z&until=2026-08-30T00%3A00%3A00Z&time_slot=14-18");
+  assert.equal(filters.mapId, "A_1F");
+  assert.equal(filters.x, "14.5");
+  assert.equal(filters.y, "22.5");
+  assert.equal(filters.eventType, "liquid");
+  assert.equal(filters.timeSlot, "14-18");
+  assert.equal(archive.parseArchiveSelection("/events?map_id=A_1F"), null);
+  assert.equal(archive.parseArchiveFilters("/events?time_slot=13-17").timeSlot, "");
+});
+
 test("new-event notice counts new IDs without changing selection or treating a repeat as new", () => {
   const seen = new Set(["evt-1", "evt-2"]);
   const next = [{ event_id: "evt-2" }, { event_id: "evt-3" }, { event_id: "evt-4" }];
@@ -52,6 +63,7 @@ test("SQLite timestamps without an offset are interpreted as UTC, not browser-lo
     Date.parse("2026-08-30T10:20:30Z"),
   );
   assert.equal(archive.archiveTimestampMs("2026-08-30T10:20:30+08:00"), Date.parse("2026-08-30T10:20:30+08:00"));
+  assert.match(archive.archiveDateTimeInputValue("2026-08-30T10:20:30Z"), /^2026-08-30T\d\d:\d\d$/);
 });
 
 test("datetime-local operator filters become explicit UTC API values", () => {

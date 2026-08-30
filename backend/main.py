@@ -7,11 +7,13 @@ from pathlib import Path
 
 from api.routes import router
 from database.connection import initialize_database
+from analytics.history_seed import seed_history
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     initialize_database()
+    seed_history()
     yield
 
 

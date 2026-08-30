@@ -12,6 +12,7 @@ export const stateLabels: Record<string, string> = {
   NAVIGATING: "机器人前往现场", ARRIVED: "机器人到达现场", CLEANING_COMPLETED: "清洁动作完成",
   VERIFYING: "固定摄像头验收", CLOSED: "事件已闭环", HUMAN_FALLBACK: "零候选 · 人工兜底",
   HUMAN_REVIEW: "待人工复核",
+  HUMAN_STARTED: "人工开始处置", HUMAN_WORK_STARTED: "人工开始处置", HUMAN_COMPLETED: "人工完成处置",
 };
 export const displayStates: Record<string, PrototypeState> = {
   SINGLE_VIEW_REVIEW: "CLOUD_REVIEW",
@@ -34,7 +35,7 @@ export function fromStoredEvent(stored: RecordValue): ActiveEvent {
   const snapshot = stored.demo_v1 ?? stored;
   const runtime = { ...snapshot, ...stored, demo_v1: undefined };
   const scene = scenarios.find((s) => s.cameraId === snapshot.asset_manifest?.assets?.find((a: RecordValue) => a.role === "before")?.camera_id);
-  const cameraId = snapshot.asset_manifest?.assets?.find((a: RecordValue) => a.role === "before")?.camera_id ?? "未记录摄像头";
+  const cameraId = snapshot.asset_manifest?.assets?.find((a: RecordValue) => a.role === "before")?.camera_id ?? stored.camera_id ?? "未记录摄像头";
   const base = scene ?? { id: "outdoor" as const, triggerLabel: "历史事件", cameraId, eventTitle: "历史清洁事件", category: customerTerm(stored.task_profile?.object_type), confidence: 0, qwenConfidence: 0, qwenSummary: "", steps: [] };
   const steps = Array.isArray(stored.transitions) ? stored.transitions.map((t: RecordValue) => displayStates[t.state]).filter(Boolean) : [displayStates[stored.state] ?? "HUMAN_REVIEW"];
   return { scenario: { ...base, steps }, stageIndex: Math.max(0, steps.length - 1), startedAt: stored.created_at ?? "", backendState: stored.state, liveResult: runtime };

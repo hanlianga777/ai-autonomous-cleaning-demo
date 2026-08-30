@@ -6,7 +6,7 @@ Counts reflect the search/time/type/handling filters before the category tab.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 from typing import Any
 
@@ -15,6 +15,7 @@ from database.connection import database_session
 
 CATEGORIES = {"all", "in_progress", "autonomous_closed", "human_pending", "exception"}
 HANDLING_MODES = {"robot", "human_fallback", "human_review", "system_error"}
+TIME_SLOTS = {"06-10": (6, 10), "10-14": (10, 14), "14-18": (14, 18), "18-22": (18, 22)}
 BUSINESS_REVIEW_CODES = {
     "unrecoverable_ambiguity", "no_legal_supporting_camera", "final_evidence_insufficient",
     "final_evidence_or_confidence_gate", "no_evidence_acquired", "model_turn_limit",
@@ -115,11 +116,15 @@ def project_event(event: dict, now: datetime) -> dict:
 def archive_index(*, category: str = "all", q: str = "", event_type: str | None = None,
                   handling_mode: str | None = None, since: str | None = None, until: str | None = None,
                   map_id: str | None = None, offset: int = 0, limit: int = 50,
-                  now: datetime | None = None) -> dict:
+                  now: datetime | None = None, hour: int | None = None, x: float | None = None, y: float | None = None, time_slot: str | None = None) -> dict:
     if category not in CATEGORIES or handling_mode and handling_mode not in HANDLING_MODES:
         raise ValueError("Unknown archive category or handling mode.")
     if offset < 0 or not 1 <= limit <= 100:
         raise ValueError("Archive pagination is out of range.")
+    if hour is not None and not 0 <= hour <= 23:
+        raise ValueError("Archive hour must be 0..23 in Asia/Shanghai.")
+    if time_slot and time_slot not in TIME_SLOTS:
+        raise ValueError("Unknown archive time slot.")
     begin, end = utc_time(since), utc_time(until)
     if (since and begin is None) or (until and end is None) or (begin and end and begin > end):
         raise ValueError("Archive time range must be valid ISO dates with since <= until.")
@@ -134,6 +139,14 @@ def archive_index(*, category: str = "all", q: str = "", event_type: str | None 
         if event_type and row["event_type"] != event_type or handling_mode and row["handling_mode"] != handling_mode:
             continue
         if map_id and row["location"].get("map_id") != map_id:
+            continue
+        if hour is not None and (stamp is None or stamp.astimezone(timezone(timedelta(hours=8))).hour != hour):
+            continue
+        if time_slot and (stamp is None or not TIME_SLOTS[time_slot][0] <= stamp.astimezone(timezone(timedelta(hours=8))).hour < TIME_SLOTS[time_slot][1]):
+            continue
+        if x is not None and row["location"].get("x") != x or y is not None and row["location"].get("y") != y:
+            continue
+        if (x is not None or y is not None) and event.get("source") != "DEMO_HISTORY" and not any(t["state"] == "LOCATED" for t in event.get("transitions", [])):
             continue
         labels = {"small_litter": "其他小型垃圾 纸巾", "liquid": "液体污渍 奶茶", "can": "易拉罐", "large_object": "大件物品 纸箱", "leaf": "树叶", "unknown": "待研判"}
         location = row["location"]

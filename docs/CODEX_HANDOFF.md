@@ -3,9 +3,11 @@
 > **状态：LOCKED · 2026-08-30**
 > 新 Session 必须依次完整阅读：`PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、本文件、`AI_INTEGRATION_TEST.md`；随后检查代码、`git status`、`git log`。不要用聊天记忆补全事实。
 
-### 最新交接：P1-D IMPLEMENTED · A/E PASS
+### 最新交接：P1-E IMPLEMENTED · A/E PASS
 
-已推送 P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`。本轮 D 代码、后端档案7/7、前端档案7/7（全量24/24）、full backend93 PASS+3skip、build、浏览器、A/E均PASS，独立提交并继续 **P1-E**。不得合并 main；E/F/H/G 仍 TODO。事件中心现在是 SQLite 只读档案，不重新运行 Cloud/调度，不使用当前 Fleet 覆盖历史。
+P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`、P1-D `a350ad5` 已推送。E代码、12定向/102后端PASS+3skip/32前端/build/浏览器与A/E均PASS，独立提交后继续 **P1-F**，不合并main。F/H/G尚未实施完成。
+
+E注意：启动会幂等插入标明DEMO_HISTORY的演示档案，不能将其当作真实AI。利用率可用时长仅PoC连续可用假设，不是生产uptime；人工缺开始时刻的响应样本排除。旧optimization API仍为待F替换的技术遗留，客户Analytics不展示固定建议或假对话。
 
 ### P1-C 已完成交接： IMPLEMENTED · A/E PASS
 
@@ -13,14 +15,14 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 
 关键实现：`autonomous.py` 真实 tool_choice=auto；`perception_records.py` 只回放 provider response，工具/policy仍真实跑；first single-view不足即使 confidence<0.50 也先合法补证；最终不足不能自动派发。Demo02 原图清晰未触发补证是正确行为，因此新增透明的受控模糊 variant（原图保留），不是 fixed confidence 或假 trace。model configurable，原用户 .env 未改。
 
-请先读测试事实源最新 P1-D 记录、检查 git log/status，再继续 E；不要回到旧 demo02 先固定多图后 Cloud 路径。P2：6 model turns 不是6取证轮次；旧技术AI Lab兼容路径/生产同步/跨标签页幂等未因本轮自动升级。影像版本与完整编辑提示记录在测试事实源。
+请先读测试事实源最新 P1-E 记录、检查 git log/status，再继续 F；不要回到旧 demo02 先固定多图后 Cloud 路径。P2：6 model turns 不是6取证轮次；旧技术AI Lab兼容路径/生产同步/跨标签页幂等未因本轮自动升级。影像版本与完整编辑提示记录在测试事实源。
 
 ## 当前基线与授权状态
 
 - 仓库：`ai-autonomous-cleaning-demo`；实施分支：`codex/unified-implementation`；已验收文档基线：`00bd982982c81450e41f1755a3ba95be94c25b23`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`；它不能回退为一次性 `/runs` + 前端播放。
-- 当前 Analytics、Robot Operations Agent、外部配送边界、Advanced Technical Observability 仍为 **LOCKED/TODO**；新 Multi-view 已按 P1-C **IMPLEMENTED**，不得与其它未实现目标混写。
-- **Unified Implementation 已明确授权。P1-A `fcd01d4`、P1-B `b2a1899` 已提交推送，P1-C `c9cf220` 与 P1-D 工程验收 PASS，D独立提交后进入 P1-E。** P1-C 最新测试见页首；P1-E/F/H/G 仍 LOCKED/TODO，最终产品验收未完成。
+- 当前 Robot Operations Agent、外部配送边界、Advanced Technical Observability 仍为 **LOCKED/TODO**；新 Multi-view 已按 P1-C **IMPLEMENTED**，不得与其它未实现目标混写。
+- **Unified Implementation 已明确授权。P1-A `fcd01d4`、P1-B `b2a1899` 已提交推送，P1-C `c9cf220` 与 P1-D 工程验收 PASS，P1-D `a350ad5` 已提交，P1-E工程PASS后独立提交，再进入P1-F。** P1-C 最新测试见页首；P1-F/H/G 仍 LOCKED/TODO，最终产品验收未完成。
 
 ### 最新交接：P1-B MapCanvas / 统一详情工程完成
 
@@ -36,7 +38,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 
 ## 先理解的实现事实与文档冲突
 
-1. P1-B 已将 Event Center 详情改为复用 history `EventDetailPanel`；列表/URL/完整分类已在 P1-D 实现。Analytics 含演示 baseline / 固定聚合；Optimization 是确定性 mock recommendation；均不可称为最终产品。
+1. P1-B 已将 Event Center 详情改为复用 history `EventDetailPanel`；列表/URL/完整分类已在 P1-D 实现。Analytics 已按P1-E改为同库事件/transition真实聚合；旧Optimization固定推荐API留待P1-F，客户页不展示。
 2. 主 Runtime 已完成 P1-C single-view→evidence gate→真实 model auto-tool 自主补证；旧受控 LangGraph 仅遗留技术路径，不再从主 Demo 路径进入，不可混淆两者。
 3. 旧基线的模板 locate / 演示锚点路线已由 P1-A 改为 bbox→共享 `map_pixel_to_slam()` + Fleet current map→`plan_route()`；P1-B 唯一 MapCanvas 已接入这些事实并通过浏览器验收；不再使用旧外层独立路线投影。
 4. P1-A 的共享 Fleet 已有正式名称及 product_capability / demo_configuration，主工作台外仍有旧静态 mock 文案待清理；保持内部 ID `robot-a` / `robot-b` / `robot-c` / `robot-d`。

@@ -32,6 +32,11 @@ export type ArchiveFilters = {
   since: string;
   until: string;
   mapId: string;
+  x: string;
+  y: string;
+  /** Set only by Analytics drill-down; backend validates 0–23. */
+  hour: string;
+  timeSlot: string;
   offset: number;
   limit: number;
 };
@@ -45,7 +50,7 @@ export const ARCHIVE_CATEGORIES: Array<{ id: ArchiveCategory; label: string }> =
 ];
 
 export const EMPTY_COUNTS: ArchiveCounts = { all: 0, in_progress: 0, autonomous_closed: 0, human_pending: 0, exception: 0 };
-export const DEFAULT_ARCHIVE_FILTERS: ArchiveFilters = { category: "all", q: "", eventType: "", handlingMode: "", since: "", until: "", mapId: "", offset: 0, limit: 50 };
+export const DEFAULT_ARCHIVE_FILTERS: ArchiveFilters = { category: "all", q: "", eventType: "", handlingMode: "", since: "", until: "", mapId: "", x: "", y: "", hour: "", timeSlot: "", offset: 0, limit: 50 };
 
 export function eventTypeLabel(value: string): string {
   return ({ small_litter: "其他小型垃圾", liquid: "液体污渍", can: "易拉罐", large_object: "大件物品", leaf: "树叶", unknown: "待复核" } as Record<string, string>)[value] ?? (value || "待复核");
@@ -75,6 +80,15 @@ export function archiveTimestampMs(value?: string): number {
   return Date.parse(/Z$|[+-]\d\d:\d\d$/.test(normalized) ? normalized : `${normalized}Z`);
 }
 
+/** Render persisted UTC filters in a `datetime-local` control without changing their API value. */
+export function archiveDateTimeInputValue(value?: string): string {
+  const timestamp = archiveTimestampMs(value);
+  if (!Number.isFinite(timestamp)) return "";
+  const date = new Date(timestamp);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 /** `datetime-local` has no offset. Convert the operator's local wall time before requesting UTC SQLite records. */
 export function localDateTimeToUtcIso(value: string): string {
   if (!value) return "";
@@ -89,10 +103,48 @@ export function archiveQuery(filters: ArchiveFilters): URLSearchParams {
   query.set("limit", String(filters.limit));
   const values: Array<[string, string]> = [
     ["q", filters.q.trim()], ["event_type", filters.eventType], ["handling_mode", filters.handlingMode],
-    ["since", localDateTimeToUtcIso(filters.since)], ["until", localDateTimeToUtcIso(filters.until)], ["map_id", filters.mapId],
+    ["since", localDateTimeToUtcIso(filters.since)], ["until", localDateTimeToUtcIso(filters.until)], ["map_id", filters.mapId], ["x", filters.x], ["y", filters.y], ["hour", validHour(filters.hour)], ["time_slot", validTimeSlot(paramsafe(filters.timeSlot))],
   ];
   values.forEach(([key, value]) => { if (value) query.set(key, value); });
   return query;
+}
+
+function validHour(value: string | null): string {
+  if (value === null || !/^\d{1,2}$/.test(value)) return "";
+  const hour = Number(value);
+  return hour >= 0 && hour <= 23 ? String(hour) : "";
+}
+
+function paramsafe(value: string): string | null { return value || null; }
+function validTimeSlot(value: string | null): string {
+  return value !== null && ["06-10", "10-14", "14-18", "18-22"].includes(value) ? value : "";
+}
+
+/** Read Analytics drill-down filters from a shareable Event Center URL. */
+export function parseArchiveFilters(url: string): ArchiveFilters {
+  try {
+    const params = new URL(url, "http://event-center.local").searchParams;
+    const category = params.get("category");
+    const handlingMode = params.get("handling_mode") as HandlingMode | null;
+    const validCategories = new Set<ArchiveCategory>(ARCHIVE_CATEGORIES.map((item) => item.id));
+    const validModes = new Set<HandlingMode>(["", "robot", "human_fallback", "human_review", "system_error"]);
+    return {
+      ...DEFAULT_ARCHIVE_FILTERS,
+      category: category && validCategories.has(category as ArchiveCategory) ? category as ArchiveCategory : "all",
+      q: params.get("q") ?? "",
+      eventType: params.get("event_type") ?? "",
+      handlingMode: handlingMode && validModes.has(handlingMode) ? handlingMode : "",
+      since: params.get("since") ?? "",
+      until: params.get("until") ?? "",
+      mapId: params.get("map_id") ?? "",
+      x: params.get("x") ?? "",
+      y: params.get("y") ?? "",
+      hour: validHour(params.get("hour")),
+      timeSlot: validTimeSlot(params.get("time_slot")),
+      offset: Math.max(0, Number(params.get("offset")) || 0),
+      limit: Math.max(1, Number(params.get("limit")) || DEFAULT_ARCHIVE_FILTERS.limit),
+    };
+  } catch { return { ...DEFAULT_ARCHIVE_FILTERS }; }
 }
 
 export function parseArchiveSelection(url: string): string | null {

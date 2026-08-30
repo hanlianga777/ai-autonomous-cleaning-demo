@@ -60,6 +60,7 @@ function CapabilitySummary({ decision }: { decision?: RecordValue }) {
 
 export function EventStageEvidence({ event, entry, mode, onCompleteManual }: { event: ActiveEvent; entry: TimelineEntry; mode: "live" | "history"; onCompleteManual?: () => void }) {
   const result = (event.liveResult ?? {}) as RecordValue;
+  if (result.mode === "DEMO_HISTORY") return <div className={card}><p>结构化演示历史 · {entry.label}</p><p>该记录仅用于历史指标与档案展示；不是实际云端调用、现场图像或机器人执行。</p>{typeof entry.detail.verification_pass === "boolean" && <p>历史验收结果：{entry.detail.verification_pass ? "通过" : "未通过"}</p>}</div>;
   if (entry.pending) return <p className="mt-2 text-[11px] text-slate-500">正在执行本阶段，等待真实服务结果…</p>;
   switch (entry.state) {
     case "DETECTED": return <p className="mt-1 text-[11px] text-slate-500">现场证据已接收，事件已持久化。</p>;

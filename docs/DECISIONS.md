@@ -3,6 +3,14 @@
 > **状态：LOCKED · 2026-08-30**
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
+## P1-E 指标与数据来源实现边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- 演示历史与 Runtime 均在 CleaningEvent/transition SQLite；Seed 仅启动幂等插入，不在 GET 生成第二份数据，不更新 Fleet/模型记录。Archive、detail、Analytics 均标 DEMO_HISTORY，历史 seed 不能进入实际集成 Runtime。
+- “有效业务处置结论”分母为非系统异常的 CLOSED/HUMAN_FALLBACK/HUMAN_REVIEW；仍自动处理中与系统异常单列排除。自主闭环同时要求 robot+verification PASS+CLOSED+无人工；人工介入统计任何 HF/HR，不人为补齐100%。
+- 首次成功分母仅首次验收有明确布尔结果的事件；重试成功不能覆盖首次失败。响应样本仅 CLOUD_REVIEW→NAVIGATING 或有记录的 HUMAN_STARTED/HUMAN_WORK_STARTED；HUMAN_COMPLETED 不冒充开始。闭环时间仅 DETECTED→CLOSED；缺观察空值并公开样本数。
+- 利用率 = 任务活跃区间并集 / 可用区间；当前缺真实 roster/uptime provider，明确使用 PoC 假定连续可用窗口(00–24)归一化，不称真实在线率、不修改 Fleet/Scheduler。窗口前任务仅计窗口内活跃区间；窗口内新任务与 carry-over 分开计数；FlashBot Max 排除。
+- D07 时段保持全天、06–10、10–14、14–18、18–22（Asia/Shanghai，左闭右开）；旧单小时参数仅兼容 API，不替代锁定 UI。热点携带 map/x/y/type/time_slot/UTC window 至 Event Center；未经过 LOCATED 的 Runtime 模板坐标不能进入热图。
+
 ## P1-D 档案实现边界（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 `GET /api/event-archive` 是 CleaningEvent + transition 的只读投影，不建立第二份事件数据库，也不读取当前 Fleet 覆盖历史。正常 Human Fallback 属于待人工处理；人工完成后的 CLOSED 仅在“全部”中标为人工处置后闭环，不混入“已自主闭环”或仍待人工。各分类计数先应用其它筛选，再按类别统计，不要求相加等于全部。发现时间排序不使用最后更新时间。

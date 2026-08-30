@@ -3,13 +3,15 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文件与 `DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 是后续 Session 的唯一外部事实源。必须先读完六份文件，再读代码、`git status`、`git log`；聊天记录和旧 Prompt 不可替代事实源。
 
-## 最新工程状态：P1-D IMPLEMENTED · A/E PASS（2026-08-30）
+## 最新工程状态：P1-E IMPLEMENTED · A/E PASS（2026-08-30）
 
-P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220` 已分别推送实施分支。P1-D 已实现同一 SQLite 的只读档案投影、五类状态、搜索/筛选、44% 共用 history 面板、URL 选择恢复；最终审查和提交状态见交接页。P1-E/F/H/G 仍 TODO，工程测试不能替代最终用户产品验收。
+P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`、P1-D `a350ad5` 已推送实施分支。P1-E 已接入同一 SQLite 的结构化 DEMO_HISTORY 与 Runtime 增量，5 KPI 明确分母；热图与档案共用坐标/筛选，利用率由任务区间取并集计算。代码/测试/浏览器与 A/E 工程审查通过；提交状态见交接。P1-F/H/G 仍 TODO，不提前合并 main。
+
+演示历史由应用启动时幂等写入，显式 `DEMO_HISTORY`，不生成模型调用/真实置信度，不改变 Fleet，不可冒充 LIVE。缺失实际人工开始观察时响应时间为空。可用时长目前为“PoC 假定连续24小时可用”的分析归一化假设，不是观测到的生产 uptime；后续实际availability provider可替换，不改 Scheduler。
 
 ## P1-C 已完成记录：IMPLEMENTED（2026-08-30）
 
-P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成代码、22 项定向测试、完整后端 86 PASS + 3 opt-in skipped、前端 17/17 与 build、实际浏览器 LIVE/Replay、Reviewer A/E PASS。已独立提交 `c9cf220`；P1-E/F/H/G 仍 TODO，最终用户产品验收未完成。
+P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成代码、22 项定向测试、完整后端 86 PASS + 3 opt-in skipped、前端 17/17 与 build、实际浏览器 LIVE/Replay、Reviewer A/E PASS。已独立提交 `c9cf220`；P1-F/H/G 仍 TODO，最终用户产品验收未完成。
 
 主 Runtime 已移除按 Demo02/固定 confidence 强制 Multi-view：单图云端返回 evidence_sufficient/ambiguity，再由真实 `qwen3-vl-plus`（`DASHSCOPE_AGENT_MODEL` 可配置）以 `tool_choice=auto` 选择合法补图。单图/独立二审仍使用 `DASHSCOPE_VL_MODEL`，未改现有用户 .env。原 Demo02 图过于清晰，真实模型不触发补证；按 Unified §71 允许的 evidence 优化，新增保留原图的 `primary-ambiguous-v2.png`，仅模拟主相机局部成像模糊，明确 CONTROLLED EVIDENCE。不预设模型 confidence、need_action 或工具选择。具体实跑数值仅在测试事实源记录。
 
@@ -24,7 +26,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成�
 - **AI 自主清洁运营分析中心（Analytics）**：回答“历史事件整体说明什么、下一步应如何优化”。
 - **Advanced Technical Observability / 高级模式**：回答“系统如何运行、哪些记录与能力是真实、确定性、受控证据或 PoC 模拟”。
 
-用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。P1-A 已独立提交并推送 `fcd01d4`；P1-B 代码、17 项前端测试、完整后端回归、构建、浏览器检查与 Reviewer A/E 均 PASS（工程 IMPLEMENTED），随后独立提交。P1-C 已工程完成（见上节）；P1-E/F/H/G 仍为后续任务，最终用户产品验收未被工程 PASS 替代。
+用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。P1-A 已独立提交并推送 `fcd01d4`；P1-B 代码、17 项前端测试、完整后端回归、构建、浏览器检查与 Reviewer A/E 均 PASS（工程 IMPLEMENTED），随后独立提交。P1-C 已工程完成（见上节）；P1-F/H/G 仍为后续任务，最终用户产品验收未被工程 PASS 替代。
 
 本轮已补齐版本化 AI response Replay、空间失败保护、共享 Fleet 与重启测试。用户已确认 Demo04 两纸箱是废弃待清运物品；该事实作为 event-scoped Scenario / Camera / Zone Context 传给云端，不写死输出。真实 Demo01 与 Demo04 均完成 LIVE→持久化→Replay 闭环；Demo04 人工兜底只由 Capability zero candidate 产生。旧失败保留为历史，测试证据见 `AI_INTEGRATION_TEST.md`。
 
@@ -49,7 +51,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成�
 - `demo_v1` 是阶段 REST Runtime：create → edge → cloud-review（single-view → evidence gate → optional multi-view → final gate）→ locate → assign → navigation → cleaning → verify；每步写入 SQLite `CleaningEvent` transition。旧 `/runs/*` 一次性入口为 410。
 - 云端调用统一经 `perception.qwen._request_qwen`；已有一次 Cloud 与独立 targeted second review/Fusion 的代码边界。`confidence >= 0.85` 不独立二审；`0.50 <= confidence < 0.85` 独立二审；`confidence < 0.50` 转 `HUMAN_REVIEW`。
 - P1-C 主 Runtime 已完成 evidence-sufficiency 驱动的真实 model auto-tool 自主补证；旧受控 LangGraph 仅为遗留技术路径，不能当作主工作台当前执行链路。
-- P1-B Event Center 已复用同一只读历史 `EventDetailPanel`，列表/过滤/URL 产品化已在 P1-D 实现。Analytics 使用结构化 Demo history + persisted event increment；Optimization 是确定性 mock recommendation；均不等于最终目标产品。
+- P1-B Event Center 已复用同一只读历史 `EventDetailPanel`，列表/过滤/URL 产品化已在 P1-D 实现。Analytics 已按P1-E读取同库结构化演示历史与Runtime真实聚合；Optimization旧API仍为固定推荐，等待P1-F替换，客户页不展示。
 - 当前 Advanced 是技术状态卡片 + 当前事件 JSON 的基础 shell；它不具备最终 Trace → Node → Inspect、结构化 audit、Reality Matrix 或错误分层，不得称为 Advanced Trace Inspector。
 - P1-B 的唯一 MapCanvas 使用 object-contain 内层平面，投影已存 SLAM target、Fleet 和 Dijkstra node_path；路线起点读 ASSIGNED 快照，终态位置读 Fleet 快照。连续移动是明确标识的 PoC 视觉插值，不是设备遥测。无后端路线不画假路线。
 - Demo01、Demo02 三次、Demo04 人工完成后曾真实 CLOSED；Demo03 曾真实选中 `robot-c`，但验收为 `retry → HUMAN_REVIEW`。完整原始记录见测试事实源。
@@ -100,7 +102,7 @@ Advanced 是 **Technical Observability & Execution Trace Inspector**，面向售
 | Multi-view | P1-C 已实现 Single-view → evidence gate → model auto-tool，仅在成功 fetch 后追加模型选定的合法补图 | 核心顺序已完成；P1-G 连续多次 LIVE 稳定性与完整最终验收仍待执行 |
 | Demo04 | 活跃阶段 API 已删除 cloud 大件直接人工分支；确定性回归通过，最新真实 LIVE→Replay 人工闭环通过，P1-A 工程验收通过 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` →人工完成→验收 |
 | Event Center | P1-D 紧凑 archive list、URL state、过滤/五类状态与同一 history 快照详情 | 最终跨页面/全流程回归仍属 P1-G |
-| Analytics | 存在演示历史聚合、固定利用率/建议和基础图 | 可追溯的 KPI、Heatmap、drill-down、真实 increment、无虚构 trend / utilization |
+| Analytics | P1-E同库历史与Runtime增量、可追溯5KPI、热图/时段/精确档案跳转、任务区间利用率 | P1-F真实Agent建议待接入；可用时长仍是PoC假设，非生产uptime |
 | Optimization / Agent | 现有 Optimization 是确定性 mock recommendation；无 Robot Operations Agent | 一个具白名单工具、Policy Guard、Action Audit、Observe/Replan/Close 的 Agent |
 | Advanced | 技术状态卡片 + 当前事件 JSON 基础 shell | Read-mostly Trace Inspector：结构化 Trace / Node Detail、Reality Matrix、Runtime/Tool/Error Observability，只读真实 audit records |
 | MapCanvas / Fleet | P1-A SQLite Fleet 与进程重启测试；P1-B 唯一内层投影、正式资产栏、ID-only 刷新恢复 | 本地视觉映射是示意投影，不是第二套导航算法 |

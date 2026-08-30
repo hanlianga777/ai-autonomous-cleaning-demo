@@ -1,6 +1,7 @@
-import { BarChart3, Bot, CircleDot, ClipboardList, LayoutDashboard, Settings2 } from "lucide-react";
+import { BarChart3, CircleDot, ClipboardList, LayoutDashboard, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CameraMonitorGrid } from "./CameraMonitorGrid";
+import { AnalyticsView } from "./AnalyticsView";
 import { EventArchiveView } from "./EventArchiveView";
 import { EventDetailPanel } from "./EventDetailPanel";
 import { scenarios, stageCopy } from "./data";
@@ -31,7 +32,8 @@ export function PrototypeWorkbench() {
   useEffect(() => {
     const restoreRoute = () => setView(viewFromPath());
     window.addEventListener("popstate", restoreRoute);
-    return () => window.removeEventListener("popstate", restoreRoute);
+    window.addEventListener("cleanops:navigate", restoreRoute);
+    return () => { window.removeEventListener("popstate", restoreRoute); window.removeEventListener("cleanops:navigate", restoreRoute); };
   }, []);
 
   // Store only the event identifier, never a second copy of runtime facts.
@@ -176,13 +178,6 @@ function currentDisplayState(event: ActiveEvent) { return event.inFlightState ??
 
 function NavItem({ icon: Icon, label, active = false, onClick }: { icon: typeof LayoutDashboard; label: string; active?: boolean; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors ${active ? "bg-slate-900 font-medium text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={16} strokeWidth={1.7} />{label}</button>;
-}
-
-function AnalyticsView() {
-  const [data, setData] = useState<Record<string, any> | null>(null); const [advice, setAdvice] = useState(""); const [question, setQuestion] = useState(""); const [answer, setAnswer] = useState("");
-  useEffect(() => { fetch("/api/analytics/overview").then((r) => r.json()).then(setData).catch(() => setData(null)); }, []);
-  const kpis = data?.kpis;
-  return <main className="mx-auto max-w-[1500px] p-5 lg:p-7"><div className="flex items-end justify-between border-b border-slate-200 pb-4"><div><p className="text-xl font-semibold">30 天运营分析</p><p className="mt-1 text-xs text-slate-500">30 天演示基线 + 本次运行的持久化事件。</p></div><button onClick={() => setAdvice("建议优先复核高频区域的摄像头覆盖与 Robot C 的跨楼通行等待；该建议仅基于当前统计，不会自动修改调度规则。")} className="border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700">重新分析</button></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["自主闭环率", `${kpis?.autonomous_closure_rate ?? "—"}%`], ["人工介入率", `${kpis?.human_intervention_rate ?? "—"}%`], ["一次通过率", `${kpis?.first_pass_success_rate ?? "—"}%`], ["平均闭环", `${kpis?.average_closure_time_minutes ?? "—"} min`]].map(([label, value]) => <div key={label} className="border border-slate-200 bg-white p-4"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-2 text-2xl font-semibold">{value}</p></div>)}</div><div className="mt-5 grid gap-4 lg:grid-cols-[1.4fr_.6fr]"><section className="border border-slate-200 bg-white p-5"><p className="text-sm font-semibold">园区高发区域</p><div className="relative mt-4 aspect-[2/1] overflow-hidden border border-slate-100 bg-slate-50"><img src="/visual-assets/campus/campus-white-model.png" className="h-full w-full object-contain opacity-70" />{(data?.heatmap ?? []).slice(0, 6).map((point: any, index: number) => <span key={point.zone_id} style={{ left: `${Math.min(88, (point.x ?? 10) + index * 6)}%`, top: `${Math.min(78, (point.y ?? 15) + index * 4)}%` }} className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500/70" title={`${point.label}: ${point.count}`} />)}</div></section><section className="border border-slate-200 bg-white p-5"><p className="text-sm font-semibold">AI 运营建议</p><p className="mt-3 text-xs leading-5 text-slate-600">{advice || "基于已加载的 KPI、热点和机器人利用率生成只读建议。"}</p><div className="mt-8 border-t border-slate-100 pt-4"><p className="flex items-center gap-1 text-xs font-semibold"><Bot size={14} />园区 AI 助手</p><div className="mt-2 flex gap-2"><input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="例如：闭环率是多少？" className="min-w-0 flex-1 border border-slate-300 px-2 py-2 text-xs outline-none" /><button onClick={() => setAnswer(question.includes("闭环") ? `当前自主闭环率为 ${kpis?.autonomous_closure_rate ?? "—"}%。` : "我只能基于当前运营统计回答，不能执行机器人、工单或阈值配置操作。")} className="bg-slate-900 px-3 text-xs text-white">问</button></div>{answer && <p className="mt-2 text-xs leading-5 text-slate-600">{answer}</p>}</div></section></div></main>;
 }
 
 function AdvancedView({ event, runtimeMode, onRuntimeModeChange }: { event: ActiveEvent | null; runtimeMode: "live" | "replay"; onRuntimeModeChange: (mode: "live" | "replay") => void }) {

@@ -50,3 +50,11 @@ test("archive evidence is never replaced by a scenario success asset", () => {
 test("timestamps do not append a second timezone to ISO values", () => {
   assert.equal(view.timestampMs("2026-08-30 01:00:00"), view.timestampMs("2026-08-30T01:00:00Z"));
 });
+test("structured demo history retains its source/camera without inventing real AI or pictures", () => {
+  const event = view.fromStoredEvent({ event_id: "p1e-history-example", mode: "DEMO_HISTORY", source: "DEMO_HISTORY", camera_id: "CAM-A1-02", state: "CLOSED", transitions: [{state:"HUMAN_STARTED",detail:{source:"DEMO_HISTORY"}}] });
+  assert.equal(event.liveResult.mode, "DEMO_HISTORY");
+  assert.equal(event.scenario.cameraId, "CAM-A1-02");
+  assert.equal(event.liveResult.qwen_review, undefined);
+  assert.equal(view.eventCamera(event), null);
+  assert.equal(view.timelineFor(event, "history")[0].label, "人工开始处置");
+});

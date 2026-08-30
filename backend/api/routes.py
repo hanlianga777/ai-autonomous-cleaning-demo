@@ -161,8 +161,12 @@ def get_dashboard() -> dict:
 
 
 @router.get("/analytics/overview", tags=["Analytics + Optimization"])
-def get_analytics_overview() -> dict:
-    return analytics_overview()
+def get_analytics_overview(event_type: str | None = None, since: str | None = None,
+                           until: str | None = None, hour: int | None = Query(None, ge=0, le=23), time_slot: str | None = None) -> dict:
+    try:
+        return analytics_overview(event_type=event_type, since=since, until=until, hour=hour, time_slot=time_slot)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get("/analytics/heatmap", tags=["Analytics + Optimization"])
@@ -363,10 +367,11 @@ def get_events(limit: int = Query(20, ge=1, le=100)) -> list[dict]:
 def get_event_archive(category: str = "all", q: str = Query("", max_length=200),
                       event_type: str | None = None, handling_mode: str | None = None,
                       since: str | None = None, until: str | None = None, map_id: str | None = None,
-                      offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100)) -> dict:
+                      offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
+                      hour: int | None = Query(None, ge=0, le=23), x: float | None = None, y: float | None = None, time_slot: str | None = None) -> dict:
     try:
         return archive_index(category=category, q=q, event_type=event_type, handling_mode=handling_mode,
-                             since=since, until=until, map_id=map_id, offset=offset, limit=limit)
+                             since=since, until=until, map_id=map_id, offset=offset, limit=limit, hour=hour, x=x, y=y, time_slot=time_slot)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 

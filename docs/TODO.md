@@ -1,7 +1,7 @@
 # AI 自主清洁 Demo｜真实任务清单
 
 > **状态：LOCKED · 2026-08-30**
-> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D 工程验收通过；D独立提交推送后进入 P1-E，后续阶段仍逐阶段验收提交。
+> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E 工程验收通过；E独立提交推送后进入 P1-F，后续阶段仍逐阶段验收提交。
 
 ## 已实现基线（IMPLEMENTED，禁止回退）
 
@@ -56,12 +56,16 @@
 
 验收：archive backend7/7、frontend archive7/7（全量24/24）、full backend93 PASS+3paid opt-in skipped、build/diff check与浏览器PASS，Reviewer A/E PASS。修复历史ID错配、轮询重叠、新提示闭包/分页、UTC筛选和分类类型；D无未解决核心P0/P1。更大数据量的服务端SQL索引/聚合优化可后续扩展，不宣称生产规模验收。
 
-## P1-E｜Analytics（AI 自主清洁运营分析中心）
+## P1-E｜Analytics（IMPLEMENTED · A/E PASS）
 
-- [ ] **可追溯 Analytics data model**：结构化 30 天 Seed History + 当前 Runtime CleaningEvent Increment；明确“近30天 · 演示历史数据”；真实计算 event/transition-derived 指标，移除固定 response/closure/utilization 与虚构趋势。
-- [ ] **5 KPI**：实现并记录有效事件 denominator：自主闭环率、人工介入率、首次处置成功率、平均响应时间、平均闭环时间；处理中/系统异常处理规则可审计。
-- [ ] **Campus Spatial Event Heatmap**：用 map_id/x/y/event_type/timestamp 聚合，复用 SLAM white model；实现 type/time filters、热点 drill-down、跳转 Event Center 的 location/type/time URL filter。
-- [ ] **辅助分析**：事件结构、区域/时段规律、清洁机器人运营效率；FlashBot Max 不进清洁利用率排名；利用率必须由任务状态时间 ÷ 可用时间计算。
+- [x] **可追溯 Analytics data model**：结构化 30 天 Seed History + 当前 Runtime CleaningEvent Increment；明确“近30天 · 演示历史数据”；真实计算 event/transition-derived 指标，移除固定 response/closure/utilization 与虚构趋势。
+- [x] **5 KPI**：实现并记录有效事件 denominator：自主闭环率、人工介入率、首次处置成功率、平均响应时间、平均闭环时间；处理中/系统异常处理规则可审计。
+- [x] **Campus Spatial Event Heatmap**：用 map_id/x/y/event_type/timestamp 聚合，复用 SLAM white model；实现 type/time filters、热点 drill-down、跳转 Event Center 的 location/type/time URL filter。
+- [x] **辅助分析**：事件结构、区域/时段规律、清洁机器人运营效率；FlashBot Max 不进清洁利用率排名；利用率必须由任务状态时间 ÷ 可用时间计算。
+
+验收：backend定向12/12、完整105项=102PASS+3paid opt-in skipped、前端32/32、build/diff check、实际热点→81条对应档案/Seed来源/UTC范围浏览器验收，A/E PASS。默认近30天；自定义范围按实际period返回；时段保持D07四bucket。
+
+- [ ] **P1-E P2**：Seed滚动插入保留旧档案，未来明确保留/归档策略（当前不自动删用户数据）；真实availability/uptime provider仍缺，利用率假定24小时连续可用；后续按需在UI展示carried_tasks；ECharts首次引入后bundle>500KB可按路由拆包。旧固定Optimization API待P1-F替换，客户Analytics已不显示假建议。
 
 ## P1-F｜Robot Operations Agent 与配送扩展基础
 

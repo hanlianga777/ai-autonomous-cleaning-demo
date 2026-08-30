@@ -3,6 +3,14 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
+## P1-E 当前数据层（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+`analytics/history_seed.py` 在 FastAPI lifespan 的 schema 初始化之后幂等插入过去30个完整日的结构化事件/transition，日期+版本ID、显式时间/来源；不调用真实模型、Runtime、Fleet。六事实源中的“演示历史”是合成业务数据，不是客户生产数据。
+
+`analytics/read_model.py` 从一次 `read_archived_events()` SQLite快照计算5KPI、样本分母、数据来源组成、时段/类型/热点、事件时活跃区间利用率。默认滚动30天；自定义窗口同步返回真实 `period.days`。利用率 provider 当前显式假定连续可用，未来可替换观测区间。无 GET 写入、无当前 Fleet 覆盖。
+
+`AnalyticsView` 与纯 `analyticsViewModel` 消费真实 API；ECharts 与已有 MapCanvas/projectMapCoordinate 共用内层坐标。热点选择为聚合区域交互，事件点坐标不被挪动；明细保留精确 map/x/y/type/time 与平均闭环并跳档案。Event Archive 能恢复 UTC 时间筛选且 input 显示本地时间。Analytics 右侧仅诚实预留 P1-F 共用Agent/Advice区域，旧固定对话/建议不再由该UI展示。
+
 ## P1-D 当前实现补充（2026-08-30）
 
 `backend/event_archive/service.py` 在同一 SQLite read transaction 批量读取 events/transitions，投影发现时间、类别、处理方式、事件时执行对象与位置、duration。`/api/event-archive` 支持 category/q/event_type/handling_mode/since/until/map_id/offset/limit；非法筛选 422，不静默回退全部。无 write/model/workflow/Fleet 依赖。
@@ -25,7 +33,7 @@ Semantic records 使用 `p1c.visual-pipeline.v1`，绑定图像字节、camera c
 React / Vite customer shell (/ and /prototype)
   ├── Workbench：CameraMonitorGrid + SpatialDispatchView + EventDetailPanel
   ├── Event Center：P1-D 只读档案列表/筛选/URL + 共用 history EventDetailPanel
-  ├── Analytics：Demo history 聚合 + 基础热点 / KPI / 建议
+  ├── Analytics：同库Seed/Runtime聚合 + 5KPI/热点/区间利用率；Agent建议待P1-F
   └── Advanced：状态与 trace shell
   ▼
 FastAPI /api
@@ -38,7 +46,7 @@ FastAPI /api
   └── SQLite（CleaningEvent / transitions / decisions / human work orders）
 ```
 
-**实现边界**：D06 Event Center 已按 P1-D 完成；Analytics、Optimization 基础代码不代表 D07–D09 的 LOCKED 目标已完成；D10 新 Multi-view 已按 P1-C 完成。
+**实现边界**：D06 Event Center 已按 P1-D 完成；D07 Analytics已在P1-E接入真实聚合；D08–D09 Operations/Advice目标仍未完成；D10 新 Multi-view 已按 P1-C 完成。
 
 ## 2. 已实现的阶段边界（IMPLEMENTED / LOCKED）
 
@@ -137,7 +145,7 @@ CleaningEvent
 
 **P1-D 已实现**：Event Center 的列表产品化要求事件创建即进入列表、默认倒序；全部、处理中、已自主闭环、待人工处理、异常五类状态分离。`HUMAN_FALLBACK` 是业务兜底，不是异常。URL `?event=` 恢复选择但首次不自动打开。**P1-B IMPLEMENTED**：历史详情只读事件发生当时 robot / route / AI / verification / terminal Fleet snapshot，不用当前状态覆盖；列表实时提示与 URL 已在 P1-D 实现。
 
-## 7. Analytics Engine（LOCKED / TODO）
+## 7. Analytics Engine（P1-E IMPLEMENTED；P1-F Agent Read Tools/Advice TODO）
 
 ```text
 30-day structured Demo Historical Baseline (explicitly labelled)
@@ -147,7 +155,7 @@ CleaningEvent
        ├── Campus Spatial Event Heatmap
        ├── event structure + time / hotspot analysis
        └── cleaning-robot utilization from task-state time
-  → Analytics UI + Robot Operations Agent read tools
+  → Analytics UI（P1-E已实现） + Robot Operations Agent read tools（P1-F TODO）
 ```
 
 Analytics Engine 不是 Agent，不得由 LLM 编造 KPI、utilization 或效果数字。热力图用 map_id/x/y/event_type/timestamp 聚合，点击热点可带 filter 跳到 Event Center。FlashBot Max 不进入清洁机器人利用率排名。运营建议只读取此确定性数据；默认显示带 Data Window / Generated At 的 snapshot，用户主动点击才重新生成。

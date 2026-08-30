@@ -39,7 +39,7 @@ export function EventDetailPanel({ event, mode = "live", onCompleteManual }: {
       <div className="shrink-0 border-b border-slate-100 px-4 py-3">
         <p className="text-sm font-semibold">{event.scenario.eventTitle}</p>
         <p className="mt-1 text-[10px] text-slate-500">{event.scenario.cameraId} · {clockLabel(event.liveResult?.created_at)} · 耗时 {elapsed}</p>
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{event.liveResult?.mode === "STABLE_REPLAY" ? "历史 AI 记录回放" : "LIVE 云端研判"}</span></div>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{event.liveResult?.mode === "DEMO_HISTORY" ? "演示历史 · 非 LIVE" : event.liveResult?.mode === "STABLE_REPLAY" ? "历史 AI 记录回放" : "LIVE 云端研判"}</span></div>
       </div>
       <div ref={bodyRef} data-testid="event-timeline-scroll" tabIndex={0} onWheel={pauseFollow} onTouchStart={pauseFollow} onPointerDown={pauseFollow} onKeyDown={(e) => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"].includes(e.key)) pauseFollow(); }} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {!timeline.length && <p className="text-xs text-slate-500">{event.processing ? "正在创建事件…" : "尚无已保存的阶段记录。"}</p>}
