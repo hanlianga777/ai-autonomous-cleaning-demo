@@ -5,7 +5,7 @@
 
 ## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
 
-- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
 - 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → affected code → implementation status）。
 - 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
 
@@ -383,3 +383,204 @@
 - **Locked Target**：最终 Unified Implementation Report 必须逐项映射 `WB-MAP-01.1`–`.15` 至 Requirement → Code → Test → Screenshot/User Acceptance；任一未完成则 WB-MAP-01 仍为 `LOCKED TARGET`，用户未亲眼通过则不得 `USER_ACCEPTED`。
 - **Acceptance Criteria**：报告包含全部 15 项可复核证据，且用户已实际观察 Demo01/02/03 空间展示后才能记录 `USER_ACCEPTED`。
 - **Affected Active Code**：本条覆盖上述所有空间、调度、Runtime、frontend projection files；本轮不修改任何代码。
+
+## WB-CAMERA-01｜固定摄像头监控墙与“AI机器人调度大脑”页面表达
+
+| Field | Value |
+| --- | --- |
+| ID | WB-CAMERA-01 |
+| Module | Workbench Camera Monitor Wall / customer-facing page language |
+| Status | **LOCKED TARGET** |
+| Scope | Docs-only delta sync；本轮不修改 frontend、backend、runtime、test、database 或 launcher。 |
+
+> Workbench 顶部固定摄像头区是客户/面试官理解“园区正在被多个固定摄像头监控、事件画面被突出、清洁后恢复干净”的实时监控墙；不是 CV/YOLO/Evidence Debug 或 Camera 配置页面。受控检测、bbox 和技术证据仍保留给事件详情/Advanced，不能因清理监控墙而破坏真实 evidence 能力。
+
+### WB-CAMERA-01.1｜三路等宽监控墙
+
+- **User Intent**：默认三路等宽 Camera Card 同行展示，视觉尺寸统一、填充均衡；不得继续使用两路超宽 `grid-cols-2` 布局。
+- **Current Implementation**：`CameraMonitorGrid` 明确是“两主槽位”，使用 `grid-cols-2`，4:3 图像放入宽槽位产生黑色留白。
+- **Previous Source Coverage**：P1-B 已有双监控矩阵和 `object-contain` evidence 规范；三路面客监控墙未被锁定。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：三路卡等宽、等高且同一行；不因事件把第一路放大为主屏。
+- **Acceptance Criteria**：常见桌面视口同时显示三路统一卡片，无两路超宽格或大块黑边。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`CameraViewport.tsx`、`eventViewModel.ts`、`data.ts`。
+
+### WB-CAMERA-01.2｜动态三槽位选择
+
+- **User Intent**：无事件显示三路默认重点区域的正常画面；有事件时该主摄像头必须进入第一槽，另两路继续显示其它区域正常画面。选择逻辑可由 Codex 依据 Camera 数据决定，但不得在 React 按 demo ID 堆大量特判。
+- **Current Implementation**：`monitorViews()` 只选两路，并根据主 camera 的具体 ID 分支选择；事件主相机虽会进入槽位，但没有动态三槽数据模型。
+- **Previous Source Coverage**：P1-B 保证主事件画面与辅助画面隔离，但没有三槽动态调度要求。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：由 Camera/事件事实选择第一主槽及两个正常槽，所有正式事件都可见其事件 camera。
+- **Acceptance Criteria**：Demo01–04 中触发 camera 都出现在第一槽，其余两路正常；无事件稳定显示三路默认重点区。
+- **Affected Active Code**：`eventViewModel.ts`、`data.ts`、`CameraMonitorGrid.tsx`、`types.ts`。
+
+### WB-CAMERA-01.3｜无事件的正常运营画面
+
+- **User Intent**：没有正在执行的事件时，三路全部显示各自清洁后的正常状态图片，不显示垃圾、检测框、事件前证据或告警。
+- **Current Implementation**：当前仅两路；`monitorViews()` 对空闲槽优先使用 `afterImage`，已有“正常画面”的部分能力，但第三槽和完整三路规则不存在。
+- **Previous Source Coverage**：P1-B 有 before/after 资产矩阵；无事件三路全正常的业务表达缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：默认园区运营状态必须是三路干净监控图；不得为了展示算法保留异常画面。
+- **Acceptance Criteria**：无 event 时三路均为 after/normal 图，且无 overlay、告警标签或事件前对象。
+- **Affected Active Code**：`eventViewModel.ts`、`data.ts`、`CameraMonitorGrid.tsx`。
+
+### WB-CAMERA-01.4｜事件前原始画面与无 Overlay
+
+- **User Intent**：事件触发后，事件 camera 显示清洁前真实原始垃圾/污渍/目标画面；监控墙严禁 YOLO 框、识别标签、类别/置信度、bbox 和任何算法 overlay，应像真实监控视频。
+- **Current Implementation**：主 camera 在事件中切换为 before asset，但 EDGE_DETECTED 后会把 `detections=true` 传给 `CameraViewport(showDetections=true)`，直接显示 bbox、标签和置信度。
+- **Previous Source Coverage**：P1-B/P1-C 已锁定 persisted controlled evidence/overlay 的真实性；从客户监控墙移除 overlay、在详情/Advanced 保留 evidence 的边界缺失。
+- **Root Cause**：`IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：Workbench 监控墙永不显示 detection overlay；事件详情/Advanced 可继续基于同一真实 bbox/evidence 审计。
+- **Acceptance Criteria**：任何 Demo 的顶部事件前画面可看到原始目标但看不到框、标签、百分比或 bbox；技术视图仍可查证真实检测证据。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`CameraViewport.tsx`、`eventViewModel.ts`、`EventStageEvidence.tsx`、`AdvancedView.tsx`。
+
+### WB-CAMERA-01.5｜事件 Card 状态强调
+
+- **User Intent**：事件待处理为克制红色外框/轻微脉冲，机器人处理中为橙色，AI验收通过短暂绿色，随后恢复普通浅色边框；禁止霓虹、强发光和赛博告警风。
+- **Current Implementation**：当前卡主要用右上文字 badge 区分“处置前/后证据”，没有按 event state 的整卡红/橙/绿反馈。
+- **Previous Source Coverage**：P1-B 有 stage state 和客户卡颜色，但监控墙状态边框/反馈序列未锁定。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：Card 视觉只读真实 transition/verification state，不创建独立告警状态机。
+- **Acceptance Criteria**：Demo 中可依序看见事件红、处理中橙、验收通过短绿、恢复正常；视觉克制且不抢监控图。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`eventViewModel.ts`、`runtimeSession.ts`。
+
+### WB-CAMERA-01.6｜清洁后切换与验收恢复
+
+- **User Intent**：机器人或人工处置完成后，当前 camera 切换对应清洁后图片，随后进入固定摄像头 AI验收；通过后短绿并恢复正常，完整表达“正常→事件→处理中→清洁后→AI验收→正常”。
+- **Current Implementation**：`monitorViews()` 在持久化 VERIFYING 后切换事件 camera 为 after asset；但监控卡缺少清晰的清洁后/验收/绿色/恢复完整状态表达。
+- **Previous Source Coverage**：P1-A/P1-G 已锁定 before/after 和真实 verification；面客监控墙的切换/反馈生命周期缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：切图和状态必须只依据真实 action/verification Runtime，不伪造验收完成。
+- **Acceptance Criteria**：Demo01–04 都可见处置后图先于验收结果；通过后出现短绿并回到正常卡。
+- **Affected Active Code**：`eventViewModel.ts`、`CameraMonitorGrid.tsx`、`CameraViewport.tsx`、`backend/demo_v1/service.py`。
+
+### WB-CAMERA-01.7｜Workbench 与技术 Evidence 分层
+
+- **User Intent**：移除 Workbench 监控墙 YOLO Overlay，但不得破坏 Event Detail / Advanced 中真实受控检测 bbox/evidence 能力。
+- **Current Implementation**：同一个 `CameraViewport` 的 `showDetections` 用于可视 evidence；顶部墙通过 `detections` 打开，详情通过独立 `CameraEvidence` 使用同一基础组件。
+- **Previous Source Coverage**：P1-C/D13 已要求受控 edge 在技术追溯中如实呈现；没有为不同产品场景建立显示策略。
+- **Root Cause**：`IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：监控墙与 Evidence/Advanced 必须拥有不同的显示模式，底层 bbox 数据和技术验收不受影响。
+- **Acceptance Criteria**：Workbench 无 overlay；Event Detail/Advanced 的真实 bbox/证据验证仍可用且未被删除。
+- **Affected Active Code**：`CameraViewport.tsx`、`CameraMonitorGrid.tsx`、`EventStageEvidence.tsx`、`AdvancedView.tsx`、`eventViewModel.ts`。
+
+### WB-CAMERA-01.8｜监控墙与 Evidence 的画面填充策略
+
+- **User Intent**：面客监控墙允许等比例 `cover` 和合理裁切以铺满画面，不拉伸、不留大片黑边；Evidence/Advanced 继续完整原图比例和 bbox 坐标一致性，不能用同一 Viewport 策略强行兼顾两种场景。
+- **Current Implementation**：`CameraViewport` 计算 4:3 image plane 并使用 `object-contain`，即使 `fill` 仍维持 letterbox；这满足 evidence 坐标但不满足监控墙。
+- **Previous Source Coverage**：P1-B 已锁定 evidence/overlay 坐标一致性；产品场景的 cover 与 evidence contain 分离缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：实现独立 customer monitoring mode 与 evidence/advanced mode，均不得拉伸或伪造 asset。
+- **Acceptance Criteria**：三路监控图无明显黑边或形变；Evidence/Advanced 的原图/bbox 对齐保持正确。
+- **Affected Active Code**：`CameraViewport.tsx`、`CameraMonitorGrid.tsx`、`EventStageEvidence.tsx`、`AdvancedView.tsx`。
+
+### WB-CAMERA-01.9｜极简监控信息
+
+- **User Intent**：每路默认仅显示左下业务地点、正中半透明播放按钮、右下实时动态时间；不得默认显示 Camera ID、空闲/前后证据、controlled/LIVE evidence 等技术标签。
+- **Current Implementation**：当前显示左上 Camera ID、右上“空闲画面/处置前证据/处置后证据”、左下地点；没有中心播放按钮或右下时间。
+- **Previous Source Coverage**：P1-B 监控矩阵已经有地点/资产标识；极简三位置信息布局缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：客户只见地点、播放视觉入口和时间；技术身份进入 Advanced/Technical Detail。
+- **Acceptance Criteria**：三卡信息位置一致，只有地点/播放按钮/HH:mm:ss；无 Camera ID、Evidence、前后处理技术文字。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`CameraViewport.tsx`、`eventViewModel.ts`。
+
+### WB-CAMERA-01.10｜半透明播放视觉入口
+
+- **User Intent**：恢复画面正中半透明播放按钮，风格像真实监控系统、不过度抢画面；它可以是视觉状态入口，不要求伪造 RTSP 播放控制。
+- **Current Implementation**：顶部监控卡没有中心播放按钮。
+- **Previous Source Coverage**：P1-B 没有监控播放视觉要求，且当前是静态 PoC asset。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：只实现视觉入口，不声称真实 RTSP 或摄像机控制。
+- **Acceptance Criteria**：每卡视觉中心有轻量半透明播放按钮，且不阻碍事件画面/状态边框。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`CameraViewport.tsx`。
+
+### WB-CAMERA-01.11｜动态监控时间
+
+- **User Intent**：每卡右下显示低干扰、每秒刷新 `HH:mm:ss` 的前端展示时间；不需解释或伪造摄像机原始 OSD timestamp。
+- **Current Implementation**：`CameraViewport` 与 `CameraMonitorGrid` 没有动态时钟。
+- **Previous Source Coverage**：P1-A/B 仅锁定 SQLite business transition timestamp，不包含监控产品氛围时钟。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：展示时间仅作监控产品感，不进入 Runtime/审计事实。
+- **Acceptance Criteria**：三路均在右下显示并每秒变化的 `HH:mm:ss`，不影响真实事件时间线。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`CameraViewport.tsx`。
+
+### WB-CAMERA-01.12｜简化监控标题区
+
+- **User Intent**：标题区默认只保留“固定摄像头监控”；可有极短业务状态，不得保留“2路重点区域 · 受控摄像头证据”等解释小字。
+- **Current Implementation**：标题下仍显示“2 路重点区域 · 受控摄像头证据”。
+- **Previous Source Coverage**：P1-B 已标明证据边界；该技术说明不应再占客户标题区。
+- **Root Cause**：`IMPLEMENTATION_DIVERGENCE`；旧标题说明 **SUPERSEDED BY WB-CAMERA-01**。
+- **Locked Target**：技术 evidence 说明转入 Advanced/Detail，顶部保持干净。
+- **Acceptance Criteria**：标题区无双路、受控证据等灰字，客户默认只看到“固定摄像头监控”。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`。
+
+### WB-CAMERA-01.13｜Workbench 顶部去重
+
+- **User Intent**：顶部只保留页面名称“AI机器人调度大脑”，删除客户层的“机器人正在前往”、LIVE、STABLE REPLAY、运行状态和技术模式说明；事件状态由墙、地图、详情共同表达。
+- **Current Implementation**：`PrototypeWorkbench` 顶部同时显示旧页面名、stageCopy 状态和 LIVE/STABLE REPLAY badge。
+- **Previous Source Coverage**：P1-A/D13 锁定 Runtime/Replay 可观测性，但应由 Advanced 承担；Workbench header 去重缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：Runtime mode/状态并未删除，只从客户 Header 移至 Advanced/其它锁定面客投影。
+- **Acceptance Criteria**：Workbench header 仅呈现“AI机器人调度大脑”，不再含运行状态或 LIVE/Replay 标识。
+- **Affected Active Code**：`PrototypeWorkbench.tsx`、`data.ts`、`AdvancedView.tsx`。
+
+### WB-CAMERA-01.14｜客户可见名称统一
+
+- **User Intent**：所有客户可见的“自主清洁工作台”统一为“AI机器人调度大脑”，包括左导航、页面 Header、空状态、跳转入口、帮助/面客标签与其它引用；内部 `PrototypeWorkbench` / route 不需无价值重构。
+- **Current Implementation**：左侧导航和 Header 仍为“自主清洁工作台”，其它场景/帮助文字也保留旧名称。
+- **Previous Source Coverage**：D02 锁定一级导航旧名称；该客户文案被本条新名称 **SUPERSEDED BY WB-CAMERA-01**。
+- **Root Cause**：`IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：只替换客户文案，不要求为名称进行内部组件/路由重构。
+- **Acceptance Criteria**：全站客户可见 Workbench 名称一致为“AI机器人调度大脑”，搜索/验收无旧客户名称残留。
+- **Affected Active Code**：`PrototypeWorkbench.tsx`、`CameraMonitorGrid.tsx`、`EventDetailPanel.tsx`、`data.ts`、客户文案相关组件。
+
+### WB-CAMERA-01.15｜监控墙客户语言
+
+- **User Intent**：监控墙与 Workbench Header 不出现 LIVE、FLEET、CONTROLLED EVIDENCE、Backend、Replay、Camera Evidence 等客户无须理解的英文/技术词；除品牌/不可避免专有名词外优先业务中文，技术信息统一进 Advanced。
+- **Current Implementation**：监控墙和 Header 直接显示 Camera ID、Evidence、LIVE/Replay 等；空间卡也有 Fleet/Backend 等技术词。
+- **Previous Source Coverage**：D02 概括客户中文、D13 锁定 Advanced 技术透明；具体监控墙/Header 清理清单缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：保持真实技术事实但将其放到正确技术页面，面客主界面使用业务中文。
+- **Acceptance Criteria**：客户监控墙/Header 无该类工程词；Advanced 仍可看到真实技术事实。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`CameraViewport.tsx`、`PrototypeWorkbench.tsx`、`SpatialDispatchView.tsx`、`AdvancedView.tsx`。
+
+### WB-CAMERA-01.16｜低干扰演示控制
+
+- **User Intent**：右上“…”中的 Demo Operator Control 可保留，但客户正常观看时不突出；它不是客户业务功能，默认界面保持干净。
+- **Current Implementation**：现有“…”已经承载演示控制，默认收起，符合低干扰方向。
+- **Previous Source Coverage**：P1-B 有四个 Demo 触发矩阵，但未明确定义客户与操作员入口层级。
+- **Root Cause**：`SOURCE_MISSING`（保留现有能力但需锁定边界）。
+- **Locked Target**：演示控制保持二级入口；不得扩展为默认业务操作面板。
+- **Acceptance Criteria**：正常观看时只见低干扰“…”；打开后才显示 Demo Operator Control，且不影响三路监控布局。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`PrototypeWorkbench.tsx`。
+
+### WB-CAMERA-01.17｜三槽位的统一视觉
+
+- **User Intent**：三路 Camera Card 高度、宽度、裁切、地点、时间、播放按钮位置完全一致；事件主槽仅靠状态边框与画面内容强调，不能把第一路巨大化或其余两路缩小。
+- **Current Implementation**：目前只有两路，均缺播放/时间，故三槽统一性尚不存在。
+- **Previous Source Coverage**：P1-B 有双监控矩阵，不包含三槽尺寸/信息定位规范。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：一套一致 Camera Card layout，主槽不改变尺寸。
+- **Acceptance Criteria**：三槽等宽等高、裁切和三项信息位置一致；事件强调不改变版式比例。
+- **Affected Active Code**：`CameraMonitorGrid.tsx`、`CameraViewport.tsx`。
+
+### WB-CAMERA-01.18｜四个 Demo 的完整监控状态循环
+
+- **User Intent**：用户必须能见到无事件三路正常 → Demo01 主 camera 原始垃圾图/无框/红卡 → 处理中橙 → 清洁后图 → AI验收通过短绿 → 正常；Demo02/03/04 完全遵循同一状态逻辑。
+- **Current Implementation**：before/after asset 与真实 Verification 已存在，但当前双槽、bbox overlay、技术 badge 和缺失状态卡反馈无法满足统一客户循环。
+- **Previous Source Coverage**：P1-A/B/C/G 有全部 Runtime/证据/验证事实；监控墙四 Demo 生命周期验收缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：四个 Demo 共享同一 camera-state projection，结果只从真实 Runtime state/verification 产生。
+- **Acceptance Criteria**：用户可逐一见证 Demo01–04 的完整循环，任何 Demo 都不显示 bbox 或跳过真实验收状态。
+- **Affected Active Code**：`eventViewModel.ts`、`CameraMonitorGrid.tsx`、`CameraViewport.tsx`、`PrototypeWorkbench.tsx`、`backend/demo_v1/service.py`。
+
+### WB-CAMERA-01.19｜验收、用户确认与实施报告
+
+- **User Intent**：未来至少验收三路同排、无黑边、无事件全 after、事件 before 原图无 bbox、红/橙/绿状态、播放按钮、动态时钟、极简地点信息、标题清理、统一“AI机器人调度大脑”、Header 去重、四 Demo 同循环。用户未亲眼通过前不得 `USER_ACCEPTED`。
+- **Current Implementation**：既有 P1-B 监控/图片/Evidence 测试与浏览器验收不等同 WB-CAMERA-01 的面客监控墙验收。
+- **Previous Source Coverage**：`TODO.md`/测试事实源记录工程验收与用户展示验收待完成，但没有本条逐项 evidence matrix。
+- **Root Cause**：`SOURCE_MISSING`。
+- **Locked Target**：最终 Unified Implementation Report 必须逐项列出 `WB-CAMERA-01.1`–`.19` 的 Requirement → Code → Test → Screenshot/User Acceptance；任何子项未完成不得 IMPLEMENTED，用户未亲眼验收不得 USER_ACCEPTED。
+- **Acceptance Criteria**：Implementation Report 含全部 19 项可复核证据，用户观察四 Demo 监控循环后才可记录 `USER_ACCEPTED`。
+- **Affected Active Code**：本条覆盖上述 Workbench/customer/technical evidence files；本轮不修改任何代码。

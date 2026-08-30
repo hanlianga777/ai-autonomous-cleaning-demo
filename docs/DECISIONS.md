@@ -30,6 +30,13 @@
 - 当前 anchor projection 只证明 route 的跨楼/电梯/连廊拓扑顺序，不能证明沿道路/走廊/连廊中心线可行走，属 `IMPLEMENTATION_GAP`。未来须将 backend business route 投影为统一维护的 Demo Navigation Waypoint Geometry；不要求 Nav2/动态避障/production costmap，但禁止穿墙、穿楼、道路外漂移、室内上马路或跨楼直线。
 - 地图必须在真实 demo stage 中演进：空闲无路线、发现事件点、派单路线/选中高亮、导航沿合法 waypoints、真实电梯停留、连廊移动、到达/清洁/验收、CLOSED 绿色完成和路线弱化。路线必须明显且层级为事件点 > 当前机器人 > 已走 > 待走；Demo01 S5 室外道路、Demo02 Omnie A栋、Demo03 SC50 B1F→电梯→B2F→连廊→A2F 都必须由用户可见验证。完整的 15 项目标和证据门槛见 `INTERVIEW_DEMO_RECONCILIATION.md#wb-map-01机器人资产与园区空间调度地图`；本条未实施，不得标记 IMPLEMENTED/USER_ACCEPTED。
 
+## WB-CAMERA-01｜固定摄像头监控墙与“AI机器人调度大脑”（LOCKED TARGET · 2026-08-30）
+
+- Workbench 顶部是客户实时监控墙，不是 CV/YOLO/Evidence Debug 或 Camera 配置页。默认三路等宽同行监控，无 event 时全为清洁后的正常图；event 时真实主 camera 必在第一槽显示清洁前原图，另两路正常。顶部墙永不显示 YOLO/bbox/类别/置信度/Camera ID/Evidence 技术标签，受控检测与完整 evidence 保留给 Event Detail/Advanced。
+- 旧“两路重点区域”、`grid-cols-2`、`object-contain` 黑边、Workbench bbox overlay、Camera ID/前后证据/controlled evidence badge、无播放按钮/时钟、标题解释小字、旧“自主清洁工作台”页面名、Header stage/LIVE/Stable Replay 技术状态，是历史 UI 方案，**SUPERSEDED BY WB-CAMERA-01**；当前 active implementation 属 `IMPLEMENTATION_DIVERGENCE`。内部 `PrototypeWorkbench`/route 无需为客户文案重构。
+- Card 以克制业务状态显示红色事件、橙色处理中、短绿色验收通过后恢复正常；默认只显示地点、中心半透明播放视觉入口、右下每秒 `HH:mm:ss` 展示时间。面客墙允许无拉伸的 cover/crop，Evidence/Advanced 继续完整比例/bbox 对齐。Demo Operator Control 可保留在低干扰“…”二级入口。
+- 所有 Camera state、before/after 切图与 AI验收结果必须从真实 Runtime/asset/verification 投影；不得伪造 RTSP、原始 camera OSD、检测或验收。Demo01–04 都必须让用户见证“正常→事件原图无框→处理中→清洁后→AI验收→正常”。完整 19 项目标和用户验收门槛见 `INTERVIEW_DEMO_RECONCILIATION.md#wb-camera-01固定摄像头监控墙与ai机器人调度大脑页面表达`；本条未实施，不得标记 IMPLEMENTED/USER_ACCEPTED。
+
 ## P1-G 验收执行边界（IMPLEMENTED；不替代用户主观展示验收）
 
 - 通用 verification 的 target ROI 只能由主相机 controlled edge 的合法 normalized bbox union 推导；同一 normalized ROI 同时裁取 before/after，不得使用场景专用坐标、supporting-camera bbox 或猜测目标。primary verifier 必须同时获得 before/after 全图及这对 ROI；缺失、畸形、非法 bbox、非有限数值或不匹配 Replay 一律安全失败。
@@ -113,6 +120,8 @@
 ## D05｜MapCanvas、路线、Fleet 与时间
 
 **IMPLEMENTED / LOCKED（P1-B runtime） / WB-MAP-01 UI target**：白模、机器人、路线、marker 使用唯一 MapCanvas `object-contain` 内层坐标系，不得依据外层 div 百分比。P1-B 的 anchor path、线性插值、弱路线与技术文案是历史实现，作为面客空间总览已被 **WB-MAP-01 SUPERSEDED**；当前视觉是 `IMPLEMENTATION_DIVERGENCE`。保留真实 backend node/segment order、电梯暂停与无合法 node_path 不画路线；未来以统一 deterministic Demo Navigation Waypoint Geometry 呈现合法可行走路线，不要求 3D/Nav2/动态避障。
+
+**P1-B Camera evidence runtime IMPLEMENTED / WB-CAMERA-01 UI target**：before/after asset、persisted controlled bbox、真实 Cloud/Verification 和完整原图坐标事实继续有效；旧 Workbench 双槽 `object-contain` 证据墙、监控墙直接显示 bbox/置信度、Camera ID/证据 badge 及客户 Header 技术状态 **SUPERSEDED BY WB-CAMERA-01**。面客墙必须使用三路动态槽位、无 bbox 的原始 before/after 画面、业务状态/地点/播放视觉入口/展示时钟；Evidence/Advanced 保持原比例和 bbox 真实性。
 
 **IMPLEMENTED / LOCKED（P1-A/B）**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker。Scheduler 当前 map 与 target map 调 Dijkstra global topology planner / `plan_route()`；不是 Demo ID 固定路线。Demo03 基线故事为 B1F → 电梯 → B2F → Skybridge → A2F 地毯易拉罐；连续运行仍遵守当前 Fleet，不能偷偷重置位置以强制重复基线路线。
 
