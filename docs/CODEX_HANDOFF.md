@@ -1,6 +1,8 @@
 # Codex 交接｜Post-merge Interview Freeze
 
-> **CURRENT main HEAD：`8341eb079fe5a700b4931e0112fdbe5552297785` · 2026-08-30**
+> **Post-merge Interview Freeze · 2026-08-30**
+> Unified Implementation merge baseline: `8341eb079fe5a700b4931e0112fdbe5552297785`
+> Current main HEAD: 以 GitHub main / `git rev-parse HEAD` 为准
 > 历史实施分支：`codex/unified-implementation`，最终提交 `bdd08e02e0e4fc96d9ad6229949f2c8bf3812136`。它不是当前开发分支。
 
 新 Session 必须依次完整阅读 `PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、本文件、`AI_INTEGRATION_TEST.md`，然后检查 `git status`、`git log` 和代码。不要用聊天上下文或旧阶段 Prompt 补全事实。

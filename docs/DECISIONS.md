@@ -1,6 +1,9 @@
 # AI 自主清洁 Demo｜锁定决策
 
-> **状态：LOCKED · Post-merge Interview Freeze · main `8341eb079fe5a700b4931e0112fdbe5552297785` · 2026-08-30**
+> **状态：LOCKED · Post-merge Interview Freeze · 2026-08-30**
+> Unified Implementation merge baseline: `8341eb079fe5a700b4931e0112fdbe5552297785`
+> Current main HEAD: 以 GitHub main / `git rev-parse HEAD` 为准
+> 历史实施分支 `codex/unified-implementation` / `bdd08e02e0e4fc96d9ad6229949f2c8bf3812136` 仅作历史记录。
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
 ## P1-G 验收执行边界（IMPLEMENTED；不替代用户主观展示验收）

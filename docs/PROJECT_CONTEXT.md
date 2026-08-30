@@ -1,6 +1,8 @@
 # AI 自主清洁 Demo｜项目上下文
 
-> **CURRENT main HEAD：`8341eb079fe5a700b4931e0112fdbe5552297785` · Post-merge Interview Freeze · 2026-08-30**
+> **Post-merge Interview Freeze · 2026-08-30**
+> Unified Implementation merge baseline: `8341eb079fe5a700b4931e0112fdbe5552297785`
+> Current main HEAD: 以 GitHub main / `git rev-parse HEAD` 为准
 > `codex/unified-implementation` / `bdd08e02e0e4fc96d9ad6229949f2c8bf3812136` 是已合并的历史实施线，不是当前基线或工作分支。
 
 ## 产品目标

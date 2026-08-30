@@ -1,6 +1,9 @@
 # AI 自主清洁 Demo｜当前架构与锁定目标
 
-> **状态：IMPLEMENTED · Post-merge Interview Freeze · main `8341eb079fe5a700b4931e0112fdbe5552297785` · 2026-08-30**
+> **状态：IMPLEMENTED · Post-merge Interview Freeze · 2026-08-30**
+> Unified Implementation merge baseline: `8341eb079fe5a700b4931e0112fdbe5552297785`
+> Current main HEAD: 以 GitHub main / `git rev-parse HEAD` 为准
+> 历史实施分支 `codex/unified-implementation` / `bdd08e02e0e4fc96d9ad6229949f2c8bf3812136` 仅作历史记录。
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
 ## Post-merge 当前验收状态（IMPLEMENTED；用户主观展示验收仍待）
