@@ -65,7 +65,16 @@ Fixed Camera
 
 `confidence` 与 `evidence_sufficient` 必须是不同输出，且 **Evidence Sufficiency Gate 优先于最终 confidence disposition**。Single-view `evidence_sufficient=false`、ambiguity 属于 reflection / occlusion / perspective / lens_contamination / insufficient_view 等可由额外视角缓解的问题、并存在合法 supporting cameras 时，先进入自主 Multi-view evidence acquisition；不能仅因 Single-view `confidence < 0.50` 提前 `HUMAN_REVIEW`。取得最终充分 evidence 后，才执行 `confidence >= 0.85` 不独立二审、`0.50 <= confidence < 0.85` 独立 targeted second review、`confidence < 0.50` 为 `HUMAN_REVIEW`。没有合法 supporting camera、Evidence Fetch 失败、或最多 2 rounds 后仍不充分时必须 `HUMAN_REVIEW`；最终 evidence 不充分即使 raw confidence 高也不得自动机器人处置。
 
-**CURRENT vs TARGET**：当前 `locate` 尚未把 bbox 接地点送入 `map_pixel_to_slam()`；当前 navigation plan 仍是演示锚点生成；当前 Multi-view 是固定灰区工具序列，且初轮可使用多图上下文。三者完成前均不能宣称真实空间 Runtime 或真实主动视觉取证。
+**CURRENT vs TARGET（P1-A IMPLEMENTED，工程验收通过）**：活跃 stage API 已用 bbox 地面代表点调用共享 `map_pixel_to_slam()`；navigation 从 SQLite Fleet 当前 map 调 Dijkstra `plan_route()`。Camera→SLAM 失败持久化 `error.error_type=SPATIAL_ERROR` 与 HUMAN_REVIEW transition，阻止后续 Scheduler/assignment/route；完整 taxonomy 仍属 P1-H。当前 Multi-view 仍是固定灰区工具序列，初轮可使用多图上下文；自主视觉取证仍属 P1-C，不宣称已经实现。
+
+### P1-A Closure 的持久化与 Replay（IMPLEMENTED · Reviewer A/E PASS）
+
+- `system_snapshots.fleet_state` 是活跃阶段 Runtime 的共享 Fleet；初始化不覆盖已有位置/电量/状态/active_event_id，事件保存独立 fleet_snapshot。底层数据库 session 每步关闭；真正重启测试另起 Python interpreter 后重读 SQLite。
+- `model_records` 保存 LIVE provider structured response bundle，而非预计算路由或整场演示。`demo_v1/replay.py` 校验 schema、image hash、model、Prompt 合约、事实 context 及关联 LIVE event；一审/二审分开保留。灰区一审缺二审的 bundle 不合法。
+- 显式 Stable Replay 仅替换 cloud/verification response source；Camera→SLAM、Capability、Scheduler、Dijkstra、Fleet、SQLite、任务阶段和验收门控均重新运行。Replay 缺 semantic record 时安全停止；缺 after verification record 时先保存 VERIFYING，再 HUMAN_REVIEW / VERIFICATION_ERROR。
+- 用户确认的废弃待清运事实存于主摄像头事件 metadata，以 `scene_context` 纳入 Scenario manifest；按 camera_id 匹配的 `operational_context` 进入一/二审相同事实 context，并以 `cloud_context` 持久化。模型不可读取 expected_robot/verification_mode 等预期结论；Replay key 包含该 context。事实限定本事件的两箱，不扩展到该摄像头所有未来物体。
+- Demo04 人工完成不依赖 demo_id，而要求已持久化的 `HUMAN_FALLBACK` + `candidate_count=0`；机器人/人工完成调用同一 verification workflow。真实模型 veto 仍可阻止此前路径，不得为闭环展示绕过。
+- 此处 Task Runtime 指当前 CleaningEvent/assignment/active_event_id 阶段执行；P1-F Agent Task/Action Card 尚未实现。`run_demo` 兼容入口仅委托同一 stage runtime；旧合成 `_stable_replay` 及旧持久化捷径已删除，旧 `/runs/*` 仍 410。P1-A Event/targeted 的 need_clean 与 verification 的 verification_pass 及其 confidence 必须在规范化前严格校验 JSON boolean / 非 boolean 的有限数值，禁止字符串 `"false"` 或布尔置信度转换成成功结果。 AI Lab 旧 run_qwen_vl 与非关单字段 issue_remaining 的宽松规范化尚待后续统一硬化，不属于本轮已验证范围。
 
 ## 4. Multi-view Perception Agent（LOCKED / TODO）
 
@@ -180,4 +189,4 @@ Reality Source Metadata 是独立可审计数据：`LIVE MODEL`、`DETERMINISTIC
 
 ## 11. 不进入本轮与不允许的实现
 
-本轮不实现任何前后端或测试变更。未来统一 implementation batch 也禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 或 Advanced 改基础设施配置。Batch C / Part 3 已为 `LOCKED/TODO`，但尚无 implementation 授权。
+Unified Implementation 已授权前后端、测试与文档变更，但仍禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 或 Advanced 改基础设施配置。Batch C / Part 3 由后续 P1-H 承载，不提前混入 P1-A/P1-B。

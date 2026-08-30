@@ -1,7 +1,7 @@
 # AI 自主清洁 Demo｜真实任务清单
 
 > **状态：LOCKED · 2026-08-30**
-> `[x]` 仅代表代码与技术验证已存在；`[ ]` 是已确认但尚未实现的 LOCKED TARGET。本轮是 docs-only：本文件的所有 `[ ]` 均未获 implementation 授权。
+> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A 工程验收通过；独立提交推送后进入 P1-B，后续阶段仍逐阶段验收提交。
 
 ## 已实现基线（IMPLEMENTED，禁止回退）
 
@@ -12,12 +12,18 @@
 
 ## P1-A｜真实清洁 Runtime 与产品名称（先完成）
 
-- [ ] **客户机器人命名投影**：保持 `robot-a` / `robot-b` / `robot-c` / `robot-d` 内部 ID；全客户 UI、Event、Analytics、Task、Action Card 改为赛特净界 S5、高仙 Omnie、蜗小白 SC50、普渡 FlashBot Max。能力呈现必须分开 Product Capability 与 Demo Configuration。
-- [ ] **Camera→SLAM Runtime 接入**：`locate` 从主 bbox 计算接地点，调用 `map_pixel_to_slam()`，持久化 map/x/y/building/floor/zone；marker 只在定位后出现，客户/Advanced 按锁定层级显示。
-- [ ] **Dijkstra global topology planner / `plan_route()` Runtime 接入**：`start-navigation` 读取共享 Fleet 当前 map 与已定位 target map，调用 `plan_route()`，将 connector graph 转为可视 anchor path；删除 demo_id 固定路径。
-- [ ] **Demo04 正确能力边界**：移除 cloud 阶段大件直接人工特判；完整运行 Cloud → Locate → Capability Engine → zero candidate → `HUMAN_FALLBACK` → 人工完成 → verify。
-- [ ] **共享 Fleet 状态与真实时间**：机器人位置、电量、状态使用同一读模型；任务终点保留，new demo/reset 才复位；前端读取 SQLite transition timestamp、真实 duration、真实 cloud latency。
-- [ ] **Stable Replay 重定义**：只保存/选择既有真实 AI structured evidence 回放，其他 Runtime 阶段仍真实执行；在现有 Advanced shell 加最小 AI Runtime 控制区，提供 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和 latency；不得重做完整 Advanced 页面。
+**Closure 状态：IMPLEMENTED · Reviewer A/E PASS。** 真实 Demo01/Demo04 LIVE→persist→Replay 均闭环；此前 Demo04 业务语义阻塞已由用户确认的 scoped metadata 解除，未更改模型结果或能力/调度规则。
+
+- [x] Demo04 业务事实确认、metadata→Scenario/Camera/Zone context→一/二审透传与持久化、模型 veto 不覆盖、旧 context Replay 拒绝、真实 LIVE→Replay 人工闭环。
+- [x] Reviewer A/E 最终 PASS，完整测试/构建和六文档一致性核查通过；按独立 P1-A commit/push 交付。
+- [ ] P2 后续强化：Fleet/event/transition 跨表原子事务与多请求并发保护；route error 的 assigned reservation 释放；旧 Phase 3 fixtures 静态 map 兼容兜底；API/browser E2E；主工作台外静态旧机器人名称清理；秒级 timestamp 精度与根目录测试相对路径可移植性；P1-H 统一错误层级。不能把多用户/进程崩溃中途原子恢复宣称已经验收。旧合成 replay 已删除，不再作为遗留项。
+
+- [x] **共享 Fleet / 活跃 Runtime 命名投影**：内部 ID 不变；共享 Fleet 与当前事件候选使用四个正式客户名称，Product Capability 与 Demo Configuration 分开。非活跃旧 UI 文案清理留 P2；未来 Analytics/Task/Action Card 的全产品投影随对应阶段完成。
+- [x] **Camera→SLAM Runtime 接入**：`locate` 从主 bbox 计算接地点，调用 `map_pixel_to_slam()`，持久化 map/x/y/building/floor/zone；marker 只在定位后出现，客户/Advanced 按锁定层级显示。
+- [x] **Dijkstra global topology planner / `plan_route()` Runtime 接入**：`start-navigation` 读取共享 Fleet 当前 map 与已定位 target map，调用 `plan_route()`，将 connector graph 转为可视 anchor path；删除 demo_id 固定路径。
+- [x] **Demo04 正确能力边界**：移除 cloud 阶段大件直接人工特判；完整运行 Cloud → Locate → Capability Engine → zero candidate → `HUMAN_FALLBACK` → 人工完成 → verify。
+- [x] **共享 Fleet 状态与真实时间**：机器人位置、电量、状态使用同一读模型；任务终点保留，new demo/reset 才复位；前端读取 SQLite transition timestamp、真实 duration、真实 cloud latency。
+- [x] **Stable Replay 重定义**：只保存/选择既有真实 AI structured evidence 回放，其他 Runtime 阶段仍真实执行；在现有 Advanced shell 加最小 AI Runtime 控制区，提供 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和 latency；不得重做完整 Advanced 页面。
 
 ## P1-B｜Workbench、MapCanvas 与 EventDetailPanel
 
@@ -78,7 +84,7 @@
 
 - [ ] 在 P1-H 完成并验收后，才另行讨论 Advanced 的非必要增强体验；不得稀释已锁定的四模块 Trace Inspector 范围。
 - [ ] 经授权的真实 RTSP/VMS/NVR、生产机器人/电梯/门禁与外部配送平台 Adapter。
-- [ ] **Batch C / Part 3 Advanced**：方案已 `LOCKED/TODO`，由 P1-H 承载；当前仍无 implementation 授权，必须等待 Unified Implementation Prompt。
+- [ ] **Batch C / Part 3 Advanced**：方案已 `LOCKED/TODO`，由 P1-H 承载；Unified Implementation 已授权，但须按阶段依赖在 P1-H 实施。
 
 ## 不在授权范围
 

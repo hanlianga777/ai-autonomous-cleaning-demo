@@ -11,7 +11,12 @@ def evaluate_capabilities(task_profile: dict, location: dict, robots: list[dict]
     evaluations = []
     target_map = location["map_id"]
     for robot in robots:
-        profile = ROBOT_CAPABILITIES[robot["id"]]
+        # FlashBot / non-cleaning fleet assets never become scheduling
+        # candidates.  The caller may pass the shared fleet snapshot, whose
+        # presentation fields are richer than the static Phase 3 fixture.
+        profile = ROBOT_CAPABILITIES.get(robot["id"])
+        if profile is None:
+            continue
         reject_reasons: list[str] = []
         if robot["battery"] < MIN_BATTERY_PERCENT:
             reject_reasons.append(f"battery below {MIN_BATTERY_PERCENT}%")
@@ -30,7 +35,8 @@ def evaluate_capabilities(task_profile: dict, location: dict, robots: list[dict]
             reject_reasons.append("Robot B is limited to A building")
         route = None
         try:
-            route = plan_route(ROBOT_POSITIONS[robot["id"]]["map_id"], target_map)
+            current_map = robot.get("map_id") or ROBOT_POSITIONS[robot["id"]]["map_id"]
+            route = plan_route(str(current_map), target_map)
             segment_types = {segment["type"] for segment in route["segments"]}
             if "elevator" in segment_types and not profile["elevator"]:
                 reject_reasons.append("required route uses elevator")

@@ -14,7 +14,9 @@
 - **AI 自主清洁运营分析中心（Analytics）**：回答“历史事件整体说明什么、下一步应如何优化”。
 - **Advanced Technical Observability / 高级模式**：回答“系统如何运行、哪些记录与能力是真实、确定性、受控证据或 PoC 模拟”。
 
-本轮是 **SOURCE-OF-TRUTH DOCS ONLY**。第一、二、三部分均已讨论并锁定，但除明确标为 IMPLEMENTED 的基线外均是未来统一 implementation batch 的 `LOCKED/TODO`；本轮不授权任何前端、后端、模型、Runtime、素材或数据库改动。**Batch C / Part 3 已是 LOCKED/TODO，仍未获得 implementation 授权。**
+用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。当前进行 **P1-A Closure（IMPLEMENTED · Reviewer A/E PASS）**；只有新增测试、完整后端测试、前端构建及 Reviewer A/E 均 PASS 后才允许独立 commit/push，再进入 P1-B。不得把工作树中的实现写成整个阶段已 IMPLEMENTED。
+
+本轮已补齐版本化 AI response Replay、空间失败保护、共享 Fleet 与重启测试。用户已确认 Demo04 两纸箱是废弃待清运物品；该事实作为 event-scoped Scenario / Camera / Zone Context 传给云端，不写死输出。真实 Demo01 与 Demo04 均完成 LIVE→持久化→Replay 闭环；Demo04 人工兜底只由 Capability zero candidate 产生。旧失败保留为历史，测试证据见 `AI_INTEGRATION_TEST.md`。
 
 真实生产机器人、电梯、近同步多摄像头、RTSP/VMS/NVR、平台授权、动态避障和生产阈值均未部署；A/B 楼、电梯、Skybridge 与机器人执行是 PoC 模拟。受控 bbox 不是本地真实 YOLO 权重推理，禁止对外声称 REAL YOLO 已通过。
 
@@ -49,7 +51,7 @@
 | 01 | 室外、**其他小型垃圾**、赛特净界 S5、before/after | 自动闭环 |
 | 02 | A栋 1F 高反光地面疑似液体污渍；主摄像头 `CAM-A1-01` 的受控 YOLO 58%；`CAM-A1-02` / `CAM-A1-04` 是受控补充证据资产（63% / 61%） | Single-view Cloud 先作 Evidence Sufficiency Judgment；若证据不足且可由合法补充视角缓解，先由模型自主请求 Multi-view，再以最终充分证据进入 confidence disposition，最终由高仙 Omnie 自动闭环 |
 | 03 | A栋 2F 地毯易拉罐；蜗小白 SC50 从 B1F 经电梯、B2F、Skybridge 至 A2F；after 有约 3m 外机器人 | 目标 ROI 验收后闭环 |
-| 04 | A栋 2F 逃生/通道附近两纸箱、**大件物品**；A/B/C 无搬运能力 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` → 人工搬运 → after → AI 验收 → CLOSED |
+| 04 | A栋 2F 逃生/通道附近两纸箱、**废弃待清运的大件物品（不是合法暂存/补货/待使用物资）**；A/B/C 无搬运能力 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` → 人工搬运 → after → AI 验收 → CLOSED |
 
 客户业务名称固定：`small_litter → 其他小型垃圾`、`liquid → 液体污渍`、`can → 易拉罐`、`large_object → 大件物品`、`leaf → 树叶`。旧“地面纸巾”“大型纸箱”等过度具体面客类目已废弃。Demo01 的 LIVE confidence 不是锁定业务事实；历史 `.81 → .95 → Fusion .89` 仅能在 `AI_INTEGRATION_TEST.md` 中作为历史记录出现。
 
@@ -83,16 +85,16 @@ Advanced 是 **Technical Observability & Execution Trace Inspector**，面向售
 
 | 范畴 | 当前实现事实 | 锁定目标 / 差距 |
 |---|---|---|
-| 定位 | `locate` 主要保存模板 location | bbox 地面接触点调用 `map_pixel_to_slam()`，保存 map/x/y 并驱动 marker、Scheduler、Route |
-| 路径 | `navigation_plan` 当前按 Demo 演示锚点生成 | 共享机器人当前 map + Camera→SLAM target map 调 Dijkstra global topology planner / `plan_route()` |
+| 定位 | P1-A 已实现已接入 bbox→共享四点映射；非法空间输入持久化 SPATIAL_ERROR 并停止派单（P1-A 工程验收通过） | 唯一 MapCanvas 的视觉投影仍属 P1-B |
+| 路径 | P1-A 已实现已从持久 Fleet map 调 Dijkstra `plan_route()`，保存 node_path/segments（P1-A 工程验收通过） | 连续插值与统一画布属 P1-B；不宣称 A* Runtime |
 | Multi-view | YOLO/受控置信度灰区会进入固定工具流程，初轮可使用三图上下文 | Evidence Sufficiency Gate 优先于最终 confidence disposition：Single-view Cloud 先判断 `evidence_sufficient` / `ambiguity_type`；可恢复不足才以 `tool_choice=auto` 自主选择 1–2 路补证，最多 2 轮；最终充分证据才进入 confidence gate |
-| Demo04 | cloud 阶段有大件直接人工分支 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` |
+| Demo04 | 活跃阶段 API 已删除 cloud 大件直接人工分支；确定性回归通过，最新真实 LIVE→Replay 人工闭环通过，P1-A 工程验收通过 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` →人工完成→验收 |
 | Event Center | 基础列表与独立简版 detail | 紧凑 archive list + 同一 `EventDetailPanel(mode="history")` + URL state + 正确状态分类 |
 | Analytics | 存在演示历史聚合、固定利用率/建议和基础图 | 可追溯的 KPI、Heatmap、drill-down、真实 increment、无虚构 trend / utilization |
 | Optimization / Agent | 现有 Optimization 是确定性 mock recommendation；无 Robot Operations Agent | 一个具白名单工具、Policy Guard、Action Audit、Observe/Replan/Close 的 Agent |
 | Advanced | 技术状态卡片 + 当前事件 JSON 基础 shell | Read-mostly Trace Inspector：结构化 Trace / Node Detail、Reality Matrix、Runtime/Tool/Error Observability，只读真实 audit records |
-| MapCanvas / Fleet | 有拓扑数据、SVG 路线和 presentation-only playback | 所有动态物件统一 MapCanvas；共享 Fleet 终态、真实 transition 时间、连续路线 |
-| Stable Replay | 旧 replay 路径存在，不满足新定义 | 仅回放真实 AI structured evidence；其余空间、调度、路线、执行、SQLite 仍真实运行 |
+| MapCanvas / Fleet | P1-A 已实现有 SQLite Fleet 与独立进程重启测试；地图仍使用旧外层投影 | 唯一 MapCanvas 与连续路线属 P1-B |
+| Stable Replay | 活跃阶段 API 已接入版本化、证据/模型/Prompt 匹配的 LIVE records；Demo01 真实回放通过，P1-A 工程验收通过 | 不允许旧合成 replay 代替真实 records；其它 Runtime 重跑，无 silent fallback |
 
 ## 7. 不可违反边界
 

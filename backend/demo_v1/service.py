@@ -8,17 +8,30 @@ Phase 3 Capability Engine/Scheduler remains the only robot selector.
 from __future__ import annotations
 
 from pathlib import Path
+from math import isfinite
 from typing import Any
 from uuid import uuid4
 
-from data.mock_data import ROBOTS
 from perception.config import get_runtime
 from perception.multiview.agent import run_multi_view_agent
 from perception.qwen import run_event_qwen_vl, run_targeted_event_qwen_vl, run_verification_qwen_vl
 from perception.yolo import RealInferenceError
-from database.connection import get_event, record_transition, save_event, save_assignment_decision, save_human_work_order
+from database.connection import (
+    get_event,
+    get_fleet_state,
+    get_transitions,
+    record_transition,
+    save_event,
+    save_assignment_decision,
+    save_human_work_order,
+    update_fleet_robot,
+)
 from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
+from spatial.calibration import CalibrationError, map_pixel_to_slam
+from spatial.route_planner import RouteNotFoundError, plan_route
+from spatial.spatial_data import MAPS
+from demo_v1.replay import evidence_key, load_replay_bundle, save_live_bundle, validate_response
 from workflow.fixtures import EVENT_TEMPLATES
 from workbench.service import DEMO_SCENARIOS, scenario_assets
 
@@ -50,6 +63,14 @@ def _event_type(value: str) -> str:
     return candidate if candidate in {"small_litter", "liquid", "can", "large_object"} else "unknown"
 
 
+def _validated_cloud_review(response: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(response, dict) or not isinstance(response.get("event_type"), str):
+        raise RealInferenceError("Cloud event response is missing a valid event type.")
+    response = {**response, "event_type": _event_type(response["event_type"])}
+    validate_response(response, "event_review")
+    return response
+
+
 def _controlled_evidence(manifest: dict[str, Any], role: str = "before") -> list[dict[str, Any]]:
     evidence = []
     for asset in manifest["assets"]:
@@ -61,11 +82,13 @@ def _controlled_evidence(manifest: dict[str, Any], role: str = "before") -> list
 
 
 def _camera_contexts(manifest: dict[str, Any], evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    scenario = DEMO_SCENARIOS[manifest["event_id"]]
     template = EVENT_TEMPLATES[TEMPLATE_BY_EVENT[manifest["event_id"]]]
     location = template["location"]
     confidence_by_camera = {item["camera_id"]: item["confidence"] for item in evidence}
-    return [{"camera_id": asset["camera_id"], "building": location["building"], "floor": location["floor"], "zone": location["zone"], "yolo_confidence": confidence_by_camera.get(asset["camera_id"])} for asset in manifest["assets"] if asset["role"] in {"before", "evidence"}]
+    scene_context = manifest.get("scene_context") or {}
+    return [{"camera_id": asset["camera_id"], "building": location["building"], "floor": location["floor"], "zone": location["zone"], "yolo_confidence": confidence_by_camera.get(asset["camera_id"]),
+             "operational_context": scene_context if scene_context.get("camera_id") == asset["camera_id"] else {}}
+            for asset in manifest["assets"] if asset["role"] in {"before", "evidence"}]
 
 
 def _task_profile(qwen: dict[str, Any], location: dict[str, Any]) -> dict[str, Any]:
@@ -84,27 +107,55 @@ def _task_profile(qwen: dict[str, Any], location: dict[str, Any]) -> dict[str, A
     return {"object_type": event_type, "pollution_form": "liquid" if event_type == "liquid" else "large_object" if event_type == "large_object" else "dry_debris", "severity": qwen["severity"] if qwen["severity"] in {"low", "medium", "high"} else "medium", "estimated_area": 2.0 if event_type == "large_object" else 0.8 if event_type == "liquid" else 0.15, "surface": surface, "required_capabilities": caps, "priority": "high" if qwen["severity"] == "high" else "normal", "crowd_level": "high" if location["zone"] == "Main Lobby" else "medium"}
 
 
-def _human_review(
-    reason: str,
-    manifest: dict[str, Any],
-    qwen: dict[str, Any] | None = None,
-    evidence: list[dict[str, Any]] | None = None,
-    multi_view: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Keep an auditable context even when the automation stops for review."""
+def _primary_asset(result: dict[str, Any]) -> dict[str, Any]:
+    return next(asset for asset in result["asset_manifest"]["assets"] if asset["role"] == "before")
+
+
+def _ground_point_from_bbox(bbox: dict[str, Any], event_type: str) -> tuple[float, float, str]:
+    """Convert the reviewed normalised bbox into the calibration pixel domain.
+
+    Controlled source frames are 1448×1086, while the Phase 2 calibration
+    contract is explicitly 100..900 × 100..700.  The normalisation is kept in
+    this one audited function so Camera→SLAM cannot silently mix image spaces.
+    """
+    try:
+        x1, y1, x2, y2 = (float(bbox[key]) for key in ("x1", "y1", "x2", "y2"))
+    except (KeyError, TypeError, ValueError) as error:
+        raise CalibrationError("Bounding box coordinates are missing or invalid.") from error
+    if not all(isfinite(value) for value in (x1, y1, x2, y2)) or not (0 <= x1 < x2 <= 1 and 0 <= y1 < y2 <= 1):
+        raise CalibrationError("Bounding box must be finite, ordered and within the source frame.")
+    center_x = (x1 + x2) / 2
+    # Liquid has no physical bottom edge.  Its lower region is the defined
+    # representative point; discrete objects use bbox bottom-centre.
+    normalized_y = y1 + (y2 - y1) * (0.65 if event_type == "liquid" else 1.0)
+    return (100 + center_x * 800, 100 + normalized_y * 600, "region_lower_center" if event_type == "liquid" else "bbox_bottom_center")
+
+
+def _located_position(result: dict[str, Any], event_type: str) -> dict[str, Any]:
+    primary = _primary_asset(result)
+    overlay = next(iter(primary.get("detection_overlays", [])), None)
+    if not overlay or not isinstance(overlay.get("bbox"), dict):
+        raise CalibrationError("Primary controlled edge evidence has no mappable bounding box.")
+    u, v, representative_point = _ground_point_from_bbox(overlay["bbox"], event_type)
+    mapped = map_pixel_to_slam(primary["camera_id"], u, v)
+    location = mapped.get("location", {})
+    map_data = next((item for item in MAPS if item["map_id"] == location.get("map_id")), None)
+    x, y = location.get("x"), location.get("y")
+    if (not map_data or any(isinstance(value, bool) or not isinstance(value, (float, int)) or not isfinite(value) for value in (x, y))
+            or not 0 <= x <= map_data["width"] or not 0 <= y <= map_data["height"]
+            or location.get("building") != map_data["building"] or location.get("floor") != map_data["floor"]):
+        raise CalibrationError("Mapping did not produce a valid SLAM coordinate in the expected map.")
     return {
-        "mode": "LIVE",
-        "status": "HUMAN_REVIEW",
-        "reason": reason,
-        "asset_manifest": manifest,
-        "controlled_yolo": evidence or [],
-        "multi_view": multi_view,
-        "qwen_review": qwen,
-        "task_profile": None,
-        "assignment_decision": None,
-        "verification": None,
-        "human_work_order": {"status": "OPEN", "reason": reason, "source": "live_qwen_demo"},
+        "source": "camera_to_slam_phase2",
+        "mapping_method": "four_point_homography",
+        "representative_point": representative_point,
+        "camera_id": primary["camera_id"],
+        "bbox": overlay["bbox"],
+        "pixel": mapped["pixel"],
+        **location,
     }
+
+
 
 
 def _fusion_score(review: dict[str, Any], evidence: list[dict[str, Any]], multi_view: dict[str, Any] | None) -> dict[str, Any]:
@@ -122,24 +173,6 @@ def _fusion_score(review: dict[str, Any], evidence: list[dict[str, Any]], multi_
     return {"name": "Evidence Fusion Composite Disposal Score", "score": round(score, 4), "components": {"second_raw_cloud_confidence": raw, "yolo_category_consistency": category_consistency, "camera_location_time_mapping_consistency": camera_mapping_consistency, "multi_view_consistency": multi_view_consistency}, "formula": "0.60×raw_cloud + 0.20×yolo_category + 0.12×camera_mapping + 0.08×multi_view"}
 
 
-def _persist_demo_result(demo_id: str, result: dict[str, Any]) -> dict[str, Any]:
-    """Write integrated demo runs to the canonical SQLite event audit immediately."""
-    event_id = f"integrated-{demo_id}-{uuid4().hex[:10]}"
-    manifest = result["asset_manifest"]
-    event = {
-        "event_id": event_id,
-        "state": result["status"],
-        "template": TEMPLATE_BY_EVENT[SCENARIO_IDS[demo_id]],
-        "location": EVENT_TEMPLATES[TEMPLATE_BY_EVENT[SCENARIO_IDS[demo_id]]]["location"],
-        "task_profile": result.get("task_profile") or {"object_type": (result.get("qwen_review") or {}).get("event_type", "unknown")},
-        "assignment_decision": result.get("assignment_decision"),
-        "demo_v1": result,
-    }
-    save_event(event)
-    record_transition(event_id, "DETECTED", {"source": "integrated_demo", "camera_id": manifest["assets"][0]["camera_id"]})
-    record_transition(event_id, result["status"], {"reason": result["reason"], "cloud_review": result.get("qwen_review"), "fusion": result.get("evidence_fusion")})
-    result["event_id"] = event_id
-    return result
 
 
 def scenario_catalog() -> list[dict[str, Any]]:
@@ -151,8 +184,8 @@ def scenario_catalog() -> list[dict[str, Any]]:
 # These functions are intentionally small, synchronous REST transitions.  They are
 # the only runtime path used by the customer workbench: each endpoint commits one
 # durable state before the caller is allowed to ask for the following stage.  The
-# older `run_demo` function remains below solely for backwards-compatible technical
-# API consumers; it is not used by the workbench.
+# `run_demo` compatibility helper delegates to these same stages; its old HTTP
+# endpoint is retired and no second runtime or synthetic replay path exists.
 
 def _snapshot(stored: dict[str, Any]) -> dict[str, Any]:
     result = dict(stored.get("demo_v1") or {})
@@ -163,6 +196,9 @@ def _snapshot(stored: dict[str, Any]) -> dict[str, Any]:
         "location": stored.get("location"),
         "task_profile": stored.get("task_profile"),
         "assignment_decision": stored.get("assignment_decision"),
+        "created_at": stored.get("created_at"),
+        "updated_at": stored.get("updated_at"),
+        "transitions": stored.get("transitions", []),
     })
     return result
 
@@ -179,7 +215,9 @@ def _save_stage(stored: dict[str, Any], state: str, detail: dict[str, Any], **up
     stored["state"] = state
     save_event(stored)
     record_transition(stored["event_id"], state, detail)
-    return _snapshot(stored)
+    refreshed = get_event(stored["event_id"]) or stored
+    refreshed["transitions"] = get_transitions(stored["event_id"])
+    return _snapshot(refreshed)
 
 
 def _load_stage_event(event_id: str) -> dict[str, Any]:
@@ -189,7 +227,7 @@ def _load_stage_event(event_id: str) -> dict[str, Any]:
     return stored
 
 
-def create_demo_event(demo_id: str) -> dict[str, Any]:
+def create_demo_event(demo_id: str, mode: str = "LIVE") -> dict[str, Any]:
     """Create and persist only the camera-discovered event; no AI or scheduler work."""
     if demo_id not in SCENARIO_IDS:
         raise ValueError("Unknown integrated demo scenario.")
@@ -197,6 +235,9 @@ def create_demo_event(demo_id: str) -> dict[str, Any]:
     manifest = scenario_assets(source_event_id)
     template = EVENT_TEMPLATES[TEMPLATE_BY_EVENT[source_event_id]]
     event_id = f"integrated-{demo_id}-{uuid4().hex[:10]}"
+    normalized_mode = mode.upper()
+    if normalized_mode not in {"LIVE", "STABLE_REPLAY"}:
+        raise ValueError("Unsupported runtime mode.")
     stored = {
         "event_id": event_id,
         "state": "DETECTED",
@@ -205,7 +246,7 @@ def create_demo_event(demo_id: str) -> dict[str, Any]:
         "task_profile": None,
         "assignment_decision": None,
         "demo_v1": {
-            "mode": "LIVE",
+            "mode": normalized_mode,
             "demo_id": demo_id,
             "source_event_id": source_event_id,
             "reason": "固定摄像头发现疑似清洁事件，等待边缘证据确认。",
@@ -224,7 +265,9 @@ def create_demo_event(demo_id: str) -> dict[str, Any]:
     save_event(stored)
     primary = next(asset for asset in manifest["assets"] if asset["role"] == "before")
     record_transition(event_id, "DETECTED", {"source": "integrated_demo", "camera_id": primary["camera_id"]})
-    return _snapshot(stored)
+    refreshed = get_event(event_id) or stored
+    refreshed["transitions"] = get_transitions(event_id)
+    return _snapshot(refreshed)
 
 
 def edge_review(event_id: str) -> dict[str, Any]:
@@ -290,6 +333,8 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
     _require_state(stored, "MULTI_VIEW" if result["demo_id"] == "demo02" else "EDGE_DETECTED")
     manifest = result["asset_manifest"]
     qwen_images, evidence, contexts = _cloud_images(result)
+    result["cloud_context"] = contexts
+    mode = str(result.get("mode", "LIVE"))
     if force_unavailable:
         return _save_stage(
             stored, "HUMAN_REVIEW", {"reason": "simulated_cloud_unavailable"},
@@ -298,47 +343,48 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
             human_work_order={"status": "OPEN", "reason": "云端综合研判不可用", "source": "cloud_review"},
         )
     runtime = get_runtime()
-    if not runtime.qwen_ready:
+    if mode == "STABLE_REPLAY":
+        try:
+            key = evidence_key(qwen_images, {"evidence": evidence, "cameras": contexts}, runtime.qwen_model)
+            bundle = load_replay_bundle(stored, "event_review", key)
+        except RealInferenceError:
+            return _save_stage(
+                stored, "HUMAN_REVIEW", {"reason": "replay_record_unavailable"},
+                reason="没有可用于稳定回放的历史真实 AI 结构化记录；未创建机器人任务。",
+                human_work_order={"status": "OPEN", "reason": "稳定回放记录不可用", "source": "stable_replay"},
+            )
+        first, second = bundle["first"], bundle["second"]
+        decision_review = second or first
+    elif not runtime.qwen_ready:
         return _save_stage(
             stored, "HUMAN_REVIEW", {"reason": "cloud_not_configured"},
             controlled_yolo=evidence,
             reason="未配置云端综合研判；未创建机器人任务。",
             human_work_order={"status": "OPEN", "reason": "未配置云端综合研判", "source": "cloud_review"},
         )
-    try:
-        first = run_event_qwen_vl(qwen_images, evidence, contexts, runtime.qwen_model)
-        first["event_type"] = _event_type(first["event_type"])
-        second = None
-        decision_review = first
-        if 0.5 <= first["decision_confidence"] < 0.85:
-            second = run_targeted_event_qwen_vl(qwen_images, evidence, contexts, runtime.qwen_model)
-            second["event_type"] = _event_type(second["event_type"])
-            decision_review = second
-    except RealInferenceError as error:
-        return _save_stage(
-            stored, "HUMAN_REVIEW", {"reason": "cloud_error", "error": str(error)},
-            controlled_yolo=evidence,
-            reason=f"云端综合研判失败：{error}",
-            human_work_order={"status": "OPEN", "reason": "云端综合研判失败", "source": "cloud_review"},
-        )
+    else:
+        try:
+            key = evidence_key(qwen_images, {"evidence": evidence, "cameras": contexts}, runtime.qwen_model)
+            first = _validated_cloud_review(run_event_qwen_vl(qwen_images, evidence, contexts, runtime.qwen_model))
+            second = None
+            decision_review = first
+            if 0.5 <= first["decision_confidence"] < 0.85:
+                second = _validated_cloud_review(run_targeted_event_qwen_vl(qwen_images, evidence, contexts, runtime.qwen_model))
+                decision_review = second
+        except RealInferenceError as error:
+            return _save_stage(
+                stored, "HUMAN_REVIEW", {"reason": "cloud_error", "error": str(error)},
+                controlled_yolo=evidence,
+                reason=f"云端综合研判失败：{error}",
+                human_work_order={"status": "OPEN", "reason": "云端综合研判失败", "source": "cloud_review"},
+            )
+        save_live_bundle(stored, "event_review", key, {"first": first, "second": second})
     fusion = _fusion_score(decision_review, evidence, result.get("multi_view"))
     profile = _task_profile(decision_review, stored["location"])
     # Keep the canonical Phase 3 field at event root as well as the customer
     # projection payload, so later capability evaluation never consumes UI data.
     stored["task_profile"] = profile
     veto = not decision_review["need_clean"] or decision_review["event_type"] == "unknown" or decision_review["next_action"] == "ignore"
-    # Large objects intentionally open a human work order, even where the
-    # semantic reviewer is conservative about whether the scene needs cleaning.
-    if result["demo_id"] == "demo04" or decision_review["event_type"] == "large_object":
-        work_order = {"status": "OPEN", "reason": "大件物品超出 Robot A/B/C 能力边界。", "source": "capability_boundary"}
-        snapshot = _save_stage(
-            stored, "HUMAN_FALLBACK", {"reason": work_order["reason"], "cloud_review": decision_review, "fusion": fusion},
-            controlled_yolo=evidence, qwen_review=decision_review, first_qwen_review=first,
-            second_qwen_review=second, evidence_fusion=fusion, reason=work_order["reason"],
-            human_work_order=work_order,
-        )
-        save_human_work_order({"work_order_id": f"human-{event_id}", "event_id": event_id, **work_order})
-        return snapshot
     if veto or fusion["score"] < 0.85:
         reason = "云端综合研判未达到自动派发门控；未创建机器人任务。"
         return _save_stage(
@@ -356,11 +402,24 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
 
 
 def locate_event(event_id: str) -> dict[str, Any]:
-    """Persist the existing Phase 2 location interpretation; does not schedule."""
+    """Map the primary detection through the shared Phase 2 calibration."""
     stored = _load_stage_event(event_id)
     _require_state(stored, "CLOUD_REVIEW")
-    spatial_location = {"source": "phase2_spatial_engine", "location": stored["location"], "mapping": "camera_to_slam_shared_convention"}
-    return _save_stage(stored, "LOCATED", spatial_location, spatial_location=spatial_location, reason="已完成摄像头到园区空间位置映射。")
+    event_type = str((stored.get("task_profile") or {}).get("object_type", "unknown"))
+    try:
+        spatial_location = _located_position(stored["demo_v1"], event_type)
+    except (CalibrationError, KeyError, TypeError, ValueError, StopIteration) as error:
+        return _save_stage(
+            stored, "HUMAN_REVIEW", {"error_type": "SPATIAL_ERROR", "reason": str(error)},
+            error={"error_type": "SPATIAL_ERROR", "code": "CAMERA_MAPPING_FAILED", "message": str(error)},
+            spatial_location=None,
+            reason=f"摄像头空间定位失败：{error}",
+            human_work_order={"status": "OPEN", "reason": "摄像头空间定位失败", "source": "camera_to_slam"},
+        )
+    # The mapped location becomes the only dispatch/route target.  The old
+    # fixture location remains only as the scenario's pre-detection context.
+    stored["location"] = {key: spatial_location[key] for key in ("building", "floor", "zone", "map_id", "x", "y")}
+    return _save_stage(stored, "LOCATED", spatial_location, spatial_location=spatial_location, reason="已通过四点标定完成摄像头到园区空间位置映射。")
 
 
 def assign_event(event_id: str) -> dict[str, Any]:
@@ -370,186 +429,152 @@ def assign_event(event_id: str) -> dict[str, Any]:
     profile = stored.get("task_profile")
     if not profile:
         raise ValueError("TaskProfile is missing; cloud review must complete first.")
-    decision = make_assignment_decision(profile, evaluate_capabilities(profile, stored["location"], ROBOTS))
+    fleet = [robot for robot in get_fleet_state() if robot["id"] in {"robot-a", "robot-b", "robot-c"}]
+    decision = make_assignment_decision(profile, evaluate_capabilities(profile, stored["location"], fleet))
     stored["assignment_decision"] = decision
+    save_assignment_decision(event_id, decision)
     if decision["status"] != "ASSIGNED":
         work_order = {"status": "OPEN", "reason": decision["reason"], "source": "capability_engine"}
         snapshot = _save_stage(stored, "HUMAN_FALLBACK", {"reason": decision["reason"], "assignment_decision": decision}, assignment_decision=decision, reason=decision["reason"], human_work_order=work_order)
         save_human_work_order({"work_order_id": f"human-{event_id}", "event_id": event_id, **work_order})
         return snapshot
-    save_assignment_decision(event_id, decision)
-    return _save_stage(stored, "ASSIGNED", {"assignment_decision": decision}, assignment_decision=decision, reason="能力匹配与调度已生成机器人任务。")
-
-
-def _navigation_plan(demo_id: str, robot_id: str) -> dict[str, Any]:
-    routes = {
-        "demo01": ["OUTDOOR_A_STANDBY", "OUTDOOR_EAST_ROAD_EVENT"],
-        "demo02": ["A_1F_ROBOT_B_STANDBY", "A_1F_LOBBY_EVENT"],
-        "demo03": ["B_1F_ROBOT_C_STANDBY", "B_1F_ELEVATOR_ENTRY", "B_2F_ELEVATOR_EXIT", "B_2F_SKYBRIDGE_ENTRY", "A_2F_SKYBRIDGE_EXIT", "A_2F_CAN_EVENT"],
-    }
-    return {"robot_id": robot_id, "anchor_sequence": routes[demo_id], "source": "phase2_topology_projection"}
+    robot = update_fleet_robot(
+        str(decision["selected_robot_id"]), status="assigned", active_event_id=event_id,
+    )
+    return _save_stage(stored, "ASSIGNED", {"assignment_decision": decision, "fleet_robot": robot}, assignment_decision=decision, fleet_snapshot=get_fleet_state(), reason="能力匹配与调度已生成机器人任务。")
 
 
 def start_navigation(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "ASSIGNED")
     decision = stored.get("assignment_decision") or {}
-    plan = _navigation_plan(stored["demo_v1"]["demo_id"], str(decision["selected_robot_id"]))
-    return _save_stage(stored, "NAVIGATING", {"navigation_plan": plan}, navigation_plan=plan, reason="机器人任务已下发，正在按空间拓扑路线前往。")
+    robot_id = str(decision["selected_robot_id"])
+    robot = next((item for item in get_fleet_state() if item["id"] == robot_id), None)
+    if robot is None:
+        return _save_stage(stored, "HUMAN_REVIEW", {"error_type": "ROUTE_ERROR", "reason": "fleet robot missing"}, reason="Fleet 中未找到已派发机器人。")
+    try:
+        plan = plan_route(str(robot["map_id"]), str(stored["location"]["map_id"]))
+    except RouteNotFoundError as error:
+        return _save_stage(stored, "HUMAN_REVIEW", {"error_type": "ROUTE_ERROR", "reason": str(error)}, reason=f"拓扑路线规划失败：{error}")
+    plan.update({"robot_id": robot_id, "source": "dijkstra_global_topology_planner", "display_anchors": plan["node_path"]})
+    update_fleet_robot(robot_id, status="navigating", active_event_id=event_id)
+    return _save_stage(stored, "NAVIGATING", {"navigation_plan": plan}, navigation_plan=plan, fleet_snapshot=get_fleet_state(), reason="机器人已按 Dijkstra 园区拓扑路线前往目标区域。")
 
 
 def complete_navigation(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "NAVIGATING")
-    return _save_stage(stored, "ARRIVED", {"navigation_plan": stored["demo_v1"].get("navigation_plan")}, reason="机器人已到达目标区域。")
+    decision = stored.get("assignment_decision") or {}
+    target = stored["location"]
+    robot = update_fleet_robot(
+        str(decision["selected_robot_id"]), status="arrived", map_id=target["map_id"],
+        coordinates={"x": target["x"], "y": target["y"]}, building=target["building"], floor=target["floor"],
+        zone=target["zone"], location=f"{target['building']} 栋 {target['floor']} · {target['zone']}", active_event_id=event_id,
+    )
+    return _save_stage(stored, "ARRIVED", {"navigation_plan": stored["demo_v1"].get("navigation_plan"), "fleet_robot": robot}, fleet_snapshot=get_fleet_state(), reason="机器人已到达目标区域。")
 
 
 def complete_cleaning(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "ARRIVED")
-    return _save_stage(stored, "CLEANING_COMPLETED", {"source": "demo_robot_execution"}, reason="清洁动作已完成，等待固定摄像头验收。")
+    decision = stored.get("assignment_decision") or {}
+    update_fleet_robot(str(decision["selected_robot_id"]), status="cleaning", active_event_id=event_id)
+    return _save_stage(stored, "CLEANING_COMPLETED", {"source": "poc_robot_execution"}, fleet_snapshot=get_fleet_state(), reason="清洁动作已完成，等待固定摄像头验收。")
+
+
+def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False) -> dict[str, Any]:
+    """Run the same after-evidence workflow for robot and human completion."""
+    result = stored["demo_v1"]
+    primary = _primary_asset(result)
+    after = next((asset for asset in result["asset_manifest"]["assets"] if asset["role"] == "after"), None)
+    context = {
+        "event_type": (stored.get("task_profile") or {}).get("object_type"),
+        "camera_id": primary["camera_id"],
+        "manual_completion": manual,
+    }
+    if manual:
+        result["human_work_order"] = {"status": "COMPLETED", "source": "manual_operator"}
+    _save_stage(stored, "VERIFYING", {
+        "source": "manual_completion" if manual else "post_cleaning_cloud_verification",
+        "manual_completion": manual,
+    }, reason="正在读取清洁后证据并执行验收。")
+    verification = None
+    error = None
+    try:
+        if after is None:
+            raise RealInferenceError("After-cleaning evidence is unavailable.")
+        runtime = get_runtime()
+        key = evidence_key([_asset_path(primary), _asset_path(after)], context, runtime.qwen_model)
+        if result.get("mode") == "STABLE_REPLAY":
+            verification = load_replay_bundle(stored, "verification", key)["verification"]
+        else:
+            if not runtime.qwen_ready:
+                raise RealInferenceError("Cloud verification is not configured.")
+            verification = run_verification_qwen_vl(_asset_path(primary), _asset_path(after), context, runtime.qwen_model)
+            validate_response(verification, "verification")
+            save_live_bundle(stored, "verification", key, {"verification": verification})
+    except RealInferenceError as failure:
+        error = {"error_type": "VERIFICATION_ERROR", "code": "VERIFICATION_UNAVAILABLE", "message": str(failure)}
+
+    passed = bool(verification and verification["verification_pass"] and verification["confidence"] >= 0.85 and verification["next_action"] == "close")
+    state = "CLOSED" if passed else "HUMAN_REVIEW"
+    reason = "验收通过，事件已闭环。" if passed else "验收未通过或证据不可用，已转人工复核。"
+    robot_id = (stored.get("assignment_decision") or {}).get("selected_robot_id")
+    if robot_id:
+        # The cleaning action has finished even when verification is unavailable.
+        # Release the reservation, retaining the terminal coordinate.
+        robot = next(item for item in get_fleet_state() if item["id"] == robot_id)
+        update_fleet_robot(str(robot_id), status="idle", active_event_id=None,
+                           battery=max(0, int(robot.get("battery", 0)) - 2))
+    work_order = ({"status": "COMPLETED", "source": "manual_operator"} if manual else None) if passed else {
+        "status": "OPEN", "reason": reason, "source": "verification",
+    }
+    if manual:
+        save_human_work_order({"work_order_id": f"human-{stored['event_id']}", "event_id": stored["event_id"], **work_order})
+    return _save_stage(stored, state, {
+        "verification": verification, "reason": reason, "error": error, "manual_completion": manual,
+    }, verification=verification, error=error, fleet_snapshot=get_fleet_state(), reason=reason, human_work_order=work_order)
 
 
 def verify_event(event_id: str) -> dict[str, Any]:
-    """The only automatic-flow stage that loads after imagery and calls Qwen verification."""
     stored = _load_stage_event(event_id)
     _require_state(stored, "CLEANING_COMPLETED")
-    result = stored["demo_v1"]
-    manifest = result["asset_manifest"]
-    primary = next(asset for asset in manifest["assets"] if asset["role"] == "before")
-    after = next((asset for asset in manifest["assets"] if asset["role"] == "after"), None)
-    if not after:
-        return _save_stage(stored, "HUMAN_REVIEW", {"reason": "after_image_missing"}, reason="缺少清洁后画面，无法自动验收。", human_work_order={"status": "OPEN", "reason": "缺少清洁后画面", "source": "verification"})
-    runtime = get_runtime()
-    if not runtime.qwen_ready:
-        return _save_stage(stored, "HUMAN_REVIEW", {"reason": "verification_cloud_not_configured"}, reason="云端验收不可用；需人工复核。", human_work_order={"status": "OPEN", "reason": "云端验收不可用", "source": "verification"})
-    _save_stage(stored, "VERIFYING", {"source": "post_cleaning_cloud_verification"}, reason="正在读取清洁后画面并进行云端验收。")
-    try:
-        verification = run_verification_qwen_vl(_asset_path(primary), _asset_path(after), {"event_type": (stored.get("task_profile") or {}).get("object_type"), "camera_id": primary["camera_id"]}, runtime.qwen_model)
-    except RealInferenceError as error:
-        return _save_stage(stored, "HUMAN_REVIEW", {"reason": "verification_error", "error": str(error)}, verification=None, reason=f"真实云端验收失败：{error}", human_work_order={"status": "OPEN", "reason": "云端验收失败", "source": "verification"})
-    passed = verification["verification_pass"] and verification["confidence"] >= 0.85 and verification["next_action"] == "close"
-    state = "CLOSED" if passed else "HUMAN_REVIEW"
-    reason = "真实云端验收通过，事件可以闭环。" if passed else "真实云端验收未达到闭环门控；需人工复核。"
-    return _save_stage(stored, state, {"verification": verification, "reason": reason}, verification=verification, reason=reason, human_work_order=None if passed else {"status": "OPEN", "reason": reason, "source": "verification"})
+    return _verify_stored_event(stored)
 
 
 def complete_demo04_manual(event_id: str) -> dict[str, Any]:
-    """Record a human box-removal completion, then run the normal AI verifier."""
-    stored = get_event(event_id)
-    if not stored or stored.get("template") != TEMPLATE_BY_EVENT["event-oversized-box-004"]:
-        raise ValueError("Manual completion is available only for an existing Demo04 human work order.")
+    """Complete a capability-created human work order, irrespective of demo id."""
+    stored = _load_stage_event(event_id)
     _require_state(stored, "HUMAN_FALLBACK")
-    result = stored.get("demo_v1") or {}
-    manifest = result.get("asset_manifest") or scenario_assets(SCENARIO_IDS["demo04"])
-    # Older persisted work orders predate the generated after-cleaning frame;
-    # refresh the asset manifest so they can enter the same verifier safely.
-    if not any(asset.get("role") == "after" for asset in manifest.get("assets", [])):
-        manifest = scenario_assets(SCENARIO_IDS["demo04"])
-        result["asset_manifest"] = manifest
-    primary = next(asset for asset in manifest["assets"] if asset["role"] == "before")
-    after = next((asset for asset in manifest["assets"] if asset["role"] == "after"), None)
-    runtime = get_runtime()
-    if not after or not runtime.qwen_ready:
-        raise RealInferenceError("Cloud verification is unavailable; the manual work order remains open.")
-    _save_stage(stored, "VERIFYING", {"source": "manual_completion", "manual_completion": True}, human_work_order={"status": "COMPLETED", "source": "manual_operator"}, reason="人工已确认完成，正在读取清洁后画面进行云端验收。")
-    try:
-        verification = run_verification_qwen_vl(_asset_path(primary), _asset_path(after), {"event_type": "large_object", "camera_id": primary["camera_id"], "manual_completion": True}, runtime.qwen_model)
-    except RealInferenceError as error:
-        return _save_stage(
-            stored, "HUMAN_REVIEW", {"source": "manual_completion", "error": str(error)},
-            verification=None,
-            reason=f"人工清理已确认，但云端 AI 验收失败：{error}",
-            human_work_order={"status": "OPEN", "reason": "云端 AI 验收失败", "source": "manual_operator"},
-        )
-    result["verification"] = verification
-    result["human_work_order"] = {"status": "COMPLETED", "source": "manual_operator"}
-    result["status"] = "CLOSED" if verification["verification_pass"] and verification["confidence"] >= 0.85 and verification["next_action"] == "close" else "HUMAN_REVIEW"
-    result["reason"] = "人工清理完成，云端 AI 验收通过，事件已闭环。" if result["status"] == "CLOSED" else "人工清理完成，但云端 AI 验收未达到闭环门控。"
-    result["event_id"] = event_id
-    stored["demo_v1"] = result
-    return _save_stage(stored, result["status"], {"source": "manual_completion", "verification": verification, "reason": result["reason"]})
+    decision = stored.get("assignment_decision") or {}
+    if decision.get("status") != "HUMAN_FALLBACK" or decision.get("candidate_count") != 0:
+        raise ValueError("Human completion requires an audited zero-candidate capability decision.")
+    return _verify_stored_event(stored, manual=True)
 
 
 def run_demo(demo_id: str, mode: str = "live", force_unavailable: bool = False) -> dict[str, Any]:
-    if demo_id not in SCENARIO_IDS:
-        raise ValueError("Unknown integrated demo scenario.")
-    event_id = SCENARIO_IDS[demo_id]
-    manifest = scenario_assets(event_id)
-    template = EVENT_TEMPLATES[TEMPLATE_BY_EVENT[event_id]]
-    location = template["location"]
-    evidence = _controlled_evidence(manifest)
-    primary = next(asset for asset in manifest["assets"] if asset["role"] == "before")
-    qwen_images = [_asset_path(primary)]
-    multi_view = None
-    primary_confidence = YOLO_CONFIDENCE[primary["camera_id"]]
+    """Technical compatibility runner delegating exclusively to durable stages.
+
+    The retired HTTP /runs API stays 410. There is no synthetic replay path.
+    Human completion always requires a separate explicit operator action.
+    """
+    normalized_mode = "STABLE_REPLAY" if mode.lower() in {"replay", "stable_replay"} else mode.upper()
+    event_id = create_demo_event(demo_id, normalized_mode)["event_id"]
+    edge_review(event_id)
     if demo_id == "demo02":
-        multi_view = run_multi_view_agent(primary_confidence, primary["camera_id"], location, "scenario02")
-        selected_ids = {item["camera_id"] for item in multi_view["selected_cameras"]}
-        requested_assets = [asset for asset in manifest["assets"] if asset["role"] == "evidence" and asset["camera_id"] in selected_ids]
-        # The approved asset set is the hard upper limit; preserve its camera order.
-        qwen_images.extend(_asset_path(asset) for asset in requested_assets)
-    if force_unavailable:
-        return _persist_demo_result(demo_id, _human_review("云端综合研判不可用；未创建机器人任务。", manifest, evidence=evidence, multi_view=multi_view))
-    if mode == "replay":
-        return _persist_demo_result(demo_id, _stable_replay(demo_id, manifest, evidence, location, multi_view))
-    runtime = get_runtime()
-    if not runtime.qwen_ready:
-        return _persist_demo_result(demo_id, _human_review("未配置云端综合研判；未创建机器人任务。", manifest, evidence=evidence, multi_view=multi_view))
-    try:
-        qwen = run_event_qwen_vl(qwen_images, evidence, _camera_contexts(manifest, evidence), runtime.qwen_model)
-    except RealInferenceError as error:
-        return _persist_demo_result(demo_id, _human_review(f"云端综合研判失败：{error}", manifest, evidence=evidence, multi_view=multi_view))
-    event_type = _event_type(qwen["event_type"])
-    qwen["event_type"] = event_type
-    second_review = None
-    decision_review = qwen
-    if 0.5 <= qwen["decision_confidence"] < 0.85:
-        try:
-            second_review = run_targeted_event_qwen_vl(qwen_images, evidence, _camera_contexts(manifest, evidence), runtime.qwen_model)
-            second_review["event_type"] = _event_type(second_review["event_type"])
-            decision_review = second_review
-        except RealInferenceError as error:
-            return _persist_demo_result(demo_id, _human_review(f"云端独立复核失败：{error}", manifest, qwen, evidence, multi_view))
-    fusion = _fusion_score(decision_review, evidence, multi_view)
-    veto = not decision_review["need_clean"] or decision_review["event_type"] == "unknown" or decision_review["next_action"] == "ignore"
-    # The project gate is evidence-based: a high-confidence clean-required
-    # review may proceed even when the model's generic next_action is phrased
-    # conservatively as human_review. Explicit model vetoes remain absolute.
-    eligible_for_dispatch = not veto and fusion["score"] >= 0.85
-    if not eligible_for_dispatch:
-        result = _human_review("云端综合研判未达到自动派发门控；未创建机器人任务。", manifest, decision_review, evidence, multi_view)
-        result.update({"first_qwen_review": qwen, "second_qwen_review": second_review, "evidence_fusion": fusion})
-        return _persist_demo_result(demo_id, result)
-    profile = _task_profile(decision_review, location)
-    evaluations = evaluate_capabilities(profile, location, ROBOTS)
-    decision = make_assignment_decision(profile, evaluations)
-    if decision["status"] != "ASSIGNED":
-        return _persist_demo_result(demo_id, {"mode": "LIVE", "status": "HUMAN_FALLBACK", "reason": decision["reason"], "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": decision_review, "first_qwen_review": qwen, "second_qwen_review": second_review, "evidence_fusion": fusion, "task_profile": profile, "assignment_decision": decision, "verification": None, "human_work_order": {"status": "OPEN", "reason": decision["reason"], "source": "capability_engine"}})
-    after = next((asset for asset in manifest["assets"] if asset["role"] == "after"), None)
-    verification = None
-    status = "ASSIGNED"
-    reason = "云端综合研判通过，确定性能力匹配与调度已选择机器人。"
-    if after:
-        try:
-            verification = run_verification_qwen_vl(_asset_path(primary), _asset_path(after), {"event_type": event_type, "camera_id": primary["camera_id"]}, runtime.qwen_model)
-            if verification["verification_pass"] and verification["confidence"] >= 0.85 and verification["next_action"] == "close":
-                status = "CLOSED"
-                reason = "真实云端验收通过，事件可以闭环。"
-            else:
-                status = "HUMAN_REVIEW"
-                reason = "真实云端验收未达到闭环门控；需人工复核。"
-        except RealInferenceError as error:
-            status = "HUMAN_REVIEW"
-            reason = f"真实云端验收失败：{error}"
-    return _persist_demo_result(demo_id, {"mode": "LIVE", "status": status, "reason": reason, "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": decision_review, "first_qwen_review": qwen, "second_qwen_review": second_review, "evidence_fusion": fusion, "task_profile": profile, "assignment_decision": decision, "verification": verification, "human_work_order": {"status": "OPEN", "reason": reason, "source": "verification"} if status == "HUMAN_REVIEW" else None})
-
-
-def _stable_replay(demo_id: str, manifest: dict[str, Any], evidence: list[dict[str, Any]], location: dict[str, Any], multi_view: dict[str, Any] | None) -> dict[str, Any]:
-    event_type = {"demo01": "small_litter", "demo02": "liquid", "demo03": "can", "demo04": "large_object"}[demo_id]
-    qwen = {"provider": "Stable Replay", "model": None, "image_count": 3 if demo_id == "demo02" else 1, "elapsed_ms": None, "need_clean": True, "event_type": event_type, "decision_confidence": 0.91, "severity": "medium", "surface_type": "asphalt" if demo_id == "demo01" else "tile", "interference_factors": ["受控演示回放"], "evidence_summary": "用户手动开启稳定回放，使用预置且可审计的业务结论。", "recommended_capabilities": [], "next_action": "dispatch_robot"}
-    profile = _task_profile(qwen, location)
-    decision = make_assignment_decision(profile, evaluate_capabilities(profile, location, ROBOTS))
-    if decision["status"] != "ASSIGNED":
-        return {"mode": "STABLE_REPLAY", "status": "HUMAN_FALLBACK", "reason": decision["reason"], "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": qwen, "task_profile": profile, "assignment_decision": decision, "verification": None, "human_work_order": {"status": "OPEN", "reason": decision["reason"]}}
-    return {"mode": "STABLE_REPLAY", "status": "CLOSED", "reason": "用户手动开启稳定回放，受控验收通过。", "asset_manifest": manifest, "controlled_yolo": evidence, "multi_view": multi_view, "qwen_review": qwen, "task_profile": profile, "assignment_decision": decision, "verification": {"provider": "Stable Replay", "verification_pass": True, "confidence": 0.95, "evidence_summary": "受控回放验收通过。", "next_action": "close", "elapsed_ms": None}, "human_work_order": None}
+        multi_view_review(event_id)  # Existing bounded workflow; replaced in P1-C.
+    reviewed = cloud_review(event_id, force_unavailable=force_unavailable)
+    if reviewed["state"] != "CLOUD_REVIEW":
+        return reviewed
+    located = locate_event(event_id)
+    if located["state"] != "LOCATED":
+        return located
+    assigned = assign_event(event_id)
+    if assigned["state"] != "ASSIGNED":
+        return assigned
+    navigating = start_navigation(event_id)
+    if navigating["state"] != "NAVIGATING":
+        return navigating
+    complete_navigation(event_id)
+    complete_cleaning(event_id)
+    return verify_event(event_id)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+from math import isfinite
 from time import perf_counter
 from pathlib import Path
 from typing import Any
@@ -46,7 +47,7 @@ def _request_qwen(content: list[dict[str, Any]], model: str) -> tuple[dict[str, 
         with urlopen(request, timeout=45) as response:  # nosec B310: endpoint is explicit local configuration
             body = json.loads(response.read().decode("utf-8"))
         content_text = body["choices"][0]["message"]["content"]
-    except (HTTPError, URLError, KeyError, IndexError, json.JSONDecodeError) as error:
+    except (HTTPError, URLError, KeyError, IndexError, TypeError, TimeoutError, json.JSONDecodeError) as error:
         raise RealInferenceError(f"Qwen-VL request failed: {error}") from error
     return _parse_json(content_text), round((perf_counter() - started) * 1000)
 
@@ -64,6 +65,15 @@ def _parse_json(content: str) -> dict:
     return value
 
 
+def _strict_decision_fields(parsed: dict, flag: str, confidence: str) -> None:
+    """Validate raw JSON before any normalization can turn false into true."""
+    if type(parsed.get(flag)) is not bool:
+        raise RealInferenceError(f"Qwen-VL {flag} must be a JSON boolean.")
+    value = parsed.get(confidence)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or not 0 <= value <= 1:
+        raise RealInferenceError(f"Qwen-VL {confidence} must be a finite number between zero and one.")
+
+
 def run_qwen_vl(image_path: Path, model: str) -> dict:
     parsed, _ = _request_qwen([{"type": "text", "text": PROMPT}, {"type": "image_url", "image_url": {"url": _image_data_url(image_path)}}], model)
     confidence = parsed.get("confidence", 0)
@@ -73,10 +83,14 @@ def run_qwen_vl(image_path: Path, model: str) -> dict:
 
 EVENT_PROMPT = """You are a cautious cleaning-event semantic reviewer. Review the supplied camera image(s), controlled edge detection evidence, and camera context. Return JSON only:
 {"need_clean": boolean, "event_type": "small_litter|liquid|can|large_object|unknown", "decision_confidence": number, "severity": "low|medium|high", "surface_type": string, "interference_factors": [string], "evidence_summary": string, "recommended_capabilities": [string], "next_action": "dispatch_robot|human_review|ignore"}
+need_clean means environmental cleanup or waste removal is required, including manual collection; it does not mean a robot can handle the object. Visible discarded material on a shared floor may require collection even without blocking passage. Do not assume an object is discarded solely from its category or proximity to a bin: use the image and report uncertainty when storage versus waste is unclear. Robot capability is evaluated separately by the system.
+Use supplied operational_context as separately sourced scene facts, scoped to the identified camera/event targets. A confirmed discarded item awaiting removal is not lawful temporary storage just because it is next to a bin or leaves passage room. Judge whether the visible targets need action and fit the large_object ontology (including bulky discarded boxes/bags); do not choose a human handler or robot. Context is not a model answer or confidence, and cannot override absent/contradictory visual evidence.
 Do not choose a robot. Do not invent evidence. Keep evidence_summary in concise Chinese (40-80 Chinese characters)."""
 
 TARGETED_REVIEW_PROMPT = """You are an independent second cleaning-event reviewer. This is a fresh review: do not assume, repeat, or receive any first-review conclusion. Review the supplied camera images and the limited factual context only. For the liquid-spill case, the three images are from the same place and time but different fixed cameras; each single image can be ambiguous. Compare spatial alignment, shape continuity, surface reflection and camera consistency before deciding. Return JSON only:
 {"need_clean": boolean, "event_type": "small_litter|liquid|can|large_object|unknown", "decision_confidence": number, "severity": "low|medium|high", "surface_type": string, "interference_factors": [string], "evidence_summary": string, "recommended_capabilities": [string], "next_action": "dispatch_robot|human_review|ignore"}
+need_clean means environmental cleanup or waste removal is required, including manual collection; it does not mean a robot can handle the object. Visible discarded material on a shared floor may require collection even without blocking passage. Do not assume an object is discarded solely from its category or proximity to a bin: use the image and report uncertainty when storage versus waste is unclear. Robot capability is evaluated separately by the system.
+Use supplied operational_context as separately sourced scene facts, scoped to the identified camera/event targets. A confirmed discarded item awaiting removal is not lawful temporary storage just because it is next to a bin or leaves passage room. Judge whether the visible targets need action and fit the large_object ontology (including bulky discarded boxes/bags); do not choose a human handler or robot. Context is not a model answer or confidence, and cannot override absent/contradictory visual evidence.
 Do not choose a robot. Do not invent evidence. Keep evidence_summary in concise Chinese (40-80 Chinese characters)."""
 
 VERIFICATION_PROMPT = """You are a cautious cleaning verification reviewer. The first image is before cleaning and the second is after cleaning. Return JSON only:
@@ -101,7 +115,8 @@ required cleaning capabilities. Do not average the edge scores.
     content: list[dict[str, Any]] = [{"type": "text", "text": f"{EVENT_PROMPT}\n{multi_view_context}\nContext JSON: {json.dumps(context, ensure_ascii=False)}"}]
     content.extend({"type": "image_url", "image_url": {"url": _image_data_url(path)}} for path in images)
     parsed, elapsed_ms = _request_qwen(content, model)
-    confidence = parsed.get("decision_confidence", parsed.get("confidence", 0))
+    _strict_decision_fields(parsed, "need_clean", "decision_confidence")
+    confidence = parsed["decision_confidence"]
     return {
         "provider": "DashScope Qwen-VL", "model": model, "image_count": len(images), "elapsed_ms": elapsed_ms,
         "need_clean": bool(parsed.get("need_clean", False)), "event_type": str(parsed.get("event_type", "unknown")).lower(),
@@ -124,7 +139,8 @@ def run_targeted_event_qwen_vl(images: list[Path], yolo_evidence: list[dict[str,
     content: list[dict[str, Any]] = [{"type": "text", "text": f"{TARGETED_REVIEW_PROMPT}\nContext JSON: {json.dumps(context, ensure_ascii=False)}"}]
     content.extend({"type": "image_url", "image_url": {"url": _image_data_url(path)}} for path in images)
     parsed, elapsed_ms = _request_qwen(content, model)
-    confidence = parsed.get("decision_confidence", parsed.get("confidence", 0))
+    _strict_decision_fields(parsed, "need_clean", "decision_confidence")
+    confidence = parsed["decision_confidence"]
     return {
         "provider": "DashScope Qwen-VL", "model": model, "image_count": len(images), "elapsed_ms": elapsed_ms,
         "need_clean": bool(parsed.get("need_clean", False)), "event_type": str(parsed.get("event_type", "unknown")).lower(),
@@ -140,5 +156,6 @@ def run_targeted_event_qwen_vl(images: list[Path], yolo_evidence: list[dict[str,
 def run_verification_qwen_vl(before: Path, after: Path, context: dict[str, Any], model: str) -> dict[str, Any]:
     content = [{"type": "text", "text": f"{VERIFICATION_PROMPT}\nContext JSON: {json.dumps(context, ensure_ascii=False)}"}, {"type": "image_url", "image_url": {"url": _image_data_url(before)}}, {"type": "image_url", "image_url": {"url": _image_data_url(after)}}]
     parsed, elapsed_ms = _request_qwen(content, model)
+    _strict_decision_fields(parsed, "verification_pass", "confidence")
     confidence = parsed.get("confidence", 0)
     return {"provider": "DashScope Qwen-VL", "model": model, "elapsed_ms": elapsed_ms, "issue_remaining": bool(parsed.get("issue_remaining", False)), "verification_pass": bool(parsed.get("verification_pass", False)), "confidence": round(float(confidence), 4) if isinstance(confidence, (int, float)) else 0.0, "evidence_summary": str(parsed.get("evidence_summary", ""))[:500], "next_action": str(parsed.get("next_action", "human_review")).lower(), "raw": parsed}

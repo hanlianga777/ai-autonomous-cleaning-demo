@@ -7,6 +7,12 @@
   "view_role": "primary",
   "object_type": "large_cardboard_box",
   "expected_robot": "HUMAN_FALLBACK",
-  "asset_role": "before_only",
-  "verification_note": "No after-cleaning image was supplied. The workbench must show an open human work order rather than fabricate a pass."
+  "asset_role": "before_and_after",
+  "zone_type": "egress_or_public_corridor",
+  "storage_policy": "objects_not_allowed_to_remain",
+  "object_context": "confirmed_discarded_items_awaiting_removal",
+  "context_scope": "The two cardboard boxes visible in this event's before frame; not a policy about every object in future frames.",
+  "context_source": "project_owner_confirmation",
+  "context_confirmed_at": "2026-08-30",
+  "verification_note": "after.png is controlled evidence of the scene following manual removal. Verification must compare the actual before and after images; this metadata does not establish a verification pass."
 }

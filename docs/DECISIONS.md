@@ -5,13 +5,17 @@
 
 ## D01｜产品边界与技术底座
 
+**P1-A Closure 工作树决策（2026-08-30，IMPLEMENTED · Reviewer A/E PASS）**：Stable Replay 的 SQLite response bundle 使用 `p1a.ai-response.v1`，匹配图像字节、模型、Prompt 合约和事实 context，且关联存在的 LIVE event。旧未版本化/畸形/不匹配记录不可用；缺记录安全转 HUMAN_REVIEW。Replay 标注 source=REPLAY、保留历史耗时但本次 model elapsed_ms=null；不保存或直接播放预计算 workflow。机器人与人工完成共用 after-evidence verification workflow。Camera→SLAM 非法输入/输出持久化 structured SPATIAL_ERROR，不派单、不生成路线。Fleet 初始化 INSERT OR IGNORE，显式 Reset 才重置；新事件本身不隐式清除其它任务终点。
+
+`need_clean` 表示包括人工清运在内的环境处置需求，不代表机器人可处理；模型仍可对合法暂存/无需清理给出 false，不能因为要展示 Demo04 而绕过 veto。用户已正式确认 Demo04 的两纸箱为废弃、待清运大件物品，不是合法暂存、补货或待使用物资。该事实只作为有来源、相机/事件范围的 `zone_type=egress_or_public_corridor`、`storage_policy=objects_not_allowed_to_remain`、`object_context=confirmed_discarded_items_awaiting_removal` 进入模型上下文；Cloud 判语义，不判谁处置。只有 Capability zero candidate 可产生 HUMAN_FALLBACK。上下文变化使旧 Replay key 失效，模型 false/ignore 仍然 veto。
+
 **LOCKED**：这是可解释、可演示的园区自主清洁 PoC，不宣称真实生产机器人、电梯、时间同步、动态避障或生产阈值已部署。React + TypeScript + Vite + Tailwind + shadcn/ui 是唯一 UI 底座；ECharts 用于数据可视化，React Flow 仅用于确有必要的关系/流程。后端维持 FastAPI 模块化单体 + SQLite；禁止第二 UI System、Three.js、ROS/RMF runtime、Docker/K8s、大型本地模型。
 
 ## D02｜产品页面与数据统一
 
 **LOCKED**：Workbench 回答“现在正在发生什么”；Event Center 回答“一个 AI 事件发生了什么、系统为何这样处理、如何闭环”；Analytics 回答“历史事件整体说明什么、下一步如何优化”。三者必须使用同一套 `CleaningEvent` / SQLite / history snapshot，不能分别维护 Mock 数据。
 
-**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center、Analytics、Robot Operations Agent 和 Advanced 完整产品化属于未来统一 implementation batch；本轮不提前实现。本批未来只允许在现有 Advanced shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；不得借此重做完整 Advanced 页面。
+**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center、Analytics、Robot Operations Agent 和 Advanced 完整产品化属于Unified Implementation 的后续 P1-D/E/F/H；P1-A 不提前实现。本批只允许在现有 Advanced shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；不得借此重做完整 Advanced 页面。
 
 ## D03｜机器人正式命名与能力边界
 
@@ -128,12 +132,12 @@
 | 初轮三张图同时给 Cloud 后假装主动取证 | 初轮只给主视角；补充图只能来自真实 tool call |
 | Command Bar + 独立语音入口 + Floating Assistant 三入口 | 一个 Robot Operations Agent；Workbench/Event Center 浮窗，Analytics 固定 Panel；语音只是输入模态 |
 | 独立 Analytics Optimization Agent | Robot Operations Agent 的运营分析能力；Analytics Engine 仍确定性 |
-| demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（TODO） |
-| demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（TODO） |
-| Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（TODO） |
+| demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（P1-A 代码与测试通过） |
+| demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（P1-A 代码与测试通过） |
+| Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（P1-A 代码与测试通过） |
 | HUMAN_REVIEW 截断/重建时间轴 | 完整历史永久保留（TODO） |
 | CLOSED 自动复位机器人 | 终点保留，new demo/reset 才复位（TODO） |
 | raw Qwen next_action 当客户系统建议 | 模型判断与系统业务决策分离 |
 | “地面纸巾”“大型纸箱”面客类目 | 其他小型垃圾 / 大件物品 |
-| 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（TODO） |
+| 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（P1-A 代码与测试通过） |
 | LIVE 失败偷偷成功回放 | NO SILENT FALLBACK |

@@ -33,6 +33,6 @@ def make_assignment_decision(task: dict, evaluations: list[dict]) -> dict:
         candidates.append(entry)
     eligible = [candidate for candidate in candidates if candidate["eligible"]]
     if not eligible:
-        return {"status": "HUMAN_FALLBACK", "selected_robot_id": None, "selected_robot_name": None, "reason": "No robot passes hard constraints; create manual work order.", "weights": SCORE_WEIGHTS, "candidates": candidates}
+        return {"status": "HUMAN_FALLBACK", "selected_robot_id": None, "selected_robot_name": None, "candidate_count": 0, "reason": "No robot passes hard constraints; create manual work order.", "weights": SCORE_WEIGHTS, "candidates": candidates}
     selected = max(eligible, key=lambda candidate: candidate["final_score"])
-    return {"status": "ASSIGNED", "selected_robot_id": selected["robot_id"], "selected_robot_name": selected["robot_name"], "reason": f"{selected['robot_name']} is the highest eligible deterministic score ({selected['final_score']}).", "weights": SCORE_WEIGHTS, "candidates": candidates}
+    return {"status": "ASSIGNED", "selected_robot_id": selected["robot_id"], "selected_robot_name": selected["robot_name"], "candidate_count": len(eligible), "reason": f"{selected['robot_name']} is the highest eligible deterministic score ({selected['final_score']}).", "weights": SCORE_WEIGHTS, "candidates": candidates}

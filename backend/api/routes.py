@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from database.connection import get_transitions_after, list_events, read_snapshot
+from database.connection import get_fleet_state, get_transitions_after, list_events, read_snapshot, reset_fleet_state
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
 from optimization.agent import generate_recommendations
 from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
@@ -47,8 +47,11 @@ def _demo_stage(handler, *args, **kwargs) -> dict:
 
 
 @router.post("/demo-v1/events", tags=["Integrated Customer Demo"])
-def post_demo_v1_event(demo_id: str = Query(..., pattern="^demo0[1-4]$")) -> dict:
-    return _demo_stage(create_demo_event, demo_id)
+def post_demo_v1_event(
+    demo_id: str = Query(..., pattern="^demo0[1-4]$"),
+    mode: str = Query("live", pattern="^(live|replay)$"),
+) -> dict:
+    return _demo_stage(create_demo_event, demo_id, "STABLE_REPLAY" if mode == "replay" else "LIVE")
 
 
 @router.post("/demo-v1/events/{event_id}/edge-review", tags=["Integrated Customer Demo"])
@@ -132,13 +135,18 @@ def get_park() -> dict:
 
 @router.get("/robots")
 def get_robots() -> list[dict]:
-    return read_snapshot("robots")
+    return get_fleet_state()
+
+
+@router.post("/fleet/reset", tags=["Integrated Customer Demo"])
+def post_fleet_reset() -> dict:
+    return {"fleet": reset_fleet_state(), "source": "explicit_demo_reset"}
 
 
 @router.get("/dashboard")
 def get_dashboard() -> dict:
     park = read_snapshot("park")
-    robots = read_snapshot("robots")
+    robots = get_fleet_state()
     return {
         "park": park,
         "robots": robots,
@@ -261,7 +269,7 @@ async def post_operations_upload(file: UploadFile = File(...)) -> dict:
 
 @router.get("/robots/{robot_id}")
 def get_robot(robot_id: str) -> dict:
-    robot = next((item for item in read_snapshot("robots") if item["id"] == robot_id), None)
+    robot = next((item for item in get_fleet_state() if item["id"] == robot_id), None)
     if robot is None:
         raise HTTPException(status_code=404, detail="Robot not found")
     return robot
