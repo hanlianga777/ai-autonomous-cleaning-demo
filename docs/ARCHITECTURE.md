@@ -3,13 +3,23 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
+## P1-F 当前执行架构（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+`robot_operations/` 按职责分离：`repository`（SQLite session/task/audit/cache）、`catalog`（Approved POI/原生配送部署策略/未授权平台 registry）、`tools`（严格参数与白名单）、`agent`（唯一 Ops model-tool loop/Advice）、`tasks`（Task state machines）、`coordination`（跨原工作台与 Agent 的 durable lease）、`routes`（薄 HTTP）。
+
+`runtime_transaction()` 让嵌套仓储调用共享 BEGIN IMMEDIATE；仅短确定性状态变更持锁。模型调用在事务外；单 backend worker 启动将未完成请求标 INTERRUPTED，不自动重发模型/硬件命令。并发派发只允许一个占用；Task action session header 与工具路径都验证归属。不是生产分布式执行引擎。
+
+CleaningTask 只关联现有集成事件，阶段完全委托 demo_v1；完整 trace 读取同一 CleaningEvent transitions。Delivery/Relocation 有持久化 task transitions、同一 Fleet active_task_id、合法 POI 与现有 Dijkstra。配送 CREATED→ASSIGNED→TO_PICKUP→ARRIVED_PICKUP→PICKED_UP→条件电梯→TO_DESTINATION→DELIVERED→CLOSED；无电梯路段不伪造 ELEVATOR_TRANSIT。物理推进来源为显式操作员 PoC driver。
+
+前端 `RobotOperationsProvider` 提供跨页 Session/错误/忙碌/串行只读同步；聊天和任务卡不生成本地替代结果。浮窗位置只存 UI localStorage，任务/对话真相在 SQLite。Analytics 上半缓存建议、下半同一对话，无第二 Agent。Advice GET 不调用模型，POST 才真实执行只读 tool loop 并保留审计；provider/parser失败保留旧缓存。麦克风明确未配置。
+
 ## P1-E 当前数据层（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 `analytics/history_seed.py` 在 FastAPI lifespan 的 schema 初始化之后幂等插入过去30个完整日的结构化事件/transition，日期+版本ID、显式时间/来源；不调用真实模型、Runtime、Fleet。六事实源中的“演示历史”是合成业务数据，不是客户生产数据。
 
 `analytics/read_model.py` 从一次 `read_archived_events()` SQLite快照计算5KPI、样本分母、数据来源组成、时段/类型/热点、事件时活跃区间利用率。默认滚动30天；自定义窗口同步返回真实 `period.days`。利用率 provider 当前显式假定连续可用，未来可替换观测区间。无 GET 写入、无当前 Fleet 覆盖。
 
-`AnalyticsView` 与纯 `analyticsViewModel` 消费真实 API；ECharts 与已有 MapCanvas/projectMapCoordinate 共用内层坐标。热点选择为聚合区域交互，事件点坐标不被挪动；明细保留精确 map/x/y/type/time 与平均闭环并跳档案。Event Archive 能恢复 UTC 时间筛选且 input 显示本地时间。Analytics 右侧仅诚实预留 P1-F 共用Agent/Advice区域，旧固定对话/建议不再由该UI展示。
+`AnalyticsView` 与纯 `analyticsViewModel` 消费真实 API；ECharts 与已有 MapCanvas/projectMapCoordinate 共用内层坐标。热点选择为聚合区域交互，事件点坐标不被挪动；明细保留精确 map/x/y/type/time 与平均闭环并跳档案。Event Archive 能恢复 UTC 时间筛选且 input 显示本地时间。Analytics右侧已按P1-F接入共享Agent/真实只读Advice；旧固定推荐入口退役410。
 
 ## P1-D 当前实现补充（2026-08-30）
 
@@ -33,7 +43,7 @@ Semantic records 使用 `p1c.visual-pipeline.v1`，绑定图像字节、camera c
 React / Vite customer shell (/ and /prototype)
   ├── Workbench：CameraMonitorGrid + SpatialDispatchView + EventDetailPanel
   ├── Event Center：P1-D 只读档案列表/筛选/URL + 共用 history EventDetailPanel
-  ├── Analytics：同库Seed/Runtime聚合 + 5KPI/热点/区间利用率；Agent建议待P1-F
+  ├── Analytics：同库Seed/Runtime聚合 + 5KPI/热点/区间利用率；P1-F共享Agent建议
   └── Advanced：状态与 trace shell
   ▼
 FastAPI /api
@@ -46,7 +56,7 @@ FastAPI /api
   └── SQLite（CleaningEvent / transitions / decisions / human work orders）
 ```
 
-**实现边界**：D06 Event Center 已按 P1-D 完成；D07 Analytics已在P1-E接入真实聚合；D08–D09 Operations/Advice目标仍未完成；D10 新 Multi-view 已按 P1-C 完成。
+**实现边界**：D06 Event Center 已按 P1-D 完成；D07 Analytics已在P1-E接入真实聚合；D08–D09 Operations/Advice已在P1-F完成；D10 新 Multi-view 已按 P1-C 完成。
 
 ## 2. 已实现的阶段边界（IMPLEMENTED / LOCKED）
 
@@ -97,7 +107,7 @@ Fixed Camera
 - 显式 Stable Replay 仅替换 cloud/verification response source；Camera→SLAM、Capability、Scheduler、Dijkstra、Fleet、SQLite、任务阶段和验收门控均重新运行。Replay 缺 semantic record 时安全停止；缺 after verification record 时先保存 VERIFYING，再 HUMAN_REVIEW / VERIFICATION_ERROR。
 - 用户确认的废弃待清运事实存于主摄像头事件 metadata，以 `scene_context` 纳入 Scenario manifest；按 camera_id 匹配的 `operational_context` 进入一/二审相同事实 context，并以 `cloud_context` 持久化。模型不可读取 expected_robot/verification_mode 等预期结论；Replay key 包含该 context。事实限定本事件的两箱，不扩展到该摄像头所有未来物体。
 - Demo04 人工完成不依赖 demo_id，而要求已持久化的 `HUMAN_FALLBACK` + `candidate_count=0`；机器人/人工完成调用同一 verification workflow。真实模型 veto 仍可阻止此前路径，不得为闭环展示绕过。
-- 此处 Task Runtime 指当前 CleaningEvent/assignment/active_event_id 阶段执行；P1-F Agent Task/Action Card 尚未实现。`run_demo` 兼容入口仅委托同一 stage runtime；旧合成 `_stable_replay` 及旧持久化捷径已删除，旧 `/runs/*` 仍 410。P1-A Event/targeted 的 need_clean 与 verification 的 verification_pass 及其 confidence 必须在规范化前严格校验 JSON boolean / 非 boolean 的有限数值，禁止字符串 `"false"` 或布尔置信度转换成成功结果。 AI Lab 旧 run_qwen_vl 与非关单字段 issue_remaining 的宽松规范化尚待后续统一硬化，不属于本轮已验证范围。
+- 此处 Task Runtime 指当前 CleaningEvent/assignment/active_event_id 阶段执行；P1-F已在此基础上增加Agent Task/Action Card，清洁阶段仍委托同一CleaningEvent。`run_demo` 兼容入口仅委托同一 stage runtime；旧合成 `_stable_replay` 及旧持久化捷径已删除，旧 `/runs/*` 仍 410。P1-A Event/targeted 的 need_clean 与 verification 的 verification_pass 及其 confidence 必须在规范化前严格校验 JSON boolean / 非 boolean 的有限数值，禁止字符串 `"false"` 或布尔置信度转换成成功结果。 AI Lab 旧 run_qwen_vl 与非关单字段 issue_remaining 的宽松规范化尚待后续统一硬化，不属于本轮已验证范围。
 
 ## 4. Multi-view Perception Agent（IMPLEMENTED / LOCKED · P1-C）
 
@@ -145,7 +155,7 @@ CleaningEvent
 
 **P1-D 已实现**：Event Center 的列表产品化要求事件创建即进入列表、默认倒序；全部、处理中、已自主闭环、待人工处理、异常五类状态分离。`HUMAN_FALLBACK` 是业务兜底，不是异常。URL `?event=` 恢复选择但首次不自动打开。**P1-B IMPLEMENTED**：历史详情只读事件发生当时 robot / route / AI / verification / terminal Fleet snapshot，不用当前状态覆盖；列表实时提示与 URL 已在 P1-D 实现。
 
-## 7. Analytics Engine（P1-E IMPLEMENTED；P1-F Agent Read Tools/Advice TODO）
+## 7. Analytics Engine（P1-E IMPLEMENTED；P1-F Agent Read Tools/Advice IMPLEMENTED）
 
 ```text
 30-day structured Demo Historical Baseline (explicitly labelled)
@@ -155,12 +165,12 @@ CleaningEvent
        ├── Campus Spatial Event Heatmap
        ├── event structure + time / hotspot analysis
        └── cleaning-robot utilization from task-state time
-  → Analytics UI（P1-E已实现） + Robot Operations Agent read tools（P1-F TODO）
+  → Analytics UI（P1-E已实现） + Robot Operations Agent read tools（P1-F IMPLEMENTED）
 ```
 
 Analytics Engine 不是 Agent，不得由 LLM 编造 KPI、utilization 或效果数字。热力图用 map_id/x/y/event_type/timestamp 聚合，点击热点可带 filter 跳到 Event Center。FlashBot Max 不进入清洁机器人利用率排名。运营建议只读取此确定性数据；默认显示带 Data Window / Generated At 的 snapshot，用户主动点击才重新生成。
 
-## 8. Robot Operations Agent、Policy Guard 与页面上下文（LOCKED / TODO）
+## 8. Robot Operations Agent、Policy Guard 与页面上下文（IMPLEMENTED / LOCKED · P1-F）
 
 ```text
 User text / future ASR transcript
@@ -187,7 +197,7 @@ Shared AgentSession / Message / ActionAudit / Task context
 
 没有已保存 UI position 时，Workbench / Event Center 的共享浮窗默认位于左下角；有 localStorage position 时以其为准。浮窗只能从 Header/Drag Handle 拖动，不能超 viewport，展开/收起、跨 Workbench/Event Center 与刷新均保持位置；Analytics 仅显示固定 Panel，不与 Floating Window 重复。语音只是同一 Agent 的 Microphone → real ASR → transcript 输入适配，不是独立 Agent，也不是当前清洁 Demo 主秀；麦克风只有在真实 ASR provider 已配置时可用，否则 disabled 或明确显示“语音服务未配置”，不得 fake voice interaction。
 
-## 9. External Delivery Adapter（LOCKED / TODO）
+## 9. External Delivery Adapter（registry IMPLEMENTED；真实授权/回调 TODO）
 
 清洁仍是主业务。未获得平台授权、资质与 API 权限时，Delivery Adapter 只能显示 `ADAPTER READY` / `AUTH REQUIRED`；不得声称 `CONNECTED` 或伪造 platform callback。授权后，结构化订单走确定性 Adapter / POI normalization / Policy / Delivery Workflow / FlashBot Max / status callback；不确定例外才升级给 Robot Operations Agent。
 

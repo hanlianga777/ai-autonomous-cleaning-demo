@@ -7,7 +7,6 @@ from fastapi.responses import StreamingResponse
 from database.connection import get_fleet_state, get_transitions_after, list_events, read_snapshot, reset_fleet_state
 from event_archive.service import archive_index
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
-from optimization.agent import generate_recommendations
 from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
 from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload, system_ai_status
 from spatial.calibration import CalibrationError, map_pixel_to_slam
@@ -141,7 +140,7 @@ def get_robots() -> list[dict]:
 
 @router.post("/fleet/reset", tags=["Integrated Customer Demo"])
 def post_fleet_reset() -> dict:
-    return {"fleet": reset_fleet_state(), "source": "explicit_demo_reset"}
+    return {"fleet": _demo_stage(reset_fleet_state), "source": "explicit_demo_reset"}
 
 
 @router.get("/dashboard")
@@ -191,7 +190,7 @@ def get_analytics_task_history() -> list[dict]:
 
 @router.post("/optimization/recommend", tags=["Analytics + Optimization"])
 def post_optimization_recommendations() -> dict:
-    return generate_recommendations()
+    raise HTTPException(status_code=410, detail="Fixed recommendations are retired. Use /api/robot-operations/advice; regeneration requires an explicit POST.")
 
 
 @router.get("/workbench/scenario02/assets", tags=["Customer Workbench"])

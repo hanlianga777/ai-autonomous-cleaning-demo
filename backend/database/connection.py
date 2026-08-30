@@ -6,11 +6,13 @@ import json
 import sqlite3
 from copy import deepcopy
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 from data.mock_data import PARK, ROBOTS
 
 DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_demo.db"
+_TRANSACTION: ContextVar[sqlite3.Connection | None] = ContextVar("runtime_transaction", default=None)
 
 
 # Customer-facing naming is projection data.  Internal IDs remain the stable
@@ -48,12 +50,35 @@ def get_connection() -> sqlite3.Connection:
 
 @contextmanager
 def database_session():
+    current = _TRANSACTION.get()
+    if current is not None:
+        yield current
+        return
     connection = get_connection()
     try:
         yield connection
         connection.commit()
     finally:
         connection.close()
+
+
+@contextmanager
+def runtime_transaction():
+    """One SQLite write transaction for task + fleet + transition mutations.
+
+    Nested repository calls share the connection. Never hold this across Cloud
+    requests: only deterministic, short state changes belong here.
+    """
+    if _TRANSACTION.get() is not None:
+        yield
+        return
+    with database_session() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        token = _TRANSACTION.set(connection)
+        try:
+            yield
+        finally:
+            _TRANSACTION.reset(token)
 
 
 def initialize_database() -> None:
@@ -159,12 +184,16 @@ def save_fleet_state(fleet: list[dict]) -> None:
         )
 
 
+@runtime_transaction()
 def reset_fleet_state() -> list[dict]:
+    if any(robot.get("active_task_id") for robot in get_fleet_state()):
+        raise ValueError("Cancel active Operations tasks before resetting the Fleet baseline.")
     fleet = _baseline_fleet()
     save_fleet_state(fleet)
     return fleet
 
 
+@runtime_transaction()
 def update_fleet_robot(robot_id: str, **updates: object) -> dict:
     fleet = get_fleet_state()
     robot = next((item for item in fleet if item["id"] == robot_id), None)

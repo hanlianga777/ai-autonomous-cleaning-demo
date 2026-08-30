@@ -3,13 +3,23 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO 验收计划 · 2026-08-30**
 > 本文区分已发生的真实调用、当前代码边界和未来必须达到的验收标准。固定 bbox 仍是 `CONTROLLED_EDGE_DEMO`，不是本地 REAL YOLO。
 
+## P1-F Robot Operations 实跑与验收（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- 后端 `test_robot_operations.py` 16/16：真实 SQLite/Task/Fleet，模型 transport 仅在单元测试中注入；覆盖并发唯一占用、原阶段 lease、必须先派发、暂停状态同步、session归属、POI/权限 fail closed、完整配送状态机、真正新解释器重启保留、非法工具/云端失败审计、只读建议缓存与伪造引用拒绝、外部 Adapter 未授权。
+- 完整后端121项=118 PASS + 3 paid opt-in skipped；前端39/39及build、git diff --check通过。跳过项不冒充本轮全部模型回归，四Demo最终稳定性仍P1-G。
+- 实际浏览器 + Qwen Operations LIVE：Session `ops-77b69d877b324c59a2e572dbfdcb27f7`；Omnie待命 `task-400007d6e0794c46`，模型create/dispatch后操作员 pause→resume→NAVIGATING→ARRIVED→CLOSED，Fleet终点A_1F(52,29)保留。Task卡、跨Events/Analytics共享对话与审计可见。
+- 配送第一次 LIVE 猜错未注册POI `a2-handover`，后端拒绝且未派发，错误历史保留。改进工具Schema公开合法ID/中文名称与读取目录提示，没有写死模型回复。重跑真实 read→create→dispatch `task-a16970ea7f0a4be6`，robot-d从A1配送点至A2通道点，逐步PoC取件/电梯/送达/CLOSED，终点A_2F(57,26)。这些是实际后端模拟状态，不是物理机器人遥测或外部平台订单。
+- Advice 实际LIVE审计Session `ops-e73010cde25549fea6283a3fb26f506b`：2个只读工具，3条建议；快照生成于2026-08-30T03:25:20Z，Data Window2026-07-31至08-30。引用验证来自读取事件集合；GET/切页不重新调用模型。初次生成中“显著高于”定性措辞并非统计检验结论，已在后续Prompt禁止此类无检验推断，旧快照不静默改写。
+- 浏览器1280×720默认浮窗x12/y254/352×454；折叠保持x/y，跨页保留同一Task/Session；UI有麦克风disabled与语音服务未配置。窄视口/非有限坐标/权限header/错误显示有自动化覆盖。
+- Reviewer A/E：PASS，P0/P1=0。修复过的P1包括原WorkBench绕过lease、CREATED绕过dispatch、robot-d缺权限默认放行、UI action缺session归属、Cleaning暂停不同步Fleet、Advice对象渲染。P2为真实身份/分布式执行/硬件与平台/ASR/审计保留，不影响本地PoC边界。
+
 ## P1-E 运营分析验收记录（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 - Backend Analytics 定向12/12：同库300条Seed幂等、无Fleet/model_record污染、Seed不可运行；业务处置分母/人工闭环/系统排除；缺人工开始为空；首次失败不被重试成功覆盖；空样本不伪造成功；同坐标聚合与精确档案drill；任务区间并集/窗口剪裁/跨窗任务与Robot D排除；四个锁定时段/平均闭环/自定义窗口；GET只读。
 - 完整后端105项 = 102 PASS + 3 paid opt-in skipped。P1-E不改变模型/Scheduler/SLAM规则，之前LIVE证据仍保留，不冒称本阶段重新跑过全部真实模型。
 - 浏览器：读取QA库同一297条窗口内DEMO_HISTORY+5条Runtime增量；五KPI展示分母。A栋1F聚合选择→东入口81条液体热点→EventCenter81条精确map/x/y/type/UTC范围；历史来源标记、刷新与本地datetime显示正确，Seed详情无真实Cloud/图片声称。数值仅该历史QA时点，不写入UI固定值。
 - 09–17初始分析假设与历史傍晚任务不一致，已按架构审查改成显式连续可用PoC归一化，并注明非观测uptime；这不是为美化百分比调整真实运营数据。缺真实availability provider仍为限制。
-- 审查还要求锁定4时段、selected-period、UTC输入显示/传输、热点点击重叠处理、KPI分母解释，均按已有D07实现而非改业务规则。前端32/32、build/diff check通过；A/E代码审查PASS，P0/P1=0。P2：Seed保留策略、真实availability、carried_tasks展示、ECharts拆包及旧Optimization待F，见TODO。
+- 审查还要求锁定4时段、selected-period、UTC输入显示/传输、热点点击重叠处理、KPI分母解释，均按已有D07实现而非改业务规则。前端32/32、build/diff check通过；A/E代码审查PASS，P0/P1=0。P2：Seed保留策略、真实availability、carried_tasks展示、ECharts拆包及旧Optimization在F已退役；其余见TODO。
 
 ## P1-D 档案验收（IMPLEMENTED · A/E PASS · 2026-08-30）
 
@@ -55,7 +65,7 @@ P1-A 已提交推送 `fcd01d4`。P1-B 本次仅前端与文档改动，不修改
 - Demo04 `integrated-demo04-6b02cb6896`：在真实 cloud-review 处理中刷新；服务访问日志证明该事件 cloud-review 只有 1 次 POST，刷新后 GET 读取 SQLite，再继续 locate/assign 至 zero-candidate HUMAN_FALLBACK。只验证同会话防重复，未声称跨新标签页幂等。
 - 浏览器发现并修复过 route Hook 等值数组引发的 maximum update depth、UTC 解析导致瞬间完成、已走路线拐点丢失；最终检查无新运行时错误。空间面板有独立错误边界，故障不清空工作台。
 
-Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。该段为 P1-B 当时的记录；P1-C 新 Agent 当前已完成（见本文最新记录），P1-D 完整事件列表已实现；P1-B当时P1-E/F/H与最终多次LIVE尚未实施；P1-E当前完成证据见页首，F/H/G仍待后续。
+Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。该段为 P1-B 当时的记录；P1-C 新 Agent 当前已完成（见本文最新记录），P1-D 完整事件列表已实现；P1-B当时P1-E/F/H与最终多次LIVE尚未实施；P1-E当前完成证据见页首，H/G仍待后续。
 
 ### 2026-08-30 P1-A Closure 最新验收（IMPLEMENTED · Reviewer A/E PASS）
 
@@ -131,7 +141,7 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 | Analytics | 明确“近30天 · 演示历史数据”；5 KPI 均可追溯到 event/transition；处理中/异常 denominator 有规则；Heatmap / filters / drill-down 跳 Event Center；不使用 hardcoded KPI、利用率或趋势 |
 | Robot utilization | 只统计赛特净界 S5、高仙 Omnie、蜗小白 SC50 的任务状态时间 ÷ 可用时间；FlashBot Max 不进清洁利用率排名 |
 
-## 6. Robot Operations Agent / Delivery 验收（LOCKED / TODO）
+## 6. Robot Operations Agent / 原生PoC Delivery 验收（IMPLEMENTED · 真实平台仍TODO）
 
 - **Read 与 Page Context**：Workbench、Event Center、Analytics 是同一 `AgentSession`；分别自动传入当前 event/fleet/map、selected event/filter、time/type/hotspot/robot/KPI/chart context。
 - **Action**：低风险 cleaning / delivery / relocation standby 任务必须经 Policy Guard、生成真实 backend Task 与 Action Card，并与 Fleet / Workbench 共享 Task ID / state。

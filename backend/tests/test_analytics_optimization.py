@@ -39,11 +39,8 @@ class AnalyticsOptimizationTests(unittest.TestCase):
             self.assertAlmostEqual(row["utilization"], row["active_minutes"] / row["available_minutes"] * 100, delta=0.1)
 
     def test_optimization_is_bounded_to_analytics_inputs_and_recommendations(self):
-        result = generate_recommendations()
-        self.assertEqual({call["tool"] for call in result["tool_calls"]}, {"Heatmap Tool", "Robot Utilization Tool", "Task History Tool"})
-        self.assertEqual({recommendation["type"] for recommendation in result["recommendations"]}, {"STANDBY_POINT", "PROACTIVE_PATROL", "RESOURCE_CONFIGURATION"})
-        self.assertNotIn("chain_of_thought", str(result).lower())
-        self.assertTrue(any("Scheduler" in guardrail for guardrail in result["guardrails"]))
+        with self.assertRaisesRegex(ValueError, "retired"):
+            generate_recommendations()
 
 
 if __name__ == "__main__":

@@ -3,6 +3,16 @@
 > **状态：LOCKED · 2026-08-30**
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
+## P1-F 执行与真实性边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- Robot Operations Agent 与 Multi-view 共用现有 Qwen transport，但工具白名单不同；`tool_choice=auto`，Ops 每轮最多8工具/4写操作，建议最多4只读工具。未知工具、额外坐标参数、越界 POI/机器人范围均由代码拒绝并审计，不依赖 Prompt 自律。
+- 清洁只包装现有 eligible CleaningEvent；先 create、dispatch，再由原有 workflow stage 执行。不从自然语言伪造 TaskProfile，不改变 Robot-first + Human Fallback。Task lease 同时保护 Agent 与原 Workbench stage，暂停/取消不能由另一入口绕过。
+- Task/Fleet 短事务使用 SQLite BEGIN IMMEDIATE；云端调用在事务外并持有 durable task lease。清洁暂停/恢复同步 Fleet 并恢复实际原状态。终点/电量/Task 保留到重启；有活动 Operations 任务时必须先取消再 Reset Fleet。
+- `X-Operations-Session` 校验 UI task action 与 task.session_id 一致；这是本地 PoC 会话边界，不是生产登录权限系统。清洁完整阶段事实仍以 CleaningEvent transitions 为准，Task 的 workflow_transitions 是只读投影，不复制第二份真相。
+- 原生 DeliveryTask 绑定 robot-d，Approved POI + Dijkstra；仅操作员显式推进 POC SIMULATION 取件/乘梯/送达状态，不 fake 外部 callback。robot-d 室内/电梯/连廊为明确的 PoC deployment policy；缺失/拒绝权限 fail closed。美团/饿了么/京东/淘宝闪购仅 Adapter registry + AUTH REQUIRED。
+- Advice 使用同一个 Operations Agent 的只读工具能力，显式请求后缓存 3–4 条，包含实际 Data Window/Generated At/关联事件，验证引用来自所读集合；不能自动改配置。旧 `/api/optimization/recommend` 410。模型定性建议不是统计显著性证明或生产收益承诺。
+- 档案列表/详情继续只读；共享 Agent 中由用户主动发起的白名单 task action 是单独审计入口，不是档案浏览自动派单。ASR 未配置时 disabled，未实现真实语音 provider。
+
 ## P1-E 指标与数据来源实现边界（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 - 演示历史与 Runtime 均在 CleaningEvent/transition SQLite；Seed 仅启动幂等插入，不在 GET 生成第二份数据，不更新 Fleet/模型记录。Archive、detail、Analytics 均标 DEMO_HISTORY，历史 seed 不能进入实际集成 Runtime。
@@ -15,7 +25,7 @@
 
 `GET /api/event-archive` 是 CleaningEvent + transition 的只读投影，不建立第二份事件数据库，也不读取当前 Fleet 覆盖历史。正常 Human Fallback 属于待人工处理；人工完成后的 CLOSED 仅在“全部”中标为人工处置后闭环，不混入“已自主闭环”或仍待人工。各分类计数先应用其它筛选，再按类别统计，不要求相加等于全部。发现时间排序不使用最后更新时间。
 
-`/events?event=` 只恢复历史选择。非 Workbench 页面不自动推进阶段或轮询当前任务；历史页只做 GET。右侧 44% 保留 shell，内容必须与 selected event ID 相同；更换/失败时不显示另一事件快照。无时区 SQLite 时间按 UTC，操作员本地时间筛选显式转换为 UTC。新记录轮询不抢详情，不由前端补造状态。
+`/events?event=` 只恢复历史选择。非 Workbench 页面不自动推进阶段或轮询当前任务；档案浏览只做 GET；P1-F共享Agent的用户显式任务操作单独鉴权审计，不由档案自动触发。右侧 44% 保留 shell，内容必须与 selected event ID 相同；更换/失败时不显示另一事件快照。无时区 SQLite 时间按 UTC，操作员本地时间筛选显式转换为 UTC。新记录轮询不抢详情，不由前端补造状态。
 
 ## P1-C 工程决策补充（IMPLEMENTED · A/E PASS）
 
@@ -92,19 +102,19 @@
 
 ## D08｜Robot Operations Agent 与 Policy Guard
 
-**LOCKED / TODO**：系统只保留两个必要 Agent：Multi-view Perception Agent（主动视觉取证）与 Robot Operations Agent（自然语言理解、运营分析、白名单工具选择、低风险任务执行、Observe/Replan/Close）。不得新增 Heatmap / Scheduler / Dijkstra / Camera-to-SLAM / RAG Agent；RAG 仅可作为 Robot Operations Agent 的 Knowledge Tool。
+**IMPLEMENTED / LOCKED（P1-F）**：系统只保留两个必要 Agent：Multi-view Perception Agent（主动视觉取证）与 Robot Operations Agent（自然语言理解、运营分析、白名单工具选择、低风险任务执行、Observe/Replan/Close）。不得新增 Heatmap / Scheduler / Dijkstra / Camera-to-SLAM / RAG Agent；RAG 仅可作为 Robot Operations Agent 的 Knowledge Tool。
 
-**LOCKED / TODO**：Robot Operations Agent 有 Read Tools（事件、详情、KPI、热点、利用率、robot/fleet/capability/POI/location/task/camera evidence 等）及低风险 Action Tools（创建清洁/配送/待命任务、dispatch/pause/resume/cancel、请求证据、状态更新）。任务可直接执行但必须经 Policy Guard；Relocation 目标只可来自合法 POI / approved location，Agent 不得直接控制底盘坐标。
+**IMPLEMENTED / LOCKED（P1-F）**：Robot Operations Agent 有 Read Tools（事件、详情、KPI、热点、利用率、robot/fleet/capability/POI/location/task/camera evidence 等）及低风险 Action Tools（创建清洁/配送/待命任务、dispatch/pause/resume/cancel、请求证据、状态更新）。任务可直接执行但必须经 Policy Guard；Relocation 目标只可来自合法 POI / approved location，Agent 不得直接控制底盘坐标。
 
-**LOCKED / TODO**：Agent 永远没有 `update_slam_map`、禁行区/范围/能力/标定/Coverage/Scheduler policy/自动处置阈值/速度/门禁/电梯权限等 Write Tools。安全边界必须由代码级工具白名单实现，不是 Prompt 自律。物理动作需写 Action Audit：用户原话/ASR、intent、tool/args、Policy Guard、Task ID、机器人、结果、异常、replan、最终状态。
+**IMPLEMENTED / LOCKED（P1-F）**：Agent 永远没有 `update_slam_map`、禁行区/范围/能力/标定/Coverage/Scheduler policy/自动处置阈值/速度/门禁/电梯权限等 Write Tools。安全边界必须由代码级工具白名单实现，不是 Prompt 自律。物理动作需写 Action Audit：用户原话/ASR、intent、tool/args、Policy Guard、Task ID、机器人、结果、异常、replan、最终状态。
 
 ## D09｜Agent 页面形态、Analytics Advice 与语音
 
-**LOCKED / TODO**：只有一个共享 Robot Operations Agent。Workbench 与 Event Center 是可拖动 Floating Window：没有已保存 UI position 时默认左下角，已保存的 localStorage position 优先；仅 Header/Drag Handle 可拖、不能出 viewport、展开/收起保持位置、跨 Workbench/Event Center 与刷新保持。Analytics 不显示 Floating Agent，改为右侧固定 Panel：上半 AI 运营优化建议，下半同一 Agent 对话。切页不丢 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。
+**IMPLEMENTED / LOCKED（P1-F）**：只有一个共享 Robot Operations Agent。Workbench 与 Event Center 是可拖动 Floating Window：没有已保存 UI position 时默认左下角，已保存的 localStorage position 优先；仅 Header/Drag Handle 可拖、不能出 viewport、展开/收起保持位置、跨 Workbench/Event Center 与刷新保持。Analytics 不显示 Floating Agent，改为右侧固定 Panel：上半 AI 运营优化建议，下半同一 Agent 对话。切页不丢 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。
 
-**LOCKED / TODO**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
+**IMPLEMENTED / LOCKED（P1-F）**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
 
-**LOCKED / TODO**：Analytics Advice 不是第三个 Optimization Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
+**IMPLEMENTED / LOCKED（P1-F）**：Analytics Advice 不是第三个 Optimization Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
 
 ## D10｜Multi-view Perception Agent
 

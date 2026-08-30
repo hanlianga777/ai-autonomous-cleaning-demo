@@ -1,7 +1,7 @@
 # AI 自主清洁 Demo｜真实任务清单
 
 > **状态：LOCKED · 2026-08-30**
-> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E 工程验收通过；E独立提交推送后进入 P1-F，后续阶段仍逐阶段验收提交。
+> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E/F 工程验收通过；F独立提交推送后进入 P1-H，后续阶段仍逐阶段验收提交。
 
 ## 已实现基线（IMPLEMENTED，禁止回退）
 
@@ -65,15 +65,19 @@
 
 验收：backend定向12/12、完整105项=102PASS+3paid opt-in skipped、前端32/32、build/diff check、实际热点→81条对应档案/Seed来源/UTC范围浏览器验收，A/E PASS。默认近30天；自定义范围按实际period返回；时段保持D07四bucket。
 
-- [ ] **P1-E P2**：Seed滚动插入保留旧档案，未来明确保留/归档策略（当前不自动删用户数据）；真实availability/uptime provider仍缺，利用率假定24小时连续可用；后续按需在UI展示carried_tasks；ECharts首次引入后bundle>500KB可按路由拆包。旧固定Optimization API待P1-F替换，客户Analytics已不显示假建议。
+- [ ] **P1-E P2**：Seed滚动插入保留旧档案，未来明确保留/归档策略（当前不自动删用户数据）；真实availability/uptime provider仍缺，利用率假定24小时连续可用；后续按需在UI展示carried_tasks；ECharts首次引入后bundle>500KB可按路由拆包。旧固定Optimization API已在P1-F退役410，客户Analytics接真实只读Agent建议。
 
-## P1-F｜Robot Operations Agent 与配送扩展基础
+## P1-F｜Robot Operations Agent 与配送扩展基础（IMPLEMENTED · A/E PASS）
 
-- [ ] **Agent runtime / Policy Guard / Audit**：实现白名单 Read Tools、低风险 Action Tools、代码级禁止 Write Tools、Observe/Replan/Close 与 Action Audit；不得产生 Scheduler / Dijkstra / Heatmap / RAG 等额外 Agent。
-- [ ] **Task 与 Action Card**：实现 Cleaning / Delivery / Relocation Standby Task；POI 白名单；真实 backend Task ID 与 Fleet/Workbench/Agent 共享同一状态；Agent 不直接操作底盘坐标。
-- [ ] **一个 Agent、两种 UI 与真实语音边界**：Workbench/Event Center 共享可拖动浮窗；无已保存位置默认左下角，localStorage 位置优先，Header/Drag Handle 拖动、viewport 限制、展开/收起/跨页/刷新保持。Analytics 固定右侧 Panel；共享 session / messages / audit / Page Context。语音链路为 Microphone → real ASR → transcript；只有已配置 ASR provider 才能启用麦克风，未配置时 disabled 或显示“语音服务未配置”，禁止预设文本、timer、mock transcript 或 fake animation。
-- [ ] **Analytics Advice**：成为 Robot Operations Agent 的只读能力，最多 3–4 Read Tool calls、3–4 条含数据依据的建议；默认 snapshot，用户点击才重新生成；不自动改变运营配置。
-- [ ] **Delivery Adapter boundary**：FlashBot Max Demo Fleet / DeliveryTask state machine 可未来实现；外部平台仅在合法授权后接入，未授权显示 `ADAPTER READY` / `AUTH REQUIRED`，不得伪造 webhook / callback。
+- [x] **Agent runtime / Policy Guard / Audit**：实现白名单 Read Tools、低风险 Action Tools、代码级禁止 Write Tools、Observe/Replan/Close 与 Action Audit；不得产生 Scheduler / Dijkstra / Heatmap / RAG 等额外 Agent。
+- [x] **Task 与 Action Card**：实现 Cleaning / Delivery / Relocation Standby Task；POI 白名单；真实 backend Task ID 与 Fleet/Workbench/Agent 共享同一状态；Agent 不直接操作底盘坐标。
+- [x] **一个 Agent、两种 UI 与真实语音边界**：Workbench/Event Center 共享可拖动浮窗；无已保存位置默认左下角，localStorage 位置优先，Header/Drag Handle 拖动、viewport 限制、展开/收起/跨页/刷新保持。Analytics 固定右侧 Panel；共享 session / messages / audit / Page Context。语音链路为 Microphone → real ASR → transcript；只有已配置 ASR provider 才能启用麦克风，未配置时 disabled 或显示“语音服务未配置”，禁止预设文本、timer、mock transcript 或 fake animation。
+- [x] **Analytics Advice**：成为 Robot Operations Agent 的只读能力，最多 3–4 Read Tool calls、3–4 条含数据依据的建议；默认 snapshot，用户点击才重新生成；不自动改变运营配置。
+- [x] **Delivery Adapter boundary**：FlashBot Max原生PoC Fleet / DeliveryTask state machine已实现；外部平台仅在合法授权后接入，未授权显示 `ADAPTER READY` / `AUTH REQUIRED`，不得伪造 webhook / callback。
+
+验收：16后端定向、完整121项=118 PASS+3 paid opt-in skipped、前端39/build、实际LIVE待命/配送与只读Advice；A/E PASS。模型语义失败必须可见，不以重试成功抹掉历史。
+
+- [ ] **P1-F P2**：真实身份权限、分布式任务/硬件幂等、生产设备与外部平台授权、ASR provider、审计保留/检索仍待后续；当前单worker启动恢复只标Interrupted不重发。共享Task接口中的workflow_transitions来自原CleaningEvent，不另存第二份清洁trace。
 
 ## P1-G｜验收、回归与文档纪律
 

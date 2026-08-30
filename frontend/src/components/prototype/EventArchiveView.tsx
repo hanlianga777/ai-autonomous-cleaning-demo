@@ -8,6 +8,7 @@ import {
   type ArchiveCounts, type ArchiveFilters, type ArchiveItem, type ArchiveResponse, type HandlingMode,
 } from "./eventArchiveModel";
 import type { ActiveEvent } from "./types";
+import { archivePageContext } from "@/components/robot-operations/robotOperationsModel";
 
 const POLL_INTERVAL_MS = 1500;
 const EVENT_TYPES = ["", "small_litter", "liquid", "can", "large_object"];
@@ -49,7 +50,7 @@ function EmptyDetail({ loading, error }: { loading: boolean; error: string | nul
 }
 
 /** Read-only P1-D archive. Runtime mutation and model calls remain outside this view. */
-export function EventArchiveView() {
+export function EventArchiveView({ onAgentContextChange }: { onAgentContextChange?: (context: Record<string, unknown>) => void }) {
   const [filters, setFilters] = useState<ArchiveFilters>(() => parseArchiveFilters(urlHere()));
   const [items, setItems] = useState<ArchiveItem[]>([]);
   const [counts, setCounts] = useState<ArchiveCounts>(EMPTY_COUNTS);
@@ -134,6 +135,14 @@ export function EventArchiveView() {
   const updateFilters = (patch: Partial<ArchiveFilters>) => setFilters((previous) => ({ ...previous, ...patch, offset: patch.offset ?? 0 }));
   const offsetEnd = Math.min(filters.offset + filters.limit, total);
   const hasMatchingDetail = canRenderArchiveDetail(selectedId, detailEventId);
+
+  useEffect(() => {
+    onAgentContextChange?.(archivePageContext(
+      selectedId,
+      detailEventId === selectedId ? detail?.liveResult ?? null : null,
+      filters as unknown as Record<string, unknown>,
+    ));
+  }, [detail?.liveResult, detailEventId, filters, onAgentContextChange, selectedId]);
 
   return <main className="min-h-full bg-[#f6f7f8] px-5 py-5 text-slate-800" aria-label="AI 事件处置档案中心">
     <div className="mx-auto max-w-[1540px]"><header className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">AI EVENT HANDLING ARCHIVE CENTER</p><h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">AI 事件处置档案中心</h1><p className="mt-1 text-xs text-slate-500">只读处置档案 · 同一 CleaningEvent / SQLite 快照 · 不触发模型、调度或机器人重跑</p></div><div className="flex items-center gap-2 text-[11px] text-slate-500"><Clock3 size={14} />默认按发现时间倒序</div></header>

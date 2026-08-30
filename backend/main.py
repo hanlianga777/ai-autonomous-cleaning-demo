@@ -8,11 +8,16 @@ from pathlib import Path
 from api.routes import router
 from database.connection import initialize_database
 from analytics.history_seed import seed_history
+from robot_operations.repository import initialize as initialize_operations
+from robot_operations.repository import recover_interrupted_requests
+from robot_operations.routes import router as operations_router
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     initialize_database()
+    initialize_operations()
+    recover_interrupted_requests()
     seed_history()
     yield
 
@@ -35,3 +40,4 @@ app.add_middleware(
 )
 app.mount("/demo-assets", StaticFiles(directory=Path(__file__).resolve().parents[1] / "sample_data" / "camera_events"), name="demo-assets")
 app.include_router(router)
+app.include_router(operations_router)

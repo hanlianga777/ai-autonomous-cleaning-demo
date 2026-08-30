@@ -25,6 +25,7 @@ from database.connection import (
     save_assignment_decision,
     save_human_work_order,
     update_fleet_robot,
+    runtime_transaction,
 )
 from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
@@ -38,6 +39,7 @@ from demo_v1.perception_records import (
 )
 from workflow.fixtures import EVENT_TEMPLATES
 from workbench.service import DEMO_SCENARIOS, scenario_assets
+from robot_operations.coordination import event_stage
 
 ASSET_ROOT = Path(__file__).resolve().parents[2] / "sample_data" / "camera_events"
 
@@ -217,6 +219,8 @@ def _snapshot(stored: dict[str, Any]) -> dict[str, Any]:
 
 
 def _require_state(stored: dict[str, Any], *allowed: str) -> None:
+    if stored.get("operations_control") in {"PAUSED", "CANCELLED"}:
+        raise ValueError("Operations task is paused or cancelled; workflow advancement is blocked.")
     if stored["state"] not in allowed:
         expected = " / ".join(allowed)
         raise ValueError(f"This stage requires state {expected}; current state is {stored['state']}.")
@@ -283,6 +287,7 @@ def create_demo_event(demo_id: str, mode: str = "LIVE") -> dict[str, Any]:
     return _snapshot(refreshed)
 
 
+@event_stage
 def edge_review(event_id: str) -> dict[str, Any]:
     """Load controlled edge evidence only; never invokes Qwen, Scheduler or verification."""
     stored = _load_stage_event(event_id)
@@ -326,6 +331,7 @@ def _perception_failure(stored: dict, code: str, message: str) -> dict:
     )
 
 
+@event_stage
 def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, Any]:
     """Single view → evidence acquisition → final confidence → independent review.
 
@@ -458,6 +464,7 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
                        **updates, reason="云端综合研判通过，等待空间定位。")
 
 
+@event_stage
 def locate_event(event_id: str) -> dict[str, Any]:
     """Map the primary detection through the shared Phase 2 calibration."""
     stored = _load_stage_event(event_id)
@@ -479,6 +486,8 @@ def locate_event(event_id: str) -> dict[str, Any]:
     return _save_stage(stored, "LOCATED", spatial_location, spatial_location=spatial_location, reason="已通过四点标定完成摄像头到园区空间位置映射。")
 
 
+@event_stage
+@runtime_transaction()
 def assign_event(event_id: str) -> dict[str, Any]:
     """The only stage allowed to call Capability Engine and Scheduler."""
     stored = _load_stage_event(event_id)
@@ -497,10 +506,13 @@ def assign_event(event_id: str) -> dict[str, Any]:
         return snapshot
     robot = update_fleet_robot(
         str(decision["selected_robot_id"]), status="assigned", active_event_id=event_id,
+        active_task_id=stored.get("operations_task_id"),
     )
     return _save_stage(stored, "ASSIGNED", {"assignment_decision": decision, "fleet_robot": robot}, assignment_decision=decision, fleet_snapshot=get_fleet_state(), reason="能力匹配与调度已生成机器人任务。")
 
 
+@event_stage
+@runtime_transaction()
 def start_navigation(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "ASSIGNED")
@@ -518,6 +530,8 @@ def start_navigation(event_id: str) -> dict[str, Any]:
     return _save_stage(stored, "NAVIGATING", {"navigation_plan": plan}, navigation_plan=plan, fleet_snapshot=get_fleet_state(), reason="机器人已按 Dijkstra 园区拓扑路线前往目标区域。")
 
 
+@event_stage
+@runtime_transaction()
 def complete_navigation(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "NAVIGATING")
@@ -531,6 +545,8 @@ def complete_navigation(event_id: str) -> dict[str, Any]:
     return _save_stage(stored, "ARRIVED", {"navigation_plan": stored["demo_v1"].get("navigation_plan"), "fleet_robot": robot}, fleet_snapshot=get_fleet_state(), reason="机器人已到达目标区域。")
 
 
+@event_stage
+@runtime_transaction()
 def complete_cleaning(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "ARRIVED")
@@ -581,7 +597,7 @@ def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False) -> dic
         # The cleaning action has finished even when verification is unavailable.
         # Release the reservation, retaining the terminal coordinate.
         robot = next(item for item in get_fleet_state() if item["id"] == robot_id)
-        update_fleet_robot(str(robot_id), status="idle", active_event_id=None,
+        update_fleet_robot(str(robot_id), status="idle", active_event_id=None, active_task_id=None,
                            battery=max(0, int(robot.get("battery", 0)) - 2))
     work_order = ({"status": "COMPLETED", "source": "manual_operator"} if manual else None) if passed else {
         "status": "OPEN", "reason": reason, "source": "verification",
@@ -593,12 +609,14 @@ def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False) -> dic
     }, verification=verification, error=error, fleet_snapshot=get_fleet_state(), reason=reason, human_work_order=work_order)
 
 
+@event_stage
 def verify_event(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "CLEANING_COMPLETED")
     return _verify_stored_event(stored)
 
 
+@event_stage
 def complete_demo04_manual(event_id: str) -> dict[str, Any]:
     """Complete a capability-created human work order, irrespective of demo id."""
     stored = _load_stage_event(event_id)

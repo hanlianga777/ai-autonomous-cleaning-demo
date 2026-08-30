@@ -9,6 +9,9 @@ import { SpatialDispatchView } from "./SpatialDispatchView";
 import { PanelBoundary } from "./PanelBoundary";
 import { displayStates, fromStoredEvent } from "./eventViewModel";
 import { canApplySnapshot, claimStage, loadEventSnapshot, readRequestKeys } from "./runtimeSession";
+import { FloatingRobotOperationsAgent } from "@/components/robot-operations/RobotOperationsPanel";
+import { RobotOperationsProvider } from "@/components/robot-operations/RobotOperationsProvider";
+import { archivePageContext } from "@/components/robot-operations/robotOperationsModel";
 import type { ActiveEvent } from "./types";
 
 type WorkbenchView = "workbench" | "events" | "analytics" | "advanced";
@@ -17,12 +20,39 @@ function viewFromPath(): WorkbenchView {
   return path === "/events" ? "events" : path === "/analytics" ? "analytics" : path === "/advanced" ? "advanced" : "workbench";
 }
 
+function recordValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+/** Only real current-workbench resources are sent with a Workbench Agent turn. */
+function workbenchAgentPageContext(event: ActiveEvent | null, runtimeMode: "live" | "replay"): Record<string, unknown> {
+  const snapshot = event?.liveResult ?? null;
+  const spatial = recordValue(snapshot?.spatial_location);
+  const decision = recordValue(snapshot?.assignment_decision);
+  const fleetSnapshot = Array.isArray(snapshot?.fleet_snapshot) ? snapshot.fleet_snapshot.slice(0, 8) : null;
+  return {
+    page: "workbench",
+    runtime_mode: runtimeMode,
+    selected_event_id: typeof snapshot?.event_id === "string" ? snapshot.event_id : null,
+    current_event: event ? {
+      event_id: typeof snapshot?.event_id === "string" ? snapshot.event_id : null,
+      camera_id: typeof snapshot?.camera_id === "string" ? snapshot.camera_id : event.scenario.cameraId,
+      map_id: typeof spatial?.map_id === "string" ? spatial.map_id : null,
+      robot_id: typeof decision?.selected_robot_id === "string" ? decision.selected_robot_id : null,
+      fleet_resource: "/api/robots",
+      fleet_snapshot: fleetSnapshot,
+      event_snapshot: snapshot,
+    } : null,
+  };
+}
+
 export function PrototypeWorkbench() {
   const [event, setEvent] = useState<ActiveEvent | null>(null);
   const [view, setView] = useState<WorkbenchView>(viewFromPath);
   const [runtimeMode, setRuntimeMode] = useState<"live" | "replay">("live");
   const [restoring, setRestoring] = useState(true);
   const [syncNotice, setSyncNotice] = useState("");
+  const [archiveAgentContext, setArchiveAgentContext] = useState<Record<string, unknown>>(() => archivePageContext(null, null, {}));
   const submittedStages = useRef(new Set<string>(readStageRequests()));
 
   const navigate = (next: WorkbenchView) => {
@@ -149,13 +179,17 @@ export function PrototypeWorkbench() {
       setSyncNotice("已读取最新保存状态；未重发之前的阶段请求。若状态未变化，请保留事件并在高级模式排查。");
     } catch (error) { setSyncNotice(error instanceof Error ? error.message : "同步服务暂不可用。"); }
   };
-  return <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
+  const agentPageContext = view === "events"
+    ? archiveAgentContext
+    : workbenchAgentPageContext(event, runtimeMode);
+  return <RobotOperationsProvider><div className="min-h-screen bg-[#f6f7f8] text-slate-900">
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-[9px] font-bold text-white">CO</div><div><p className="text-sm font-semibold">CleanOps</p><p className="text-[9px] tracking-[0.12em] text-slate-400">自主清洁</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="自主清洁工作台" active={view === "workbench"} onClick={() => navigate("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => navigate("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => navigate("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => navigate("advanced")} /></nav></aside>
 <div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "自主清洁工作台" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p>{view === "workbench" && <span className={`hidden items-center gap-1.5 text-[11px] md:flex ${event ? "text-slate-700" : "text-slate-500"}`}><CircleDot size={12} className={event?.processing ? "animate-pulse text-rose-500" : "text-emerald-500"} />{stageCopy[state].title}</span>}</div><span className="border border-slate-200 px-2 py-1 text-[10px] font-medium tracking-wide text-slate-600">{view !== "workbench" && view !== "advanced" ? "只读运营视图" : event?.liveResult?.mode === "STABLE_REPLAY" ? "STABLE REPLAY" : event?.liveResult?.mode === "LIVE" ? "LIVE" : runtimeMode === "live" ? "LIVE · 下次运行" : "STABLE REPLAY · 下次运行"}</span></header>
       {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={event} onNavigationComplete={() => void callStage("complete-navigation")} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={completeManual} /></div></div></main>}
-      {view === "events" && <EventArchiveView />}{view === "analytics" && <AnalyticsView />}{view === "advanced" && <AdvancedView event={event} runtimeMode={runtimeMode} onRuntimeModeChange={setRuntimeMode} />}
+      {view === "events" && <EventArchiveView onAgentContextChange={setArchiveAgentContext} />}{view === "analytics" && <AnalyticsView />}{view === "advanced" && <AdvancedView event={event} runtimeMode={runtimeMode} onRuntimeModeChange={setRuntimeMode} />}
     </div>
-  </div>;
+    {(view === "workbench" || view === "events") && <FloatingRobotOperationsAgent pageContext={agentPageContext} />}
+  </div></RobotOperationsProvider>;
 }
 
 function readUiStorage(key: string): string | null { try { return localStorage.getItem(key); } catch { return null; } }
