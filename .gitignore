@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .venv/
 backend/*.db
+backend/backups/
 frontend/node_modules/
 frontend/.npm-cache/
 frontend/dist/

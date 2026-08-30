@@ -29,6 +29,7 @@ from demo_v1.service import (
     start_navigation,
     verify_event,
 )
+from api.runtime_contract import runtime_fingerprint
 
 router = APIRouter(prefix="/api", tags=["Demo API"])
 API_CONTRACT = "operations.v1"
@@ -125,7 +126,14 @@ def post_demo_v1_manual_completion(event_id: str) -> dict:
 @router.get("/health")
 def health_check() -> dict:
     status = ai_lab_status()
-    return {"status": "ok", "phase": 8, "api_contract": API_CONTRACT, "mode": status["mode_label"], "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]}}
+    return {
+        "status": "ok",
+        "phase": 8,
+        "api_contract": API_CONTRACT,
+        **runtime_fingerprint(),
+        "mode": status["mode_label"],
+        "ai_lab": {"active_mode": status["active_mode"], "real_ready": status["real_ready"]},
+    }
 
 
 @router.get("/system/ai-status", tags=["System"])

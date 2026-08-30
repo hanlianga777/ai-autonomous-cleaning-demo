@@ -1,124 +1,137 @@
 #!/bin/bash
-# Double-click on macOS to launch the customer demo. It validates the backend
-# API contract before reusing a listener, so a stale local server cannot leave
-# the current frontend with an empty workbench.
+# Starts the one official local Interview Demo runtime. It never silently
+# adopts, kills, or reroutes around a process it cannot prove it launched.
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
-LOG_DIR="$PROJECT_DIR/.demo-logs"
+LOG_DIR="${DEMO_LOG_DIR:-$PROJECT_DIR/.demo-logs}"
 PID_FILE="$PROJECT_DIR/.demo-pids"
 BACKEND_PID_FILE="$LOG_DIR/backend.pid"
-EXPECTED_API_CONTRACT="operations.v1"
+FRONTEND_PID_FILE="$LOG_DIR/frontend.pid"
+BACKEND_PORT="${DEMO_BACKEND_PORT:-8000}"
+FRONTEND_PORT="${DEMO_FRONTEND_PORT:-5173}"
 
+# shellcheck source=scripts/runtime_launcher_lib.sh
+source "$PROJECT_DIR/scripts/runtime_launcher_lib.sh"
 mkdir -p "$LOG_DIR"
 
-port_in_use() {
-  lsof -tiTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
-}
-
-backend_contract_ok() {
-  local health
-  health="$(curl --max-time 2 --silent --fail http://127.0.0.1:8000/api/health 2>/dev/null || true)"
-  [[ "$health" == *"\"api_contract\":\"$EXPECTED_API_CONTRACT\""* ]]
-}
-
-listener_pid() {
-  lsof -tiTCP:"$1" -sTCP:LISTEN | head -n 1
-}
-
-stop_owned_backend_if_stale() {
-  local listening_pid recorded_pid
-  listening_pid="$(listener_pid 8000)"
-  recorded_pid="$(cat "$BACKEND_PID_FILE" 2>/dev/null || true)"
-  if [[ -n "$listening_pid" && "$listening_pid" == "$recorded_pid" ]]; then
-    echo "[backend]  detected stale launcher-owned API; restarting it"
-    kill "$listening_pid" 2>/dev/null || true
-    for _ in {1..20}; do
-      if ! port_in_use 8000; then
-        return 0
+ensure_backend() {
+  if runtime_port_in_use "$BACKEND_PORT"; then
+    if runtime_preflight_backend "$BACKEND_PORT"; then
+      if runtime_record_matches_listener "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$BACKEND_DIR"; then
+        echo "[backend] http://localhost:$BACKEND_PORT (verified launcher-owned runtime reused)"
+        return
       fi
-      sleep 0.2
-    done
-  fi
-  if port_in_use 8000; then
-    echo "[backend]  port 8000 is occupied by an incompatible service (PID $(listener_pid 8000))."
-    echo "           Stop that service or use stop_demo.command, then restart this demo."
-    exit 1
-  fi
-}
-
-start_backend() {
-  if port_in_use 8000; then
-    if backend_contract_ok; then
-      echo "[backend]  http://localhost:8000  (compatible service already running)"
-      return
+      echo "[backend] compatible API is not launcher-owned; refusing silent reuse or termination."
+      runtime_describe_listener "$BACKEND_PORT"
+      exit 1
     fi
-    stop_owned_backend_if_stale
+    if runtime_port_in_use "$BACKEND_PORT"; then
+      if runtime_record_matches_listener "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$BACKEND_DIR"; then
+        echo "[backend] incompatible launcher-owned API detected; restarting it."
+        runtime_terminate_owned backend "$BACKEND_PORT" "$BACKEND_PID_FILE" "$BACKEND_DIR"
+      else
+        echo "[backend] incompatible or unknown service; refusing to terminate it."
+        runtime_describe_listener "$BACKEND_PORT"
+        exit 1
+      fi
+    fi
+  else
+    rm -f "$BACKEND_PID_FILE"
   fi
   if [[ ! -x "$BACKEND_DIR/.venv/bin/python" ]]; then
-    echo "[backend]  creating Python virtual environment…"
+    echo "[backend] creating Python virtual environment…"
     python3 -m venv "$BACKEND_DIR/.venv"
     "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
   fi
   if ! "$BACKEND_DIR/.venv/bin/python" -c "import multipart, langgraph, PIL" >/dev/null 2>&1; then
-    echo "[backend]  installing required API and image-evidence support…"
+    echo "[backend] installing required API and image-evidence support…"
     "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
   fi
+  local launched_pid
   (
     cd "$BACKEND_DIR"
-    nohup "$BACKEND_DIR/.venv/bin/uvicorn" main:app --host 127.0.0.1 --port 8000 >"$LOG_DIR/backend.log" 2>&1 &
-    echo $! > "$BACKEND_PID_FILE"
+    nohup "$BACKEND_DIR/.venv/bin/uvicorn" main:app --host 127.0.0.1 --port "$BACKEND_PORT" >"$LOG_DIR/backend.log" 2>&1 &
+    echo $! > "$LOG_DIR/backend.spawn.pid"
   )
-  echo "[backend]  http://localhost:8000  (started)"
+  launched_pid="$(cat "$LOG_DIR/backend.spawn.pid")"; rm -f "$LOG_DIR/backend.spawn.pid"
+  for _ in {1..30}; do
+    local pid
+    pid="$(runtime_listener_pid "$BACKEND_PORT" 2>/dev/null || true)"
+    if [[ "$pid" == "$launched_pid" ]] && runtime_write_pid_record "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$pid" "$BACKEND_DIR"; then
+      echo "[backend] http://localhost:$BACKEND_PORT (started PID $pid)"
+      return
+    fi
+    sleep 0.2
+  done
+  echo "[backend] failed to create a verified listener. See $LOG_DIR/backend.log"
+  exit 1
 }
 
-start_frontend() {
-  if port_in_use 5173; then
-    echo "[frontend] http://localhost:5173  (already running)"
+ensure_frontend_slot() {
+  if ! runtime_port_in_use "$FRONTEND_PORT"; then return; fi
+  if runtime_record_matches_listener "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$FRONTEND_DIR"; then return; fi
+  echo "[frontend] port $FRONTEND_PORT is not a verified launcher-owned Vite; refusing reuse or termination."
+  runtime_describe_listener "$FRONTEND_PORT"; exit 1
+}
+
+ensure_frontend() {
+  if runtime_port_in_use "$FRONTEND_PORT" && runtime_record_matches_listener "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$FRONTEND_DIR"; then
+    echo "[frontend] http://localhost:$FRONTEND_PORT (verified launcher-owned Vite reused)"
     return
   fi
+  if runtime_port_in_use "$FRONTEND_PORT"; then
+    echo "[frontend] port $FRONTEND_PORT changed after slot validation; refusing reuse."
+    runtime_describe_listener "$FRONTEND_PORT"; exit 1
+  fi
+  rm -f "$FRONTEND_PID_FILE"
   if [[ ! -d "$FRONTEND_DIR/node_modules" ]]; then
     echo "[frontend] installing npm packages…"
     (cd "$FRONTEND_DIR" && npm install --cache .npm-cache)
   fi
+  local launched_pid
   (
     cd "$FRONTEND_DIR"
-    nohup "$FRONTEND_DIR/node_modules/.bin/vite" --host 127.0.0.1 >"$LOG_DIR/frontend.log" 2>&1 &
-    echo $! > "$LOG_DIR/frontend.pid"
+    nohup "$FRONTEND_DIR/node_modules/.bin/vite" --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort >"$LOG_DIR/frontend.log" 2>&1 &
+    echo $! > "$LOG_DIR/frontend.spawn.pid"
   )
-  echo "[frontend] http://localhost:5173  (started)"
+  launched_pid="$(cat "$LOG_DIR/frontend.spawn.pid")"; rm -f "$LOG_DIR/frontend.spawn.pid"
+  for _ in {1..30}; do
+    local pid
+    pid="$(runtime_listener_pid "$FRONTEND_PORT" 2>/dev/null || true)"
+    if [[ "$pid" == "$launched_pid" ]] && runtime_write_pid_record "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$pid" "$FRONTEND_DIR"; then
+      echo "[frontend] http://localhost:$FRONTEND_PORT (started PID $pid)"
+      return
+    fi
+    sleep 0.2
+  done
+  echo "[frontend] failed to create verified Vite on port $FRONTEND_PORT. See $LOG_DIR/frontend.log"
+  exit 1
 }
 
-start_backend
-start_frontend
+# Guard the frontend slot before creating a backend process that the user did
+# not ask to keep when an unknown browser service blocks the official entry.
+ensure_frontend_slot
+ensure_backend
+ensure_frontend
 
-for _ in {1..20}; do
-  if backend_contract_ok && curl --max-time 2 --silent --fail http://127.0.0.1:8000/api/workbench/scenarios >/dev/null 2>&1; then
-    break
-  fi
-  sleep 0.25
-done
-if ! backend_contract_ok; then
-  echo "[backend]  failed compatibility smoke test. See $LOG_DIR/backend.log"
+if ! runtime_preflight_backend "$BACKEND_PORT" || ! runtime_record_matches_listener "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$BACKEND_DIR"; then
+  echo "CleanOps demo was not opened because the backend preflight failed."
+  exit 1
+fi
+if ! runtime_record_matches_listener "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$FRONTEND_DIR"; then
+  echo "[frontend] verified Vite ownership disappeared before browser open."
+  runtime_describe_listener "$FRONTEND_PORT"
   exit 1
 fi
 
-{
-  [[ -f "$LOG_DIR/backend.pid" ]] && cat "$LOG_DIR/backend.pid"
-  [[ -f "$LOG_DIR/frontend.pid" ]] && cat "$LOG_DIR/frontend.pid"
-} > "$PID_FILE" || true
-
-sleep 1
+cat "$BACKEND_PID_FILE" "$FRONTEND_PID_FILE" > "$PID_FILE"
 echo
-echo "CleanOps customer demo is ready. API: http://localhost:8000/docs"
-AI_STATUS="$(curl --max-time 2 --silent --fail http://127.0.0.1:8000/api/system/ai-status 2>/dev/null || true)"
-if [[ -n "$AI_STATUS" ]]; then
-  echo "AI runtime: $AI_STATUS"
-fi
+echo "CleanOps customer demo is ready. API: http://localhost:$BACKEND_PORT/docs"
 if [[ "${DEMO_NO_OPEN:-}" != "1" ]]; then
-  open "http://localhost:5173"
+  open "http://localhost:$FRONTEND_PORT"
 fi
 if [[ -t 0 ]]; then
   read -r -n 1 -p "Press any key to close this launcher window (services keep running)…"

@@ -41,6 +41,16 @@ export type AdvancedTrace = {
   reality?: Array<{ component?: string; status?: TraceSource; execution_status?: string | null; detail?: string; replacement?: string }>;
   errors?: Array<{ type?: string; code?: string; message?: string }>;
   linked_tasks?: Array<Record<string, unknown>>;
+  runtime_info?: {
+    app_name?: string;
+    backend_version?: string;
+    release_contract?: string;
+    capabilities?: string[];
+    cloud_status?: string;
+    vlm_model?: string;
+    agent_model?: string;
+    evidence_mode?: string;
+  } | null;
 };
 
 const FORBIDDEN_KEY = /api.?key|secret|token|authorization|reasoning|chain.?of.?thought|scratchpad|\benv\b/i;

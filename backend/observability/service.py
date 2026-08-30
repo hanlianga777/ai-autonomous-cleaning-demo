@@ -3,6 +3,7 @@ import json
 
 from database.connection import database_session, get_event, get_transitions
 from perception.config import get_runtime
+from api.runtime_contract import runtime_info
 from robot_operations.catalog import DELIVERY_ADAPTERS
 from observability.errors import classify
 from observability.redaction import safe, pick, text
@@ -194,4 +195,5 @@ def trace_view(event_id=None):
     ]
     return {"trace_id": trace_id, "trace_status": "RECORDED" if trace_id else "LEGACY_MISSING" if event_id else "NO_EVENT",
             "event_id": event_id, "mode": mode, "runtime": runtime, "events": [row for row in events if row["event_id"] == event_id], "nodes": nodes, "tool_calls": calls, "reality": reality, "errors": errors,
-            "linked_tasks": [pick(task, "task_id", "trace_id", "event_id", "kind", "status", "robot_id") for task in tasks]}
+            "linked_tasks": [pick(task, "task_id", "trace_id", "event_id", "kind", "status", "robot_id") for task in tasks],
+            "runtime_info": runtime_info()}
