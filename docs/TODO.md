@@ -30,8 +30,9 @@
 
 ## P1-B｜Workbench、MapCanvas 与 EventDetailPanel（工程 IMPLEMENTED · A/E PASS）
 
-- [x] **唯一 MapCanvas**：建立 `object-contain` 内层画布转换；SLAM white model、anchor、route、marker、A/B/C/D 机器人统一投影，修复 letterbox 漂移。
-- [x] **机器人执行体验**：真实 anchor path 连续插值；未走/已走路线、小 marker、少量箭头；蜗小白 SC50 在电梯入口停约 1 秒并显示“乘梯中”；CLOSED / HUMAN_REVIEW 保留终点和路线。
+- [x] **P1-B MapCanvas / backend topology 投影（历史已实现事实）**：建立 `object-contain` 内层画布转换，保留真实 backend route order、marker、Fleet 与电梯停留，修复 letterbox 漂移。其 anchor-to-anchor 线性 visual path、弱路线和技术化资产栏已被 **WB-MAP-01 SUPERSEDED**，不得当作面客空间调度已完成。
+- [x] **P1-B 机器人路线 playback（历史已实现事实）**：真实 topology anchor path 连续插值、已走/未走路径与电梯入口约 1 秒停留；CLOSED / HUMAN_REVIEW 保留终点和路线。它不等同业务可行走 Waypoint Geometry。
+- [ ] **WB-MAP-01｜机器人资产与园区空间调度地图（LOCKED TARGET；未 IMPLEMENTED）**：中央区域改为客户空间调度总览；四张正式命名机器人卡统一显示名称/图片/状态/电量/位置，hover 才给 SLAM/能力/任务，选中机器人克制高亮。清理客户英文/工程术语、重复右上状态卡；强化路线和动态业务事件点。保留 backend 作为所有 route/waypoint/distance/ETA/设施/起终点事实源，建立统一 Demo Navigation Waypoint Geometry，杜绝穿墙/穿楼/漂移/前端或 LLM 编造路线。用户必须亲见 Demo01 S5 室外、Demo02 Omnie A栋、Demo03 SC50 B1F→电梯→B2F→连廊→A2F 的合法动画，才可 USER_ACCEPTED。未来报告须逐项交付 WB-MAP-01.1–01.15 的 Requirement→Code→Test→Screenshot/User Acceptance；任一缺失不得 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#wb-map-01机器人资产与园区空间调度地图`。
 - [x] **布局与双监控矩阵**：实现 72/28、31/69、右详情独立滚动、145–155px 资产栏、相机 `object-contain` 规范；四个 Demo before/after 状态矩阵；Demo02 补充图永不替换顶部监控。
 - [x] **统一 EventDetailPanel**：实现 `mode="live"` / `mode="history"`；实时自动跟随一次 smooth scroll，历史只读不滚动、不重跑；统一字段、卡片、颜色、stage hierarchy、历史 snapshot。
 - [x] **P1-B 客户表达收敛（历史已实现事实）**：全量 enum 中文化；Fusion “N分”、系统决策分层；客户层不展示 raw next_action / 公式 / Chain-of-Thought。其旧 Workbench 详情视觉范围被 **WB-DETAIL-01 SUPERSEDED**，不得把历史收敛写成新面客详情已完成。

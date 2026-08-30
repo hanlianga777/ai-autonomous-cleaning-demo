@@ -151,7 +151,7 @@ Single-view VLM
 
 **IMPLEMENTED / LOCKED（P1-A/B）**：MapCanvas 的 object-contain 内层画布是 white model、anchor、marker、route、robot 的唯一坐标系；定位后才出现 marker。Scheduler 以共享 Fleet 当前 map 与 target SLAM map 调 `plan_route()`，前端只投影其结果。蜗小白 SC50 的基线路线为 B1F → elevator → B2F → Skybridge → A2F carpet can event；终态保留，只有显式 baseline/reset 才复位。
 
-P1-B 前端模块边界：`spatialProjection.ts` 提供纯坐标/路径/插值函数（缺少或未知 node_path 返回空）；`MapCanvas.tsx` 统一实际图像矩形；`useRoutePlayback.ts` 按 UTC NAVIGATING timestamp 恢复 rAF 插值与入口 1 秒停留；`SpatialDispatchView.tsx` 读取 Fleet 与 ASSIGNED 起点快照。插值不是遥测，也不构成第二个 Route Planner。
+P1-B 前端模块边界：`spatialProjection.ts` 当前提供 MapCanvas 坐标、backend node-path 到 `CAMPUS_TOPOLOGY_ANCHORS` 的 overview 投影和线性插值（缺少或未知 node_path 返回空）；`MapCanvas.tsx` 统一实际图像矩形；`useRoutePlayback.ts` 按 UTC NAVIGATING timestamp 恢复 rAF 插值与入口 1 秒停留；`SpatialDispatchView.tsx` 读取 Fleet 与 ASSIGNED 起点快照。插值不是遥测，也不构成第二个 Route Planner。该 anchor projection 仅证明拓扑顺序，不能证明道路/走廊/连廊可行走几何；它的面客视觉方案 **SUPERSEDED BY WB-MAP-01**，当前属 `IMPLEMENTATION_GAP`。未来必须由 backend deterministic route + 统一维护的 Demo Navigation Waypoint Geometry 驱动面客路线，禁止 React/demo 特判或任意连线。
 
 `eventViewModel.ts` 只投影存档 transitions/asset_manifest；`EventStageEvidence.tsx` 与 `EventDetailPanel.tsx` 当前共用 live/history 卡片，history 不执行 action、不自动滚动。`runtimeSession.ts` 保存 ID/请求防重键、GET-only 恢复、拒绝倒退/外来快照；`PanelBoundary.tsx` 隔离空间显示异常。图像缺失显示不可用，不用预设成功图片替换。当前 Workbench 详情仍将可审计 AI、空间、路线、终态与技术边界混合展示；其历史 UI Shell **SUPERSEDED BY WB-DETAIL-01**，现属 `IMPLEMENTATION_DIVERGENCE`。未来仍从同一 durable transition/asset/decision/route/verification 投影，但 Workbench 只呈现面客业务事实，技术 trace/latency/schema/PoC boundary 转由 Advanced 承担。
 

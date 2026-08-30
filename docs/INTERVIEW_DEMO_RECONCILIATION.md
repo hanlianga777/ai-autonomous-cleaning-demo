@@ -3,6 +3,12 @@
 > 本文件记录最新用户确认需求与历史事实源、当前 active implementation 的对齐关系。
 > 优先级：最新用户明确确认需求 > 本文件的 `LOCKED TARGET` > `DECISIONS.md` / `ARCHITECTURE.md` > 旧 `IMPLEMENTED` 描述 > 当前代码实际行为。
 
+## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
+
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → affected code → implementation status）。
+- 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
+
 ## AI-UI-01｜AI 运营入口与聊天交互
 
 | Field | Value |
@@ -216,3 +222,164 @@
 - **Locked Target**：最终 Implementation Report 必须逐项列出 `WB-DETAIL-01.1`–`WB-DETAIL-01.11`，各自对应 Requirement、代码、测试、截图/用户验收；任何子项缺失，状态保持 `LOCKED TARGET`，不得写为 IMPLEMENTED。
 - **Acceptance Criteria**：实施报告含完整 11 项映射与可复核证据；没有以“已有 Runtime/共享 Agent/历史测试通过”替代新面客 UI/节奏/闭环验收。
 - **Affected Active Code**：本条是跨模块证据门槛，覆盖上述所有 affected active files；本轮不修改任何代码。
+
+## WB-MAP-01｜机器人资产与园区空间调度地图
+
+| Field | Value |
+| --- | --- |
+| ID | WB-MAP-01 |
+| Module | Workbench Robot Assets / Campus Spatial Dispatch Map |
+| Status | **LOCKED TARGET** |
+| Scope | Docs-only delta sync；本轮不修改 frontend、backend、runtime、test、database 或 launcher。 |
+
+> 中央区域是客户/面试官可一眼理解“机器人在哪里、事件在哪里、系统选择谁、准备怎么过去、已经走到哪里”的园区机器人空间调度总览；它不是 SLAM/Fleet/Topology/Backend/Anchor/Interpolation 调试器。所有路线、位置、设施、距离和 ETA 必须来自确定性 backend spatial/runtime facts，禁止前端按 demo ID 写死、LLM 生成或为动画随意连线。
+
+### WB-MAP-01.1｜统一机器人资产卡
+
+- **User Intent**：左侧四台机器人必须以统一网格卡展示正式名称赛特净界 S5、高仙 Omnie、蜗小白 SC50、普渡 FlashBot Max；卡高、图片框、文本起线、状态、电量、位置区域一致。每张默认显示名称、图片、当前状态、电量和客户语言当前位置，不得显示 Robot A/B/C/D、map/zone/internal code。
+- **Current Implementation**：`FleetAssetCard` 以纵向列表展示四台资产，卡高和图片框受内容影响；名称/状态/电量存在，但位置只在 hover，默认区域并未提供统一位置行，`FLEET ASSETS` 等英文仍可见。
+- **Previous Source Coverage**：D03/P1-A 已锁定正式命名和共享 Fleet；P1-B 已有资产栏，但没有锁定四卡网格与默认五项客户信息。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：默认卡片只以客户语言显示五项信息并统一视觉节奏，内部标识只进入轻量 hover。
+- **Acceptance Criteria**：四张卡在同一视图中对齐一致，均显示正式名称、图片、状态、电量、位置；不存在 Robot A/B/C/D 或内部位置码。
+- **Affected Active Code**：`frontend/src/components/prototype/SpatialDispatchView.tsx`、`eventViewModel.ts`、`backend/demo_v1/service.py`、`backend/spatial/spatial_data.py`。
+
+### WB-MAP-01.2｜卡片密度与 Hover 边界
+
+- **User Intent**：默认卡增加到恰当业务密度但不成为工程字段堆积；只显示名称、图片、状态、电量、位置。完整能力、SLAM 坐标、Task ID、内部状态等详细信息只在 Hover 中查看。
+- **Current Implementation**：默认卡缺少位置，hover 已混合地图 ID、坐标、Task ID、服务范围与能力；卡片整体偏空而详细信息的客户/技术边界未锁定。
+- **Previous Source Coverage**：P1-B 有资产栏，P1-F 有共享 Fleet/Task 事实；默认/hover 信息分层缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：默认业务摘要和 hover 详情必须分层，既不稀疏也不默认泄漏工程信息。
+- **Acceptance Criteria**：不 hover 即可获得五项业务信息；hover 才出现 SLAM、能力与当前任务，且不出现 JSON/大量内部 ID。
+- **Affected Active Code**：`SpatialDispatchView.tsx`、`eventViewModel.ts`。
+
+### WB-MAP-01.3｜被调度机器人的克制突出
+
+- **User Intent**：实际被选择机器人必须以边框/轻量背景/执行状态点/“执行中”等克制企业 SaaS 视觉显著突出，其他保持普通状态；禁止霓虹、强发光、赛博风。
+- **Current Implementation**：当前 active card 有轻量 `active` 边框/背景，地图 marker 略缩放；没有把选中、执行状态和最终调度形成完整明确的面客高亮。
+- **Previous Source Coverage**：Capability/Scheduler 已锁定唯一 `assignment_decision`；P1-B 未锁定客户层选中状态的视觉优先级。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：只以真实 selected robot/state 驱动克制高亮，不新增选择逻辑或视觉夸张。
+- **Acceptance Criteria**：派单后客户无需阅读技术文本即可辨认被选机器人；未选机器人不与其竞争视觉焦点。
+- **Affected Active Code**：`SpatialDispatchView.tsx`、`backend/scheduling/scheduler.py`。
+
+### WB-MAP-01.4｜园区调度总览的命名与语言
+
+- **User Intent**：中央区域命名为“园区空间调度”或同义业务中文；3D 园区白模表示跨楼栋/跨楼层调度总览，不得整体称“SLAM地图”（真实 SLAM 是每层 2D 地图）。清理客户层 `FLEET ASSETS`、Fleet、Backend Route、Topology、`PoC模拟状态 · 共享Fleet`、“定位完成后显示后端空间路线”等英文/工程术语；空闲地图保持干净。
+- **Current Implementation**：组件仍使用“园区空间调度视图”、`FLEET ASSETS`、共享 Fleet、后端 Dijkstra/拓扑路线、PoC 视觉插值、后端空间路线等技术措辞。
+- **Previous Source Coverage**：D05 已锁定 3D 白模与每层 Camera→SLAM 2D map 的实际事实，D02 要求客户中文；客户地图命名和清理清单缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：客户层仅使用业务中文；技术定义仍保留 Advanced，不能通过改名误称 3D 物理/SLAM 事实。
+- **Acceptance Criteria**：地图区域无上述英文/工程文案；空闲时仅显示业务必要的机器人与环境，不出现技术路线提示。
+- **Affected Active Code**：`SpatialDispatchView.tsx`、`MapCanvas.tsx`、`AdvancedView.tsx`。
+
+### WB-MAP-01.5｜已确认的空间与能力边界
+
+- **User Intent**：未来视觉必须尊重现有六张空间 Map、Camera→SLAM、Global Spatial Graph、Dijkstra `plan_route()`、持久化 Fleet position、电梯和空中连廊节点。蜗小白 SC50 可室内/电梯/连廊并真实支持 Demo03 的 B栋1F→B栋电梯→B栋2F→空中连廊→A栋2F→事件位置；高仙 Omnie 仅 A栋室内、可电梯、不可跨连廊；赛特净界 S5 仅室外，不能进入楼栋/电梯/连廊。
+- **Current Implementation**：backend 已有六张 map、四点标定、connector graph、Dijkstra segments、Fleet position 和 capability hard constraints；现有 profiles 已限制 Omnie skybridge=false、S5 outdoor-only、SC50 elevator/skybridge=true。
+- **Previous Source Coverage**：P1-A/B、D03/D05 已锁定这些 runtime/能力事实；此前缺少将其提升为客户地图视觉的强制边界。
+- **Root Cause**：`SOURCE_MISSING`。
+- **Locked Target**：不得为视觉效果越过既有 capability/deployment policy；任何路线展示须反映这些真实约束。
+- **Acceptance Criteria**：Demo03 走完整跨楼路径；Demo02 Omnie 仅在 A栋合理区域活动；Demo01 S5 只沿室外道路，三者均无违规穿越。
+- **Affected Active Code**：`backend/spatial/spatial_data.py`、`route_planner.py`、`backend/scheduling/capability_engine.py`、`profiles.py`、`frontend/src/components/prototype/SpatialDispatchView.tsx`。
+
+### WB-MAP-01.6｜当前拓扑路线的实现缺口
+
+- **User Intent**：不得因 backend 已有 Dijkstra 就声称真实面客可行走路线已实现。
+- **Current Implementation**：`spatialProjection.ts` 的 `CAMPUS_TOPOLOGY_ANCHORS` 把 backend map/node 投影到 3D 白模，再对相邻点线性插值；它能证明跨楼、电梯、连廊的拓扑顺序，但不能充分证明运动沿真实道路中心线、室内走廊、电梯厅或连廊通道。
+- **Previous Source Coverage**：P1-B 已实现 Dijkstra connector order + anchor playback，并明确它不是导航遥测；缺少“业务可行走几何”的路线交付标准。
+- **Root Cause**：`IMPLEMENTATION_GAP`，并且旧“anchor path 已足够代表面客路线”的视觉结论 **SUPERSEDED BY WB-MAP-01**。
+- **Locked Target**：现有 backend topology 继续作为 route order 来源，但不得把 anchor-to-anchor 直线宣传为真实可行走道路。
+- **Acceptance Criteria**：在 Waypoint Geometry 落地并经 Demo01/02/03 可视验证前，WB-MAP-01 不得标为 IMPLEMENTED/USER_ACCEPTED。
+- **Affected Active Code**：`spatialProjection.ts`、`useRoutePlayback.ts`、`SpatialDispatchView.tsx`、`backend/spatial/route_planner.py`。
+
+### WB-MAP-01.7｜Demo Navigation Waypoint Geometry
+
+- **User Intent**：不要求 ROS Nav2、真实激光 SLAM、动态避障或 production costmap，但未来必须让视觉路线位于业务合理可行走区域。建立统一维护的面客 Demo 级 Navigation Waypoint Geometry，覆盖室外道路、A/B栋1F/2F走廊、电梯入口/出口和空中连廊中心路径；Dijkstra business route 必须投影为合法 waypoint sequence，机器人沿 waypoints 移动，绝不穿墙/穿楼/漂移/直线跨楼。
+- **Current Implementation**：当前没有独立的 waypoint geometry data contract；几何锚点散布在 frontend `CAMPUS_TOPOLOGY_ANCHORS`，并以直线段动画。
+- **Previous Source Coverage**：D05 明确 Dijkstra 不是 Nav2/local avoidance，P1-B 有 anchor playback；统一 demo route geometry 缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_GAP`。
+- **Locked Target**：waypoints 必须作为 Spatial Data / Route Geometry 统一维护，并由确定性 backend route/runtime facts 选择；不是 React 场景特判。
+- **Acceptance Criteria**：所有正式 demo 路线由 backend route + 统一 geometry 解析为可审计 waypoint sequence；视觉检查无穿墙、穿楼、道路外漂移或跨楼直线。
+- **Affected Active Code**：`backend/spatial/spatial_data.py`、`route_planner.py`、`backend/demo_v1/service.py`、`frontend/src/components/prototype/spatialProjection.ts`、`useRoutePlayback.ts`、`SpatialDispatchView.tsx`。
+
+### WB-MAP-01.8｜路线视觉层级
+
+- **User Intent**：路线必须在白模上明显可见：完整规划路线约 3px 级，已走更深更实，待走较浅/虚线；事件点 > 当前机器人 > 已走路线 > 待走路线，不能被背景吞没。具体像素可按实际比例微调。
+- **Current Implementation**：`RouteLayer` 使用约 1.15px 未走虚线和 1.75px 已走实线，路线对比度与层级不足。
+- **Previous Source Coverage**：P1-B 已有未走/已走路线和少量箭头；视觉显著性与事件/机器人/路线优先级缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：在不损害 MapCanvas 内层坐标一致性的前提下，建立明显且克制的路线层级。
+- **Acceptance Criteria**：在常见桌面视口，客户可不放大地图就看清完整路线、已走段、待走段、事件点和当前 robot 的视觉优先级。
+- **Affected Active Code**：`SpatialDispatchView.tsx`、`MapCanvas.tsx`、`spatialProjection.ts`。
+
+### WB-MAP-01.9｜事件点与状态演进
+
+- **User Intent**：事件点需以红色实心中心 + 柔和脉冲外圈和简短业务标签（如“小型垃圾 · 待处理”）强突出；待处理红、处理中橙、验收通过绿/✓，不能只有小“事件位置”文本。
+- **Current Implementation**：当前事件 marker 是小红圈和“事件位置”文字，状态不随处理/验收阶段切换，也没有脉冲和业务标签。
+- **Previous Source Coverage**：P1-B 已锁定定位后才显示 marker 和最终路线/终点保留；动态业务状态标记缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：颜色/文案仅从真实 event state、event type、verification result 投影，不创造第二状态机。
+- **Acceptance Criteria**：在发现、处理中、CLOSED 三个阶段，事件点的颜色/标签清楚反映真实状态；验收通过后可见绿色完成状态。
+- **Affected Active Code**：`SpatialDispatchView.tsx`、`eventViewModel.ts`、`backend/demo_v1/service.py`。
+
+### WB-MAP-01.10｜地图机器人 Hover
+
+- **User Intent**：每个地图 robot marker 支持 Hover，轻量透明卡显示正式名称、状态、电量、业务位置、SLAM X/Y、核心清洁能力、当前任务（若有）；不得呈现大量内部 ID、JSON 或调试字段。
+- **Current Implementation**：资产栏卡已有 hover，但地图上的 `RobotMarker` 无 hover/信息卡。
+- **Previous Source Coverage**：P1-B 有 marker，P1-F 有共享 Fleet/Task 事实；地图 marker hover 的客户信息层缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：hover 值必须读取真实 fleet/task/spatial facts，名称/位置走客户投影。
+- **Acceptance Criteria**：所有地图 marker 均可 hover，所见字段与当前 Fleet/Task 一致、无内部 ID/JSON，且卡片不遮蔽核心路线/事件。
+- **Affected Active Code**：`SpatialDispatchView.tsx`、`eventViewModel.ts`、`backend/demo_v1/service.py`。
+
+### WB-MAP-01.11｜删除重复右上状态卡
+
+- **User Intent**：地图右上类似“赛特净界 S5 · 行驶中”的独立状态卡默认删除；资产卡、robot marker、事件进度已足够表达，避免重复和视觉悬空。
+- **Current Implementation**：地图 navigation 时仍在右上显示 selected robot + 行驶/暂停状态的独立卡。
+- **Previous Source Coverage**：P1-B 只要求地图与 Fleet 真实投影，未禁止重复状态卡。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：状态只在指定资产卡/marker/事件进度中表达，除非未来有用户确认的独立业务价值。
+- **Acceptance Criteria**：导航时地图右上不再存在重复悬浮状态卡，客户仍能从其它三处明确当前 robot 状态。
+- **Affected Active Code**：`SpatialDispatchView.tsx`。
+
+### WB-MAP-01.12｜地图的动态业务过程
+
+- **User Intent**：地图随真实 demo stage 演进：空闲显示四台正常位置且无路线；发现出现事件点；定位锁定事件位置；派单高亮 selected robot 并出现路线；导航沿 waypoints 移动且已走加深；电梯停在真实节点显示“乘梯中”；连廊沿连廊移动；到达停在目标附近；Cleaning 显示清洁中；Verification 保留事件处置状态；CLOSED 变绿完成、路线可逐渐弱化。
+- **Current Implementation**：当前有基于 `NAVIGATING` 的 route playback、电梯暂停、target marker 和终态淡化路线，但事件状态、派单高亮、Cleaning/Verification/CLOSED 的完整地图语义未实现。
+- **Previous Source Coverage**：P1-B 已覆盖连续插值、电梯提示和终态路线；完整阶段到地图状态编排缺失。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+- **Locked Target**：所有视觉状态只读取已持久化 transition/plan/fleet/verification；不以前端定时器补造业务结果。
+- **Acceptance Criteria**：Demo 从空闲至 CLOSED 的每个指定阶段均有可见、真实状态变化，且刷新后可从持久化记录恢复正确视觉状态。
+- **Affected Active Code**：`SpatialDispatchView.tsx`、`useRoutePlayback.ts`、`eventViewModel.ts`、`runtimeSession.ts`、`backend/demo_v1/service.py`。
+
+### WB-MAP-01.13｜路径数据真实性与统一维护
+
+- **User Intent**：未来 Route、Waypoint、Distance、Elevator、Skybridge、Start/Target Position 全部来自 backend deterministic spatial/runtime facts。允许 PoC Deterministic Demo Navigation Geometry，但必须统一作为 Spatial Data / Route Geometry 维护，而非散落 React 或 demo-specific branch。
+- **Current Implementation**：backend 产生 deterministic `navigation_plan` 的 map/node/segment/cost，前端 projection 没有 demo ID 分支但本地保存 visual anchors、以画布长度决定播放时长；没有受管 waypoint/distance/ETA 数据契约。
+- **Previous Source Coverage**：P1-A/B/D05 已禁止 demo ID 固定路线和前端伪造 route；未定义 geometry/distance/ETA 的统一数据所有权。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_GAP`。
+- **Locked Target**：保持 backend 为事实源并把 geometry 纳入统一 spatial data；不得让 LLM 或 UI 生成路线事实。
+- **Acceptance Criteria**：代码审查可追踪每个显示路线/设施/距离/ETA 到 backend plan/geometry；不存在 demo-specific React 线路、LLM route 或任意动画连线。
+- **Affected Active Code**：`backend/spatial/spatial_data.py`、`route_planner.py`、`backend/demo_v1/service.py`、`spatialProjection.ts`、`SpatialDispatchView.tsx`。
+
+### WB-MAP-01.14｜核心用户展示场景
+
+- **User Intent**：用户必须亲眼看到 Demo03 的蜗小白 SC50 从 B栋1F 合理室内路径 → B栋电梯 → B栋2F → 空中连廊 → A栋2F → 事件位置，marker 全程沿路径移动、无瞬移/穿墙/空白直线；Demo02 Omnie 在 A栋合理路线去液体污渍，Demo01 S5 沿园区道路去事件点。
+- **Current Implementation**：backend route order 和现有 animation 可以出现 Demo03 连接顺序/电梯停留，但由于 anchor 线性路径，尚不能证明三个场景均沿业务可行走路线运动。
+- **Previous Source Coverage**：D05 已锁定 Demo03 connector sequence 和机器人 capability；用户可见的三路线场景验收未建立。
+- **Root Cause**：`SOURCE_MISSING` + `IMPLEMENTATION_GAP`。
+- **Locked Target**：三条核心路线必须由统一 Waypoint Geometry 和真实 backend plan 驱动。
+- **Acceptance Criteria**：Demo01、Demo02、Demo03 的录屏/截图/用户验收逐一展示指定路径；Demo03 五段顺序完整且视觉无非法移动。
+- **Affected Active Code**：`backend/spatial/spatial_data.py`、`route_planner.py`、`frontend/src/components/prototype/spatialProjection.ts`、`useRoutePlayback.ts`、`SpatialDispatchView.tsx`。
+
+### WB-MAP-01.15｜验收、用户确认与实施报告
+
+- **User Intent**：未来验收至少覆盖四卡统一布局/五项信息、客户英文技术词清理、robot hover、动态强事件点、明显路线、selected 高亮、backend 来源、Demo01/02/03 合理路线、合法 waypoint 动画、无穿墙/穿楼/漂移与 CLOSED 正确结束。用户未亲眼通过展示前，不得标记 `USER_ACCEPTED`。
+- **Current Implementation**：既有 P1-B 测试/浏览器验收覆盖 MapCanvas 内层坐标、拓扑路线、连续插值及电梯停留，不等同本条客户空间总览验收。
+- **Previous Source Coverage**：`TODO.md`/测试事实源记录工程验收和用户展示验收待完成，但没有 WB-MAP-01 的逐项证据矩阵。
+- **Root Cause**：`SOURCE_MISSING`。
+- **Locked Target**：最终 Unified Implementation Report 必须逐项映射 `WB-MAP-01.1`–`.15` 至 Requirement → Code → Test → Screenshot/User Acceptance；任一未完成则 WB-MAP-01 仍为 `LOCKED TARGET`，用户未亲眼通过则不得 `USER_ACCEPTED`。
+- **Acceptance Criteria**：报告包含全部 15 项可复核证据，且用户已实际观察 Demo01/02/03 空间展示后才能记录 `USER_ACCEPTED`。
+- **Affected Active Code**：本条覆盖上述所有空间、调度、Runtime、frontend projection files；本轮不修改任何代码。
