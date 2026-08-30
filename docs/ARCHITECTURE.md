@@ -1,13 +1,13 @@
 # AI 自主清洁 Demo｜当前架构与锁定目标
 
-> **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
+> **状态：IMPLEMENTED · Post-merge Interview Freeze · main `8341eb079fe5a700b4931e0112fdbe5552297785` · 2026-08-30**
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
-## P1-G 当前验收增量（IMPLEMENTED；用户主观展示验收仍待）
+## Post-merge 当前验收状态（IMPLEMENTED；用户主观展示验收仍待）
 
 `perception/verification_evidence.py` 从与定位同源的主相机 controlled-edge detections 提取 normalized bbox union，生成 before/after target ROI（仅用于验单，不改 Camera→SLAM），并只把 crop hash、ROI 与事实 context 进入 Replay key；crop 本身仅用于当次模型调用。`qwen.py` 的 primary verifier 接收 full-before/full-after/ROI-before/ROI-after 四项证据；primary 未闭环时，最多调用一次完全独立的 paired-ROI verifier，不能携带第一次答案。service 在保存/Replay 时严格校验 schema、JSON bool 与有限 raw float，异常一律 `VERIFICATION_ERROR` / fail closed；Analytics 读取保存的 `first_review`，不把独立 ROI 补救结果冒充首判。
 
-P1-G acceptance runner 以独立 SQLite append-only `acceptance_runs` 保存真实阶段执行、运行时 trace、source batch 和安全摘要。正式 batch 满足 Live 5/5、5/5、5/5、3/3；post-review 四个 Replay 各3/3，Replay transport 被断言阻断且无新 Cloud request。该 runner 在每个 Demo03 跨楼试验前以持久化、显式的 relocation task 返回 B1F，绝不直接写坐标或 reset Fleet。Task-owned human completion 通过 session+lease 唯一 owner；task-owned event 的旧 manual HTTP 返回409，Agent没有人工确认工具，Workbench不暴露该旧入口；非 task-owned event 保留原人工完成流程。backend164/frontend46/build/bash-n/diff与 A/B/C/D/E 已通过，故 P1-G 工程/自动化/浏览器验收 IMPLEMENTED；用户主观展示验收仍独立，提交和合并状态以 git log 与 remote 为准。
+P1-G acceptance runner 以独立 SQLite append-only `acceptance_runs` 保存真实阶段执行、运行时 trace、source batch 和安全摘要。正式 batch 满足 Live 5/5、5/5、5/5、3/3；post-review 四个 Replay 各3/3，Replay transport 被断言阻断且无新 Cloud request。该 runner 在每个 Demo03 跨楼试验前以持久化、显式的 relocation task 返回 B1F，绝不直接写坐标或 reset Fleet。Task-owned human completion 通过 session+lease 唯一 owner；task-owned event 的旧 manual HTTP 返回409，Agent没有人工确认工具，Workbench不暴露该旧入口；非 task-owned event 保留原人工完成流程。backend164/frontend46/build/bash-n/diff与 A/B/C/D/E 已通过，P1-G 已合并至 main；用户主观展示验收仍独立。
 
 ## P1-H 当前观测架构（IMPLEMENTED · A/E PASS · 2026-08-30）
 

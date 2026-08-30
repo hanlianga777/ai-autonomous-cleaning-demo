@@ -46,6 +46,10 @@ test("customer task labels do not fabricate external or telemetry state", () => 
   assert.equal(model.taskKindLabel("relocation"), "待命调度");
   assert.equal(model.taskStatusLabel("ASSIGNED"), "已分配");
   assert.equal(model.taskStatusLabel("UNSEEN_BACKEND_STATE"), "UNSEEN_BACKEND_STATE");
+  assert.equal(model.taskExecutorLabel({ task_id: "human-1", kind: "cleaning", status: "HUMAN_FALLBACK", source: "POC_SIMULATION", robot_id: null }), "处置方式：人工搬运");
+  assert.equal(model.taskExecutorLabel({ task_id: "pending-1", kind: "cleaning", status: "CREATED", source: "POC_SIMULATION", robot_id: null }), "执行对象：待调度");
+  assert.equal(model.taskExecutorLabel({ task_id: "robot-1", kind: "cleaning", status: "ASSIGNED", source: "POC_SIMULATION", robot_id: "robot-b" }), "机器人：高仙 Omnie");
+  assert.equal(model.taskLocationLabel("East Corridor"), "东侧走廊");
 });
 
 test("advice data window is rendered as a factual label, not an object", () => {

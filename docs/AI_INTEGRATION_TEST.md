@@ -1,9 +1,9 @@
 # Integrated Demo｜AI 集成与回归事实记录
 
-> **状态：IMPLEMENTED 基线 + P1-G 工程/自动化/浏览器验收 IMPLEMENTED · 2026-08-30**
+> **状态：IMPLEMENTED · Post-merge Interview Freeze · main `8341eb079fe5a700b4931e0112fdbe5552297785` · 2026-08-30**
 > 本文区分已发生的真实调用、当前代码边界和未来必须达到的验收标准。固定 bbox 仍是 `CONTROLLED_EDGE_DEMO`，不是本地 REAL YOLO。
 
-## P1-G 连续验收批次（IMPLEMENTED；用户主观展示验收仍待）
+## Post-merge 连续验收批次（IMPLEMENTED；用户主观展示验收仍待）
 
 专用 SQLite `/tmp/cleaning-p1g-acceptance.lf8Dla/acceptance.sqlite` 的 append-only `acceptance_runs.payload` 保存了安全摘要、阶段、route、source、latency 与失败标签；本文不复制 Prompt、原始模型回答、图片或任何 secret。合格 LIVE batch：Demo01 `acceptance-b0af62b416cc4c03be6c304ddb569a40` 5/5，Demo02 `acceptance-20c748edbaa44c9d86f1257412d92198` 5/5，Demo03 `acceptance-cfee4992075a42839a463253fa0f53dd` 5/5，Demo04 `acceptance-da76bfb5b67e4acaad62a5541d2acdd7` 3/3。各自后续 Stable Replay 为 3/3，且 replay rows 记录为 `REPLAY`、无新 model request；非 AI Runtime 和工具/阶段照常执行。`b84edc` 因 per-run reset 不计正式，`d3729` 仅 diagnostic。
 
@@ -32,7 +32,7 @@
 | 04 | 2 | `integrated-demo04-b5e6b6e1b3` | .95 | .95 | — | .89 | .99 | 4835; 3656 |
 | 04 | 3 | `integrated-demo04-c5cf39584a` | .95 | .95 | — | .89 | .99 | 4737; 4384 |
 
-主完整回归为 backend 164 项（161 PASS + 3 paid opt-in skipped，41.795s）、frontend 46 项/build、bash-n 与 diff check 均 PASS；A Architecture、B Agent/AI、C Safety/Reality、D、E 最终复核均 PASS（P0/P1=0）。post-review Replay 使用同一 fingerprint `581e77be0dad8874cf118fee5decc5c40f5f5f7772b8c3224807b37ef9bd63a4`：Demo01 `acceptance-d18f7b75d20740c591523be670ade94f` 3/3、Demo02 `acceptance-e4c8ea3f203a41b1a47da45b64de1b78` 3/3、Demo03 `acceptance-7ed34b4df7cc4cb5b6421f9ac5874c7c` 3/3、Demo04 `acceptance-d38e6d929bef4f0d8260530f717023ca` 3/3。工程/自动化/浏览器验收据此完成；用户主观展示验收仍独立，提交和合并状态以 git log 与 remote 为准。
+主完整回归为 backend 164 项（161 PASS + 3 paid opt-in skipped，41.795s）、frontend 46 项/build、bash-n 与 diff check 均 PASS；A Architecture、B Agent/AI、C Safety/Reality、D、E 最终复核均 PASS（P0/P1=0）。post-review Replay 使用同一 fingerprint `581e77be0dad8874cf118fee5decc5c40f5f5f7772b8c3224807b37ef9bd63a4`：Demo01 `acceptance-d18f7b75d20740c591523be670ade94f` 3/3、Demo02 `acceptance-e4c8ea3f203a41b1a47da45b64de1b78` 3/3、Demo03 `acceptance-7ed34b4df7cc4cb5b6421f9ac5874c7c` 3/3、Demo04 `acceptance-d38e6d929bef4f0d8260530f717023ca` 3/3。工程/自动化/浏览器验收据此完成，并已 merge 到 current main；用户主观展示验收仍独立。
 
 补充浏览器 QA 使用隔离 `/tmp/cleaning-p1c-qa.T92Xr8/qa.sqlite`：Demo03 `integrated-demo03-91ce8e62d8` 在 NAVIGATING 暂停、刷新后位置未变、恢复后取消，终态 `CANCELLED`（记录总时长 473 秒）；旧 Demo04 `integrated-demo04-8ebf33849f` 是普通 Workbench 人工确认，**不是 task-owned**，其 transition 为 04:34:28Z–04:35:08Z，before 两框与 persisted edge 同源、after 无框、Cloud 5959ms。
 

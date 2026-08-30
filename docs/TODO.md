@@ -1,7 +1,7 @@
 # AI 自主清洁 Demo｜真实任务清单
 
-> **状态：LOCKED · 2026-08-30**
-> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E/F/H/G 工程验收通过；提交与合并状态以 git log 和 remote 为准，用户展示验收仍独立。
+> **状态：LOCKED · Post-merge Interview Freeze · main `8341eb079fe5a700b4931e0112fdbe5552297785` · 2026-08-30**
+> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已合并，P1-A/B/C/D/E/F/H/G 工程验收通过；用户展示验收仍独立。
 
 ## 已实现基线（IMPLEMENTED，禁止回退）
 
@@ -89,7 +89,7 @@
 - [x] **实现后文档更新**：代码、测试、浏览器和 A/B/C/D/E 工程审查证据已写入六份事实源。
 
 - [ ] **用户展示验收**：全部工程门槛 PASS；提交与合并状态单独以 `git log` 和 remote 核对。用户主观展示验收仍待，不能由本工程验收替代。
-- [ ] **P2 面客任务卡投影**：人工 task 已闭环时 `robot_id=null` 仍显示“机器人：待系统分配”，目的地 `East Corridor` 未中文化；右侧事件详情和后端 assignment 目前正确。仅修正任务卡标签投影，不改变本轮冻结的 Task/assignment 语义。
+- [x] **面客任务卡投影收口**：`robot_id=null` 的 `HUMAN_FALLBACK` 任务显示“处置方式：人工搬运”，不再显示等待机器人；`East Corridor` 统一投影为“东侧走廊”。仅修正文案投影，不改变 Task/assignment 语义。
 - [ ] **P2 模型拒绝措辞**：越权请求已拒绝且无写入，但模型可能泛称“联系管理员编辑”；后续收敛措辞，不能暗示当前产品存在可编辑基础设施的管理入口。约 785KB 构建包拆分延续 P1-E P2。
 
 ## P1-H｜Advanced Technical Observability（IMPLEMENTED · A/E PASS）

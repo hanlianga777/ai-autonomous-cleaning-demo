@@ -25,4 +25,4 @@ export const campusTopology: Record<string, TopologyAnchor> = {
 };
 
 export const eventAnchorByDemo = { outdoor: "OUTDOOR_EAST_ROAD_EVENT", liquid: "A_1F_LOBBY_EVENT", can: "A_2F_CAN_EVENT", oversized: "A_2F_LARGE_OBJECT_EVENT" } as const;
-export const standbyAnchorByRobot: Record<string, string> = { "Robot A": "OUTDOOR_A_STANDBY", "Robot B": "A_1F_ROBOT_B_STANDBY", "Robot C": "B_1F_ROBOT_C_STANDBY", "Robot D": "OUTDOOR_D_STANDBY" };
+export const standbyAnchorByRobot: Record<string, string> = { "赛特净界 S5": "OUTDOOR_A_STANDBY", "高仙 Omnie": "A_1F_ROBOT_B_STANDBY", "蜗小白 SC50": "B_1F_ROBOT_C_STANDBY", "普渡 FlashBot Max": "OUTDOOR_D_STANDBY" };

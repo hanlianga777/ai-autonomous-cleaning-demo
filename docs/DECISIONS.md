@@ -1,13 +1,13 @@
 # AI 自主清洁 Demo｜锁定决策
 
-> **状态：LOCKED · 2026-08-30**
+> **状态：LOCKED · Post-merge Interview Freeze · main `8341eb079fe5a700b4931e0112fdbe5552297785` · 2026-08-30**
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
 ## P1-G 验收执行边界（IMPLEMENTED；不替代用户主观展示验收）
 
 - 通用 verification 的 target ROI 只能由主相机 controlled edge 的合法 normalized bbox union 推导；同一 normalized ROI 同时裁取 before/after，不得使用场景专用坐标、supporting-camera bbox 或猜测目标。primary verifier 必须同时获得 before/after 全图及这对 ROI；缺失、畸形、非法 bbox、非有限数值或不匹配 Replay 一律安全失败。
 - primary verifier 的失败最多允许一次独立 target-ROI review；独立调用只能收到 paired ROI 和 factual context，不能收到 primary 的答案、confidence 或 reasoning。二审通过可以闭环当前事件，但不重写 primary verdict，Analytics first-pass 仍以 primary 为准。所有 verification JSON 继续严格校验 bool、枚举与有限 raw float，禁止通过 round/bool/string coercion 把失败提升为成功。
-- 已保存 P1G qualifying LIVE：Demo01 5/5、Demo02 5/5、Demo03 5/5、Demo04 3/3；同 fingerprint post-review Replay 四 Demo 各3/3，Replay 无新 Cloud request。backend 164=161 PASS+3 paid opt-in skipped、frontend46/build、bash-n/diff与 A/B/C/D/E 均 PASS，故 P1-G 工程/自动化/浏览器验收为 **IMPLEMENTED**。该记录不表示已提交/推送/合并 main，也不替代用户主观展示验收。
+- 已保存 P1G qualifying LIVE：Demo01 5/5、Demo02 5/5、Demo03 5/5、Demo04 3/3；同 fingerprint post-review Replay 四 Demo 各3/3，Replay 无新 Cloud request。backend 164=161 PASS+3 paid opt-in skipped、frontend46/build、bash-n/diff与 A/B/C/D/E 均 PASS，故 P1-G 工程/自动化/浏览器验收为 **IMPLEMENTED**。Unified Implementation 已合并至 current main；用户主观展示验收仍独立。
 
 ## P1-H 可观测性边界（IMPLEMENTED · A/E PASS · 2026-08-30）
 
@@ -127,7 +127,7 @@
 
 **IMPLEMENTED / LOCKED（P1-F）**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
 
-**IMPLEMENTED / LOCKED（P1-F）**：Analytics Advice 不是第三个 Optimization Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
+**IMPLEMENTED / LOCKED（P1-F）**：Analytics Advice 不是第三个独立运营分析 Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
 
 ## D10｜Multi-view Perception Agent
 
@@ -179,7 +179,7 @@
 | 按 `demo_id == demo02` 或固定阈值进入 Multi-view | 真实模型以 `tool_choice=auto` 自主工具调用；不得泄漏测试答案 |
 | 初轮三张图同时给 Cloud 后假装主动取证 | 初轮只给主视角；补充图只能来自真实 tool call |
 | Command Bar + 独立语音入口 + Floating Assistant 三入口 | 一个 Robot Operations Agent；Workbench/Event Center 浮窗，Analytics 固定 Panel；语音只是输入模态 |
-| 独立 Analytics Optimization Agent | Robot Operations Agent 的运营分析能力；Analytics Engine 仍确定性 |
+| 独立 Analytics Agent | Robot Operations Agent 的运营分析能力；Analytics Engine 仍确定性 |
 | demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（P1-A 代码与测试通过） |
 | demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（P1-A 代码与测试通过） |
 | Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（P1-A 代码与测试通过） |

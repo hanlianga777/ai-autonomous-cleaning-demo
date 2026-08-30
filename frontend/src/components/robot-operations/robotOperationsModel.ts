@@ -53,8 +53,21 @@ export function taskKindLabel(kind: string): string {
 
 /** Customer-name projection only; selection remains the backend Task's robot_id. */
 export function taskRobotLabel(robotId?: string | null): string {
-  if (!robotId) return "待系统分配";
+  if (!robotId) return "人工处置";
   return ({ "robot-a": "赛特净界 S5", "robot-b": "高仙 Omnie", "robot-c": "蜗小白 SC50", "robot-d": "普渡 FlashBot Max" } as Record<string, string>)[robotId] ?? robotId;
+}
+
+/** A null cleaning assignee is a human disposition, never a pending robot. */
+export function taskExecutorLabel(task: OperationsTask): string {
+  if (!task.robot_id) {
+    if (task.kind === "cleaning" && ["HUMAN_FALLBACK", "CLOSED"].includes(task.status)) return "处置方式：人工搬运";
+    return "执行对象：待调度";
+  }
+  return `机器人：${taskRobotLabel(task.robot_id)}`;
+}
+
+export function taskLocationLabel(value?: string | null): string {
+  return value === "East Corridor" ? "东侧走廊" : value || "未提供目的地";
 }
 
 export type OperationsTaskAction = "dispatch" | "pause" | "resume" | "cancel" | "advance" | "manual_complete";
