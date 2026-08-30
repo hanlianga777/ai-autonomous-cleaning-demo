@@ -216,7 +216,7 @@ AI-UI-01 / ANALYTICS-01 锁定：Workbench / Event Center 的默认收起入口�
 
 清洁仍是主业务。未获得平台授权、资质与 API 权限时，Delivery Adapter 只能显示 `ADAPTER READY` / `AUTH REQUIRED`；不得声称 `CONNECTED` 或伪造 platform callback。授权后，结构化订单走确定性 Adapter / POI normalization / Policy / Delivery Workflow / FlashBot Max / status callback；不确定例外才升级给 Robot Operations Agent。
 
-## 10. Advanced Technical Observability（IMPLEMENTED · P1-H）
+## 10. Advanced Technical Observability（backend capability IMPLEMENTED · ADVANCED-01 UI LOCKED TARGET）
 
 ```text
 Existing Runtime
@@ -231,13 +231,13 @@ Existing Runtime
        └── System Reality Matrix
 ```
 
-Advanced 是 read-mostly **Technical Observability & Execution Trace Inspector**，不是新 Runtime：不得独立重跑模型、Scheduler 或 Route Planner。当前为顶部 Runtime Strip、左63% Execution Trace、右37% Selected Node Detail 的 Trace → Node → Inspect，不默认展平 JSON。
+Advanced backend 是 read-mostly Technical Observability 能力，不是新 Runtime：不得独立重跑模型、Scheduler 或 Route Planner。P1-H 的顶部 Runtime Strip、左63% Execution Trace、右37% Selected Node Detail 和 Trace → Node → Inspect 是当前前端实现事实，**SUPERSEDED BY ADVANCED-01**；其 Trace/API/持久化/测试能力保留，正式面试页面改为用户技术图片讲解页。
 
-AI Trace 固定投影 Edge Detection、Single-view Cloud VLM、Conditional Multi-view Perception Agent、Multi-view Cloud Judgment、Business Decision/Fusion、Verification 六段。Multi-view 未发生时必须明确 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`；发生时 Tool Trace 必须来自真实 Agent audit，并记录 `MODEL_TOOL_CALL`。每个 Node 只显示结构化 input/output summary、evidence, confidence、sufficiency、ambiguity、latency、second-review、ROI/verdict，不显示 Chain-of-Thought。
+AI Trace 继续持久化/可审计 Edge Detection、Single-view Cloud VLM、Conditional Multi-view Perception Agent、Multi-view Cloud Judgment、Business Decision/Fusion、Verification 六段。Multi-view 未发生时仍如实记录，Tool Trace 仍来自真实 Agent audit，且不记录 Chain-of-Thought。以上不再要求显示在正式 Advanced 前端。
 
-空间 Trace 固定投影 Camera→SLAM、Capability、Scheduler、Dijkstra：在现有 Runtime 具备记录后显示 calibration / u-v / map-x-y、TaskProfile / constraints、Scheduler explanation / `AssignmentDecision`、Dijkstra map/node/segment/cost；Dijkstra 是 campus global topology，不是 Nav2 / local obstacle avoidance。Runtime / Tool / Error Trace 使用统一 trigger source（`MODEL_TOOL_CALL`、`SYSTEM_WORKFLOW`、`USER_ACTION`）与错误 taxonomy（`MODEL_ERROR`、`TOOL_ERROR`、`POLICY_REJECTED`、`SPATIAL_ERROR`、`SCHEDULER_ERROR`、`ROUTE_ERROR`、`VERIFICATION_ERROR`、`EXTERNAL_ADAPTER_ERROR`）。
+空间 Trace 继续保存 Camera→SLAM、Capability、Scheduler、Dijkstra 的 calibration/u-v/map、TaskProfile/constraints、AssignmentDecision、map/node/segment/cost 等真实记录；Dijkstra 是 campus global topology，不是 Nav2/local obstacle avoidance。Runtime/Tool/Error Trace 继续使用统一 trigger source 和错误 taxonomy。以上均是 retained backend observability capability，不再要求显示在正式 Advanced 面试页面。
 
-Reality Source Metadata 是独立可审计数据：`LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`。System Reality Matrix 由该 metadata、provider/configuration 与 authorization status 自动投影，覆盖模型、evidence、空间、调度、路线、机器人、电梯/Skybridge、验证、Replay、Delivery、ASR；不能由前端手改或伪造。Advanced 还应显示 Current PoC Boundaries、future adapter replacement points 与独立 Trace ID（不等于 Event ID），且绝不泄露密钥、token、authorization header 或环境变量值。
+Reality Source Metadata、System Reality Matrix、Current PoC Boundaries、adapter replacement points 和独立 Trace ID 继续是可审计数据，绝不能由前端手改/伪造或泄露密钥、token、authorization header、环境变量。它们与 runtime/model/tool/node/evidence 数据均不在正式 Advanced 面试页默认显示。未来页面只保留用户确认的 1–2 张图片：一图居中占宽、两图上下、点击放大；图片尚为 PENDING USER ASSET，不得生成或擅自选用。
 
 ## 11. 不进入本轮与不允许的实现
 

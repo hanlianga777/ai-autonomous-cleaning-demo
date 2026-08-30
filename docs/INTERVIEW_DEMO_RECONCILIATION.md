@@ -5,7 +5,7 @@
 
 ## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
 
-- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01、ADVANCED-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
 - 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → affected code → implementation status）。
 - 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
 
@@ -974,3 +974,113 @@ Event Center 是面向客户的“AI 清洁事件档案 / 工单中心”，不�
 - `backend/analytics/read_model.py`
 - `backend/api/routes.py`
 - `frontend/src/components/analytics/OptimizationCenter.tsx` (historical inactive component; do not mistake for active work)
+
+## ADVANCED-01｜高级模式简化为技术图片讲解页
+
+| Field | Value |
+| --- | --- |
+| ID | ADVANCED-01 |
+| Module | Advanced UI presentation / existing observability capability boundary |
+| Status | **LOCKED TARGET** |
+| Scope | Docs-only delta sync；本轮不修改 frontend、backend、runtime、database、test、launcher 或 assets，也不生成图片。 |
+
+### User Intent
+
+高级模式保留为面试中的技术讲解辅助页：用户以后会提供 1–2 张技术图片，自行口述系统架构、技术调用链、AI 流程或其他技术内容。正式面试前端不再把动态 Technical Observability、Trace 或 Runtime 数据作为主讲内容。这个决定只改变 **Frontend Presentation Layer**；所有已实现的 observability 后端能力、API、持久化 Trace、审计和测试必须原样保留。
+
+### Pending User Asset
+
+最终 Advanced 展示的 1–2 张技术图片是 **PENDING USER ASSET**。用户尚未提供图片；本轮及未来实施前均不得自行生成图片、挑选架构图、使用旧 Trace 截图替代，或决定最终图片内容。
+
+### Previous Source Coverage
+
+- 已覆盖：`/advanced` 路由、左侧“高级模式”入口、`AdvancedView.tsx`、`advancedTraceModel.ts`、只读 Advanced Trace API、`backend/observability`、Runtime Trace、Tool Audit、Reality Matrix、持久化 Trace、脱敏/真实性边界和测试覆盖。
+- 以前的 P1-H 已锁定 Trace → Node → Inspect、Runtime Strip、六段 AI Trace、空间/Runtime/Tool Trace、Reality Matrix、LIVE/Stable Replay 前端控件；这些是历史的 Advanced **前端展示方案**。
+- 旧动态 Observability Console 的 UI Presentation 已被 **ADVANCED-01 SUPERSEDED**；它不构成 backend capability removal，也不推翻已实现的观测、审计、API、持久化或测试事实。
+
+### Current Implementation
+
+- `PrototypeWorkbench.tsx` 保留 `/advanced` 路由并直接加载 active `frontend/src/components/prototype/AdvancedView.tsx`；左侧“高级模式”入口存在。
+- `AdvancedView.tsx` 当前 fetches Advanced Trace API，并展示 RuntimeInfo、TraceGroup、ToolTrace、NodeDetail、RealityMatrix、Runtime Mode、LIVE/Stable Replay、节点输入输出/证据/时长/状态与 Backend 数据。该前端展示是 `IMPLEMENTATION_DIVERGENCE`。
+- `backend/observability`、Advanced Trace API、Runtime Trace、Tool Audit、Reality Matrix、Trace 持久化、API 脱敏/真实性审计和既有测试均是有效工程能力；本轮没有删除或改变它们。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。P1-H 解决了技术透明和工程可审计性，却没有锁定用户不在正式面试主讲中使用动态 Trace Console 的展示决策；当前 active Advanced 前端仍是旧 Observability Console。
+
+### Locked Target
+
+#### ADVANCED-01.1｜保留高级模式入口、路由与目录
+
+- **User Intent**：保留左侧“高级模式”一级入口、`/advanced` 路由及 Advanced 页面目录结构；不得删除整个 Advanced。
+- **Acceptance Criteria**：用户仍可从左侧进入 Advanced，路由正常打开，目录存在。
+
+#### ADVANCED-01.2｜移除默认动态技术数据展示
+
+- **User Intent**：正式面试 Advanced 不默认展示 Trace ID、Event ID、Runtime Mode、Cloud Provider/Model、Model Configuration、Last Request、Release Contract、Cloud Status、VLM/Agent Model、Evidence Mode、Runtime Capabilities、AI/Spatial/Runtime/Tool Trace、Selected Node、Input/Output Summary、Evidence、Reality Matrix、LIVE/Stable Replay 控件，及类似时长/节点/工具/Backend 技术 UI。
+- **Acceptance Criteria**：进入页面不会看到这些动态 Observability Console 内容。
+
+#### ADVANCED-01.3｜保留底层工程能力
+
+- **User Intent**：不得因前端不展示而删除 `backend/observability`、Advanced Trace API、Runtime Trace、Tool Audit、Reality Matrix 后端能力、持久化 Trace、测试覆盖或真实性审计；不得借机大规模重构后端。
+- **Acceptance Criteria**：上述能力和既有测试仍可在工程中使用/审计，只是不在正式面试前端默认展示。
+
+#### ADVANCED-01.4｜页面重新定位
+
+- **User Intent**：高级模式是“技术讲解辅助页”，不是实时 Debug 工具、Observability Console 或技术运维平台；用户主要看图并自行讲解，AI 不需要生成大量动态分析。
+- **Acceptance Criteria**：页面视觉和文字让技术图片成为主体，不产生新的动态分析/调试工作流。
+
+#### ADVANCED-01.5｜极简图片主内容
+
+- **User Intent**：主内容只为 1–2 张大尺寸技术图片服务；未来可能是架构图、AI 调用链或 Sequence Diagram，但只能以用户实际上传并确认的资产为准。
+- **Acceptance Criteria**：无图片时只完成图片容器/占位能力；有用户资产时显示该资产，不擅自替换内容。
+
+#### ADVANCED-01.6｜图片布局规则
+
+- **User Intent**：一张图大尺寸居中、尽量占满主内容宽度；两张图默认上下排列，不能左右各 50% 压缩横向技术图。
+- **Acceptance Criteria**：一/两图场景分别遵守此布局，图片足够用于面试讲解。
+
+#### ADVANCED-01.7｜轻量图片交互
+
+- **User Intent**：仅保留点击图片后放大/全屏查看；不得增加复杂 Tabs、AI 解释、自动摘要、动态 Trace 联动、技术筛选、模型调用或额外 Agent。
+- **Acceptance Criteria**：图片可放大阅读，页面没有指定的额外交互或调用。
+
+#### ADVANCED-01.8｜极简文案
+
+- **User Intent**：禁止 `TECHNICAL OBSERVABILITY · READ ONLY`、复杂英文 kicker、大量灰色说明、技术免责、Runtime/数据来源说明；可保留“高级模式”作为导航/页面身份，除此不堆文字。
+- **Acceptance Criteria**：技术图是绝对视觉主体，页面没有大段灰色技术小字。
+
+#### ADVANCED-01.9｜等待用户最终图片
+
+- **User Intent**：当前最终图片尚未提供，必须记录为 PENDING USER ASSET；不得自行生成/挑选图片、用旧 Trace 截图代替或决定内容。
+- **Acceptance Criteria**：未来仅在用户提供并确认 1–2 张图片后使用其资产。
+
+#### ADVANCED-01.10｜未来实施顺序
+
+- **User Intent**：Unified Implementation 时，若用户尚未提供图片，只做极简图片容器/占位，不恢复旧 Technical Observability 页面；若已提供，则使用已确认资产。
+- **Acceptance Criteria**：两种条件分支均不出现旧动态 Trace Console。
+
+#### ADVANCED-01.11｜未来验收和报告
+
+- **User Intent**：验收必须证明入口/路由/目录保留、后端 Observability 保留、面试页面无 Trace/Runtime/LIVE-Replay 面板、页面以 1–2 张大图为主、可点击放大、两图上下排列、无灰色技术小字、无额外模型/Agent。
+- **Locked Target**：未来 Unified Implementation Report 必须列出 `ADVANCED-01.1`–`.11` 的 Requirement → Code → Test → Screenshot/User Acceptance；未逐项实现不得标记 `IMPLEMENTED`。
+- **Acceptance Criteria**：用户亲眼验收全部页面要求后才可记录相应用户验收结果。
+
+### Must Not Do
+
+- 不得删除 Advanced 入口、`/advanced` 路由、页面目录、`backend/observability`、Trace API、Runtime Trace、Tool Audit、Reality Matrix、持久化/审计或测试。
+- 不得把“UI PRESENTATION SUPERSEDED”误写成 backend capability removal，或为此进行大规模后端重构。
+- 不得自行生成/选取技术图片、用旧 Trace 截图代替或决定图片内容；当前资产状态必须保持 PENDING USER ASSET。
+- 不得在图片讲解页加入复杂 Tabs、AI 解释、自动摘要、Trace 联动、技术筛选、模型调用或额外 Agent。
+- 本轮不得修改代码、API、assets、Runtime、数据库、测试或 launcher；只更新 Markdown。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/AdvancedView.tsx`
+- `frontend/src/components/prototype/advancedTraceModel.ts`
+- `backend/observability/context.py`
+- `backend/observability/requests.py`
+- `backend/observability/service.py`
+- `backend/observability/routes.py`
+- existing observability persistence/repository modules and Advanced Trace API tests (retain; do not remove)

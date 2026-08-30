@@ -103,7 +103,7 @@
 - [x] **面客任务卡投影收口**：`robot_id=null` 的 `HUMAN_FALLBACK` 任务显示“处置方式：人工搬运”，不再显示等待机器人；`East Corridor` 统一投影为“东侧走廊”。仅修正文案投影，不改变 Task/assignment 语义。
 - [ ] **P2 模型拒绝措辞**：越权请求已拒绝且无写入，但模型可能泛称“联系管理员编辑”；后续收敛措辞，不能暗示当前产品存在可编辑基础设施的管理入口。约 785KB 构建包拆分延续 P1-E P2。
 
-## P1-H｜Advanced Technical Observability（IMPLEMENTED · A/E PASS）
+## P1-H｜Advanced Technical Observability（backend capability IMPLEMENTED · ADVANCED-01 UI LOCKED TARGET）
 
 - [x] **Trace Inspector layout**：63/37浅色只读Trace→Node→Inspect，独立AdvancedView；不是配置后台或满屏JSON。
 - [x] **AI Recognition 6-stage Trace**：Edge/Single-view/conditionalMulti-view/Multi-viewCloud/Fusion/Verification，未触发如实显示；缺失不伪造。
@@ -115,9 +115,11 @@
 - [x] **H工程验收**：14定向、135完整后端（132PASS+3skip）、前端42/build、浏览器、Reviewer A/E PASS。该条保留 H 当时证据；四 Demo 连续 LIVE/Replay 已在后续 P1-G 完成。
 - [ ] **P1-H P2**：独立原生Delivery/Relocation Task Trace入口；生产级OTel/跨服务观测、身份权限、审计留存与持续安全审计。当前本地SQLite单worker，不冒称生产追踪系统。
 
+- [ ] **ADVANCED-01｜高级模式简化为技术图片讲解页（LOCKED TARGET；未 IMPLEMENTED）**：保留左侧“高级模式”、`/advanced` 和 Advanced 目录；保留 `backend/observability`、Advanced Trace API、Runtime Trace、Tool Audit、Reality Matrix、持久化/真实性审计和测试。正式面试前端删除/隐藏 Runtime Strip、Trace/Node/Tool/Reality/输入输出/证据、LIVE/Stable Replay 与动态技术数据，改为 1–2 张用户提供技术图片的大尺寸讲解页：一张居中占宽，两张上下排列，点击放大/全屏。图片当前为 PENDING USER ASSET；未提供时只做极简容器/占位，禁止自行生成/选择/用旧 Trace 截图替代。不得新增 Tabs、AI解释、摘要、动态联动、模型或 Agent。未来报告须交付 ADVANCED-01.1–01.11 的 Requirement→Code→Test→Screenshot/User Acceptance；缺一不得 IMPLEMENTED。
+
 ## 后续 Batch（不在 Unified Implementation Batch 的范围）
 
-- [ ] 在 P1-H 完成并验收后，才另行讨论 Advanced 的非必要增强体验；不得稀释已锁定的四模块 Trace Inspector 范围。
+- [ ] Advanced 的后续非必要工程增强须保留 observability capability，但不得恢复已被 **ADVANCED-01 SUPERSEDED** 的正式面试 Trace Inspector 前端范围。
 - [ ] 经授权的真实 RTSP/VMS/NVR、生产机器人/电梯/门禁与外部配送平台 Adapter。
 - [x] **Batch C / Part 3 Advanced**：已按Unified P1-H完成工程验收；非必要增强不在本轮。
 
