@@ -74,7 +74,8 @@
 
 - [x] **Agent runtime / Policy Guard / Audit**：实现白名单 Read Tools、低风险 Action Tools、代码级禁止 Write Tools、Observe/Replan/Close 与 Action Audit；不得产生 Scheduler / Dijkstra / Heatmap / RAG 等额外 Agent。
 - [x] **Task 与 Action Card**：实现 Cleaning / Delivery / Relocation Standby Task；POI 白名单；真实 backend Task ID 与 Fleet/Workbench/Agent 共享同一状态；Agent 不直接操作底盘坐标。
-- [x] **一个 Agent、两种 UI 与真实语音边界**：Workbench/Event Center 共享可拖动浮窗；无已保存位置默认左下角，localStorage 位置优先，Header/Drag Handle 拖动、viewport 限制、展开/收起/跨页/刷新保持。Analytics 固定右侧 Panel；共享 session / messages / audit / Page Context。语音链路为 Microphone → real ASR → transcript；只有已配置 ASR provider 才能启用麦克风，未配置时 disabled 或显示“语音服务未配置”，禁止预设文本、timer、mock transcript 或 fake animation。
+- [x] **P1-F 共享 Agent / Session / 状态与真实语音边界（历史已实现事实）**：Workbench、Event Center、Analytics 共享 session / messages / audit / Page Context，语音链路为 Microphone → real ASR → transcript；只有已配置 ASR provider 才能启用麦克风，未配置时 disabled 或显示“语音服务未配置”，禁止预设文本、timer、mock transcript 或 fake animation。此前 UI Shell 的横向浮窗、仅 Header/Drag Handle 拖动和现有展开式 Tool Panel 已被 **AI-UI-01 SUPERSEDED**，不得继续视作当前目标。
+- [ ] **AI-UI-01｜Robot Operations Agent UI Shell（LOCKED TARGET；未 IMPLEMENTED）**：Workbench / Event Center 必须为默认左下、可在整个合法 viewport 内拖动且可持久化的小型圆形 AI 悬浮球，收起只留圆球，点击后弹出完整 Chat Window（身份/欢迎、历史、用户/AI 消息、明显输入、发送、状态、关闭回圆球），而非 Tool/Task Panel。Analytics 不用浮动球；固定统一右侧 AI Area 上半 Advice、下半完整 Chat，并以独立布局/滚动保证左侧长内容时进入页面的当前可视高度内仍可找到输入入口。三页继续共用同一 Agent / Session / Task / Audit / Backend State，禁止新建 Analytics / Optimization / 第二 Conversation Agent。未来报告须逐项交付 AI-UI-01.1–01.7 的代码、测试和用户验收；任一缺失不得标记 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#ai-ui-01ai-运营入口与聊天交互`。
 - [x] **Analytics Advice**：成为 Robot Operations Agent 的只读能力，最多 3–4 Read Tool calls、3–4 条含数据依据的建议；默认 snapshot，用户点击才重新生成；不自动改变运营配置。
 - [x] **Delivery Adapter boundary**：FlashBot Max原生PoC Fleet / DeliveryTask state machine已实现；外部平台仅在合法授权后接入，未授权显示 `ADAPTER READY` / `AUTH REQUIRED`，不得伪造 webhook / callback。
 

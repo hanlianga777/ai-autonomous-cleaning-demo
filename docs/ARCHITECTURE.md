@@ -26,7 +26,7 @@ Event trace在创建时持久化；模型记录外层新增trace列，canonical 
 
 CleaningTask 只关联现有集成事件，阶段完全委托 demo_v1；完整 trace 读取同一 CleaningEvent transitions。Delivery/Relocation 有持久化 task transitions、同一 Fleet active_task_id、合法 POI 与现有 Dijkstra。配送 CREATED→ASSIGNED→TO_PICKUP→ARRIVED_PICKUP→PICKED_UP→条件电梯→TO_DESTINATION→DELIVERED→CLOSED；无电梯路段不伪造 ELEVATOR_TRANSIT。物理推进来源为显式操作员 PoC driver。
 
-前端 `RobotOperationsProvider` 提供跨页 Session/错误/忙碌/串行只读同步；聊天和任务卡不生成本地替代结果。浮窗位置只存 UI localStorage，任务/对话真相在 SQLite。Analytics 上半缓存建议、下半同一对话，无第二 Agent。Advice GET 不调用模型，POST 才真实执行只读 tool loop 并保留审计；provider/parser失败保留旧缓存。麦克风明确未配置。
+前端 `RobotOperationsProvider` 提供跨页 Session/错误/忙碌/串行只读同步；聊天和任务卡不生成本地替代结果。任务/对话真相在 SQLite，UI 位置只存 localStorage。Analytics 上半缓存建议、下半同一对话，无第二 Agent。Advice GET 不调用模型，POST 才真实执行只读 tool loop 并保留审计；provider/parser失败保留旧缓存。麦克风明确未配置。旧 P1-F 横向浮窗、仅 Header / Drag Handle 拖动及展开式 Tool/Task Panel 是现有实现的历史 UI Shell，**SUPERSEDED BY AI-UI-01**；AI-UI-01 是未实施的 LOCKED TARGET，详见 `INTERVIEW_DEMO_RECONCILIATION.md`。
 
 ## P1-E 当前数据层（IMPLEMENTED · A/E PASS · 2026-08-30）
 
@@ -185,7 +185,7 @@ CleaningEvent
 
 Analytics Engine 不是 Agent，不得由 LLM 编造 KPI、utilization 或效果数字。热力图用 map_id/x/y/event_type/timestamp 聚合，点击热点可带 filter 跳到 Event Center。FlashBot Max 不进入清洁机器人利用率排名。运营建议只读取此确定性数据；默认显示带 Data Window / Generated At 的 snapshot，用户主动点击才重新生成。
 
-## 8. Robot Operations Agent、Policy Guard 与页面上下文（IMPLEMENTED / LOCKED · P1-F）
+## 8. Robot Operations Agent、Policy Guard 与页面上下文（P1-F runtime IMPLEMENTED；AI-UI-01 UI Shell LOCKED TARGET）
 
 ```text
 User text / future ASR transcript
@@ -205,12 +205,12 @@ User text / future ASR transcript
 
 ```text
 Shared AgentSession / Message / ActionAudit / Task context
-  ├── Workbench: draggable Floating Window + live context
-  ├── Event Center: same floating window + selected event context
-  └── Analytics: fixed right panel + KPI/hotspot/chart context
+  ├── Workbench: AI-UI-01 圆形拖动入口 → 完整弹出式 Chat + live context
+  ├── Event Center: 同一圆形入口 → 完整弹出式 Chat + selected event context
+  └── Analytics: 固定统一右侧 Advice + 完整 Chat Area + KPI/hotspot/chart context
 ```
 
-没有已保存 UI position 时，Workbench / Event Center 的共享浮窗默认位于左下角；有 localStorage position 时以其为准。浮窗只能从 Header/Drag Handle 拖动，不能超 viewport，展开/收起、跨 Workbench/Event Center 与刷新均保持位置；Analytics 仅显示固定 Panel，不与 Floating Window 重复。语音只是同一 Agent 的 Microphone → real ASR → transcript 输入适配，不是独立 Agent，也不是当前清洁 Demo 主秀；麦克风只有在真实 ASR provider 已配置时可用，否则 disabled 或明确显示“语音服务未配置”，不得 fake voice interaction。
+AI-UI-01 锁定：Workbench / Event Center 的默认收起入口是左下小型圆形/球形 AI 悬浮球，可在整个浏览器可视区域的合法位置拖动并持久化，且默认不遮挡核心内容；点击后弹出完整 Chat Window，并可关闭/收起回圆球。旧“共享横向 Floating Window、仅 Header / Drag Handle 拖动、展开式 Tool/Task Panel”**SUPERSEDED BY AI-UI-01**，当前代码是 `IMPLEMENTATION_DIVERGENCE`。Analytics 仅显示固定且统一的右侧 AI Area：上半 Advice、下半完整 Chat；其独立布局/滚动必须保证左侧长内容不会将 Chat 入口推至整页底部。三页仍为一个 Agent、一个 Agent Session、同一 Task / Audit / Backend State；不得新建 Analytics / Optimization / 第二 Conversation Agent。语音只是同一 Agent 的 Microphone → real ASR → transcript 输入适配，不是独立 Agent，也不是当前清洁 Demo 主秀；麦克风只有在真实 ASR provider 已配置时可用，否则 disabled 或明确显示“语音服务未配置”，不得 fake voice interaction。
 
 ## 9. External Delivery Adapter（registry IMPLEMENTED；真实授权/回调 TODO）
 

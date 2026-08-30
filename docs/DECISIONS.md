@@ -6,6 +6,14 @@
 > 历史实施分支 `codex/unified-implementation` / `bdd08e02e0e4fc96d9ad6229949f2c8bf3812136` 仅作历史记录。
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
+## AI-UI-01｜Robot Operations Agent UI Shell（LOCKED TARGET · 2026-08-30）
+
+- 最新用户确认的 AI-UI-01 优先于旧 P1-F UI Shell 表述。旧“Workbench / Event Center 共享横向长条 Floating Window、仅 Header / Drag Handle 拖动、现有展开式 Tool/Task Panel”是历史实现描述，**SUPERSEDED BY AI-UI-01**，且当前代码仍属 `IMPLEMENTATION_DIVERGENCE`；不得作为当前 LOCKED TARGET 或写成 AI-UI-01 已实现。
+- Workbench / Event Center 继续使用同一个 Robot Operations Agent，但默认入口必须是左下小型圆形/球形、可在整个浏览器可视区域合法范围内拖动并持久化的 AI 悬浮球；默认不遮挡核心内容，收起时只保留该圆球。
+- 点击圆球必须弹出完整 AI Assistant Chat Window，包含 Assistant 欢迎/身份、历史消息、用户消息、AI 回复、明显输入区、发送入口、必要状态和关闭/收起回圆球；不得把原横条 Tool/Task Panel 原地展开当作满足。
+- Analytics 不显示浮动球，右侧必须为同一个固定 AI Area：上半 AI 运营分析/运营建议，下半完整 Robot Operations Agent Chat。该右侧区域应独立布局/滚动；左侧长 Analytics 内容不得把 Chat 输入入口推到整页底部，进入页面的当前可视高度内必须能找到聊天入口。
+- 三页仍共享同一个 Agent、Agent Session、Task / Audit / Backend State，即“一个 Agent，两种 UI 投影”；禁止新增 Analytics Agent、Optimization Agent 或第二 Conversation Agent。完整的逐项目标、当前偏差和验收标准见 `INTERVIEW_DEMO_RECONCILIATION.md#ai-ui-01ai-运营入口与聊天交互`。
+
 ## P1-G 验收执行边界（IMPLEMENTED；不替代用户主观展示验收）
 
 - 通用 verification 的 target ROI 只能由主相机 controlled edge 的合法 normalized bbox union 推导；同一 normalized ROI 同时裁取 before/after，不得使用场景专用坐标、supporting-camera bbox 或猜测目标。primary verifier 必须同时获得 before/after 全图及这对 ROI；缺失、畸形、非法 bbox、非有限数值或不匹配 Replay 一律安全失败。
@@ -126,7 +134,7 @@
 
 ## D09｜Agent 页面形态、Analytics Advice 与语音
 
-**IMPLEMENTED / LOCKED（P1-F）**：只有一个共享 Robot Operations Agent。Workbench 与 Event Center 是可拖动 Floating Window：没有已保存 UI position 时默认左下角，已保存的 localStorage position 优先；仅 Header/Drag Handle 可拖、不能出 viewport、展开/收起保持位置、跨 Workbench/Event Center 与刷新保持。Analytics 不显示 Floating Agent，改为右侧固定 Panel：上半 AI 运营优化建议，下半同一 Agent 对话。切页不丢 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。
+**P1-F 历史实现 / AI-UI-01 当前 LOCKED TARGET**：P1-F 已实现且保留的事实是唯一共享 Robot Operations Agent，以及跨页不丢失 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。其旧 UI Shell（Workbench / Event Center 横向 Floating Window、仅 Header / Drag Handle 拖动、现有展开式 Tool/Task Panel）**SUPERSEDED BY AI-UI-01**，当前实现记录为 `IMPLEMENTATION_DIVERGENCE`。AI-UI-01 要求 Workbench / Event Center 默认左下圆形可拖动 AI 悬浮球、点击后的完整 Chat Window；Analytics 不显示圆球，而是在统一固定右侧 AI Area 中展示上半 Advice 与下半完整 Chat，且聊天入口在当前可视高度内可发现。三页继续共享同一 Agent、Session、Task / Audit / Backend State，不得新建第二 Agent。
 
 **IMPLEMENTED / LOCKED（P1-F）**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
 
@@ -181,7 +189,7 @@
 | YOLO low confidence → 立即 Multi-view → Cloud | Edge YOLO → Single-view Cloud VLM → Evidence Sufficiency → conditional Multi-view Agent → Multi-view Cloud |
 | 按 `demo_id == demo02` 或固定阈值进入 Multi-view | 真实模型以 `tool_choice=auto` 自主工具调用；不得泄漏测试答案 |
 | 初轮三张图同时给 Cloud 后假装主动取证 | 初轮只给主视角；补充图只能来自真实 tool call |
-| Command Bar + 独立语音入口 + Floating Assistant 三入口 | 一个 Robot Operations Agent；Workbench/Event Center 浮窗，Analytics 固定 Panel；语音只是输入模态 |
+| Command Bar + 独立语音入口 + Floating Assistant 三入口 | 一个 Robot Operations Agent；AI-UI-01 取代旧 Workbench/Event Center 长条浮窗：圆形可拖动入口 → 完整 Chat Window；Analytics 为统一固定右侧 Advice + Chat Area；语音只是输入模态 |
 | 独立 Analytics Agent | Robot Operations Agent 的运营分析能力；Analytics Engine 仍确定性 |
 | demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（P1-A 代码与测试通过） |
 | demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（P1-A 代码与测试通过） |
