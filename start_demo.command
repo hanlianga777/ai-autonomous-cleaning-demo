@@ -62,8 +62,8 @@ start_backend() {
     python3 -m venv "$BACKEND_DIR/.venv"
     "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
   fi
-  if ! "$BACKEND_DIR/.venv/bin/python" -c "import multipart, langgraph" >/dev/null 2>&1; then
-    echo "[backend]  installing required API upload support…"
+  if ! "$BACKEND_DIR/.venv/bin/python" -c "import multipart, langgraph, PIL" >/dev/null 2>&1; then
+    echo "[backend]  installing required API and image-evidence support…"
     "$BACKEND_DIR/.venv/bin/python" -m pip install -r "$BACKEND_DIR/requirements.txt"
   fi
   (

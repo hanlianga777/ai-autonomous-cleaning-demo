@@ -3,7 +3,57 @@
 > **状态：LOCKED · 2026-08-30**
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
+## P1-G 验收执行边界（IMPLEMENTED；不替代用户主观展示验收）
+
+- 通用 verification 的 target ROI 只能由主相机 controlled edge 的合法 normalized bbox union 推导；同一 normalized ROI 同时裁取 before/after，不得使用场景专用坐标、supporting-camera bbox 或猜测目标。primary verifier 必须同时获得 before/after 全图及这对 ROI；缺失、畸形、非法 bbox、非有限数值或不匹配 Replay 一律安全失败。
+- primary verifier 的失败最多允许一次独立 target-ROI review；独立调用只能收到 paired ROI 和 factual context，不能收到 primary 的答案、confidence 或 reasoning。二审通过可以闭环当前事件，但不重写 primary verdict，Analytics first-pass 仍以 primary 为准。所有 verification JSON 继续严格校验 bool、枚举与有限 raw float，禁止通过 round/bool/string coercion 把失败提升为成功。
+- 已保存 P1G qualifying LIVE：Demo01 5/5、Demo02 5/5、Demo03 5/5、Demo04 3/3；同 fingerprint post-review Replay 四 Demo 各3/3，Replay 无新 Cloud request。backend 164=161 PASS+3 paid opt-in skipped、frontend46/build、bash-n/diff与 A/B/C/D/E 均 PASS，故 P1-G 工程/自动化/浏览器验收为 **IMPLEMENTED**。该记录不表示已提交/推送/合并 main，也不替代用户主观展示验收。
+
+## P1-H 可观测性边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- Advanced GET只投影SQLite已保存事实；点击节点不调用模型、Scheduler、Dijkstra或Fleet更新。新事件独立Trace UUID，Ops每次消息独立request trace，Task明确event/origin request关联；不得按共享session把不同任务的请求混为一个事件。
+- legacy未记录Trace显示LEGACY_MISSING，GET不补写；model_records新增关联列但不改变Replay payload/fingerprint。Replay只重用AI响应，工具/阶段真实重跑，其tool duration不得用历史model latency冒充。
+- 错误API仅返回8类taxonomy code与安全说明；结构化字段白名单递归过滤，不返回原始Prompt、模型思维链、原话、密钥、token、base64或本地路径。模型/阶段真实start/duration仅新执行时采集；旧数据缺值不倒推。
+- Reality来源使用锁定6类；未执行/未选择另设execution_status。边缘节点额外明确CONTROLLED EDGE DEMO；controlled evidence不是生产YOLO/RTSP，PoC不是设备遥测。当前Trace Inspector以集成事件为入口，不能声称已有独立原生Task Inspector。
+
+## P1-F 执行与真实性边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- Robot Operations Agent 与 Multi-view 共用现有 Qwen transport，但工具白名单不同；`tool_choice=auto`，Ops 每轮最多8工具/4写操作，建议最多4只读工具。未知工具、额外坐标参数、越界 POI/机器人范围均由代码拒绝并审计，不依赖 Prompt 自律。
+- 清洁只包装现有 eligible CleaningEvent；先 create、dispatch，再由原有 workflow stage 执行。不从自然语言伪造 TaskProfile，不改变 Robot-first + Human Fallback。Task lease 同时保护 Agent 与原 Workbench stage，暂停/取消不能由另一入口绕过。
+- Task/Fleet 短事务使用 SQLite BEGIN IMMEDIATE；云端调用在事务外并持有 durable task lease。清洁暂停/恢复同步 Fleet 并恢复实际原状态。终点/电量/Task 保留到重启；有活动 Operations 任务时必须先取消再 Reset Fleet。
+- `X-Operations-Session` 校验 UI task action 与 task.session_id 一致；这是本地 PoC 会话边界，不是生产登录权限系统。清洁完整阶段事实仍以 CleaningEvent transitions 为准，Task 的 workflow_transitions 是只读投影，不复制第二份真相。
+- 原生 DeliveryTask 绑定 robot-d，Approved POI + Dijkstra；仅操作员显式推进 POC SIMULATION 取件/乘梯/送达状态，不 fake 外部 callback。robot-d 室内/电梯/连廊为明确的 PoC deployment policy；缺失/拒绝权限 fail closed。美团/饿了么/京东/淘宝闪购仅 Adapter registry + AUTH REQUIRED。
+- Advice 使用同一个 Operations Agent 的只读工具能力，显式请求后缓存 3–4 条，包含实际 Data Window/Generated At/关联事件，验证引用来自所读集合；不能自动改配置。旧 `/api/optimization/recommend` 410。模型定性建议不是统计显著性证明或生产收益承诺。
+- 档案列表/详情继续只读；共享 Agent 中由用户主动发起的白名单 task action 是单独审计入口，不是档案浏览自动派单。ASR 未配置时 disabled，未实现真实语音 provider。
+
+## P1-E 指标与数据来源实现边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- 演示历史与 Runtime 均在 CleaningEvent/transition SQLite；Seed 仅启动幂等插入，不在 GET 生成第二份数据，不更新 Fleet/模型记录。Archive、detail、Analytics 均标 DEMO_HISTORY，历史 seed 不能进入实际集成 Runtime。
+- “有效业务处置结论”分母为非系统异常的 CLOSED/HUMAN_FALLBACK/HUMAN_REVIEW；仍自动处理中与系统异常单列排除。自主闭环同时要求 robot+verification PASS+CLOSED+无人工；人工介入统计任何 HF/HR，不人为补齐100%。
+- 首次成功分母仅首次验收有明确布尔结果的事件；重试成功不能覆盖首次失败。响应样本仅 CLOUD_REVIEW→NAVIGATING 或有记录的 HUMAN_STARTED/HUMAN_WORK_STARTED；HUMAN_COMPLETED 不冒充开始。闭环时间仅 DETECTED→CLOSED；缺观察空值并公开样本数。
+- 利用率 = 任务活跃区间并集 / 可用区间；当前缺真实 roster/uptime provider，明确使用 PoC 假定连续可用窗口(00–24)归一化，不称真实在线率、不修改 Fleet/Scheduler。窗口前任务仅计窗口内活跃区间；窗口内新任务与 carry-over 分开计数；FlashBot Max 排除。
+- D07 时段保持全天、06–10、10–14、14–18、18–22（Asia/Shanghai，左闭右开）；旧单小时参数仅兼容 API，不替代锁定 UI。热点携带 map/x/y/type/time_slot/UTC window 至 Event Center；未经过 LOCATED 的 Runtime 模板坐标不能进入热图。
+
+## P1-D 档案实现边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+`GET /api/event-archive` 是 CleaningEvent + transition 的只读投影，不建立第二份事件数据库，也不读取当前 Fleet 覆盖历史。正常 Human Fallback 属于待人工处理；人工完成后的 CLOSED 仅在“全部”中标为人工处置后闭环，不混入“已自主闭环”或仍待人工。各分类计数先应用其它筛选，再按类别统计，不要求相加等于全部。发现时间排序不使用最后更新时间。
+
+`/events?event=` 只恢复历史选择。非 Workbench 页面不自动推进阶段或轮询当前任务；档案浏览只做 GET；P1-F共享Agent的用户显式任务操作单独鉴权审计，不由档案自动触发。右侧 44% 保留 shell，内容必须与 selected event ID 相同；更换/失败时不显示另一事件快照。无时区 SQLite 时间按 UTC，操作员本地时间筛选显式转换为 UTC。新记录轮询不抢详情，不由前端补造状态。
+
+## P1-C 工程决策补充（IMPLEMENTED · A/E PASS）
+
+- 活跃 `cloud-review` 内先单视角，再依据 evidence sufficiency 执行可选自主补证；旧独立 `multi-view` stage 不能被调用方用来绕过单视角。
+- LIVE provider 输出严格匹配 `VISUAL_JUDGMENT_SCHEMA` 全部字段，拒绝缺字段/额外字段/非布尔/非有限 confidence；`need_clean`、`decision_confidence` 仅为 Phase 3 兼容投影，与 `need_action`、`confidence` 同值。存储 provenance envelope 仅由显式 projection validation 读取，不放宽 provider 合约。
+- 单视角/二审保持现有型号；真实图像 + function calling 使用可配置 `DASHSCOPE_AGENT_MODEL=qwen3-vl-plus`，经同一个 DashScope transport，始终 `tool_choice=auto`。最多 2 台额外 camera、2 个实际 fetch acquisition rounds；额外硬限 6 次 model turns、每 turn 最多 2 个 tool calls，**不表示允许 6 轮取证**。
+- 保持 Fusion 权重与门槛。主图 + 1 台合法且成功 fetch 的补图已属于多视角：只有成功 fetch audit 与 evidence asset 的 camera 交集非空，final evidence_sufficient=true 且实际 image_count>=2，才计 multiview consistency；候选/metadata/失败 fetch 不计。
+- semantic Replay 升级为 `p1c.visual-pipeline.v1`，保存 first/final/independent second 与安全 model tool turns；旧 P1-A semantic record 不自动兼容。verification 仍用既有 `p1a.ai-response.v1`。Replay 只替换模型返回，Coverage/Fetch/policy/Fusion/后续阶段现场执行，来源与历史 latency 明示。
+- Demo02 新主图为受控 optical-ambiguity variant，原图保留、补图不变；它是测试输入，不是伪造识别输出，不代表真实相机同步。它不能写入固定 confidence 或强制补证结论。
+
 ## D01｜产品边界与技术底座
+
+**P1-A Closure 工作树决策（2026-08-30，IMPLEMENTED · Reviewer A/E PASS）**：P1-A 时 Stable Replay 的 SQLite response bundle 使用 `p1a.ai-response.v1`（当前 semantic 已由上方 P1-C 合约替代，verification 保留），匹配图像字节、模型、Prompt 合约和事实 context，且关联存在的 LIVE event。旧未版本化/畸形/不匹配记录不可用；缺记录安全转 HUMAN_REVIEW。Replay 标注 source=REPLAY、保留历史耗时但本次 model elapsed_ms=null；不保存或直接播放预计算 workflow。机器人与人工完成共用 after-evidence verification workflow。Camera→SLAM 非法输入/输出持久化 structured SPATIAL_ERROR，不派单、不生成路线。Fleet 初始化 INSERT OR IGNORE，显式 Reset 才重置；新事件本身不隐式清除其它任务终点。
+
+`need_clean` 表示包括人工清运在内的环境处置需求，不代表机器人可处理；模型仍可对合法暂存/无需清理给出 false，不能因为要展示 Demo04 而绕过 veto。用户已正式确认 Demo04 的两纸箱为废弃、待清运大件物品，不是合法暂存、补货或待使用物资。该事实只作为有来源、相机/事件范围的 `zone_type=egress_or_public_corridor`、`storage_policy=objects_not_allowed_to_remain`、`object_context=confirmed_discarded_items_awaiting_removal` 进入模型上下文；Cloud 判语义，不判谁处置。只有 Capability zero candidate 可产生 HUMAN_FALLBACK。上下文变化使旧 Replay key 失效，模型 false/ignore 仍然 veto。
 
 **LOCKED**：这是可解释、可演示的园区自主清洁 PoC，不宣称真实生产机器人、电梯、时间同步、动态避障或生产阈值已部署。React + TypeScript + Vite + Tailwind + shadcn/ui 是唯一 UI 底座；ECharts 用于数据可视化，React Flow 仅用于确有必要的关系/流程。后端维持 FastAPI 模块化单体 + SQLite；禁止第二 UI System、Three.js、ROS/RMF runtime、Docker/K8s、大型本地模型。
 
@@ -11,7 +61,7 @@
 
 **LOCKED**：Workbench 回答“现在正在发生什么”；Event Center 回答“一个 AI 事件发生了什么、系统为何这样处理、如何闭环”；Analytics 回答“历史事件整体说明什么、下一步如何优化”。三者必须使用同一套 `CleaningEvent` / SQLite / history snapshot，不能分别维护 Mock 数据。
 
-**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center、Analytics、Robot Operations Agent 和 Advanced 完整产品化属于未来统一 implementation batch；本轮不提前实现。本批未来只允许在现有 Advanced shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；不得借此重做完整 Advanced 页面。
+**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center/Analytics/Operations/Advanced分别已按P1-D/E/F/H实施。早期仅shell控制区限制已被Unified P1-H明确授权取代，但不得扩展为配置后台。
 
 ## D03｜机器人正式命名与能力边界
 
@@ -31,15 +81,17 @@
 
 **LOCKED**：Fusion 仅为 `0.60 raw cloud + 0.20 YOLO 类别一致性 + 0.12 camera/location/time 一致性 + 0.08 multiview 一致性`。客户展示 raw 模型百分比和“综合处置评分：N分”，不把 Fusion 写成百分比。
 
-**LOCKED**：Stable Replay 仅回放此前真实成功调用的结构化 AI 证据；Camera→SLAM、Capability、Scheduler、Dijkstra global topology planner / `plan_route()`、机器人状态、SQLite transitions、Verification 必须仍现场执行。默认 LIVE；仅现有 Advanced shell 的最小 AI Runtime 控制区可主动选 Replay，并在主工作台轻量透明标识。LIVE 失败一律 `HUMAN_REVIEW`。
+**LOCKED**：Stable Replay 仅回放此前真实成功调用的结构化 AI 证据；Camera→SLAM、Capability、Scheduler、Dijkstra global topology planner / `plan_route()`、机器人状态、SQLite transitions、Verification 必须仍现场执行。默认 LIVE；仅 Advanced 的受控 AI Runtime 区可主动选 Replay，并在主工作台轻量透明标识。LIVE 失败一律 `HUMAN_REVIEW`。
 
 ## D05｜MapCanvas、路线、Fleet 与时间
 
-**LOCKED / TODO**：白模、anchor、机器人、路线、marker 使用唯一 MapCanvas 坐标系，基于 `object-contain` 内层真实画布，不得依据外层 div 百分比。地图文字只允许 A栋、B栋、1F、2F；机器人持续插值，电梯入口暂停约 1 秒并显示“乘梯中”，不做 3D。
+**IMPLEMENTED / LOCKED（P1-B）**：白模、anchor、机器人、路线、marker 使用唯一 MapCanvas 坐标系，基于 `object-contain` 内层真实画布，不得依据外层 div 百分比。地图基础文字只保留 A栋、B栋、1F、2F；机器人持续插值，电梯入口暂停约 1 秒并显示“乘梯中”，不做 3D。该插值明确为 PoC 视觉节奏，完成后才提交真实 complete-navigation 阶段；无合法 node_path 不画路线。
 
-**LOCKED / TODO**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker。Scheduler 当前 map 与 target map 调 Dijkstra global topology planner / `plan_route()`；不是 Demo ID 固定路线。Demo03 必须为 B1F → 电梯 → B2F → Skybridge → A2F 地毯易拉罐。
+**IMPLEMENTED / LOCKED（P1-A/B）**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker。Scheduler 当前 map 与 target map 调 Dijkstra global topology planner / `plan_route()`；不是 Demo ID 固定路线。Demo03 基线故事为 B1F → 电梯 → B2F → Skybridge → A2F 地毯易拉罐；连续运行仍遵守当前 Fleet，不能偷偷重置位置以强制重复基线路线。
 
-**LOCKED / TODO**：任务后机器人保留终点与低透明路线；Demo03 `HUMAN_REVIEW` 仍在 A2F，Demo04 人工路径无人移动。仅新 Demo 或“重置演示”复位。客户时间轴只读 SQLite transition timestamp；处理中显示真实持续时间，模型可显示真实 latency。
+**IMPLEMENTED / LOCKED（P1-B）**：任务后机器人保留终点与低透明路线；Demo03 验收失败 `HUMAN_REVIEW` 仍在 A2F，Demo04 人工路径无人移动。复位仍遵守 P1-A 显式 baseline/reset 边界，不因普通新事件或刷新自动复位。客户时间轴只读 SQLite transition timestamp；处理中显示真实持续时间，模型可显示真实 latency。路线起点取 ASSIGNED 快照，不用终态 Fleet 倒推。
+
+**P1-B 刷新/失败边界**：localStorage 仅保存当前 event ID；GET SQLite 重建，不保存第二份事件/Fleet/route。sessionStorage request keys 防止同一会话刷新重发；异步快照不得覆盖不同 event 或倒退 transition。网络结果不确定时保留记录、只读同步，不自动重试模型或 Replay。该机制不等于跨标签页/服务器端全局幂等，后者为 P2。创建失败只显示本地连接提示，不捏造已保存 HUMAN_REVIEW。
 
 ## D06｜Event Center
 
@@ -63,31 +115,31 @@
 
 ## D08｜Robot Operations Agent 与 Policy Guard
 
-**LOCKED / TODO**：系统只保留两个必要 Agent：Multi-view Perception Agent（主动视觉取证）与 Robot Operations Agent（自然语言理解、运营分析、白名单工具选择、低风险任务执行、Observe/Replan/Close）。不得新增 Heatmap / Scheduler / Dijkstra / Camera-to-SLAM / RAG Agent；RAG 仅可作为 Robot Operations Agent 的 Knowledge Tool。
+**IMPLEMENTED / LOCKED（P1-F）**：系统只保留两个必要 Agent：Multi-view Perception Agent（主动视觉取证）与 Robot Operations Agent（自然语言理解、运营分析、白名单工具选择、低风险任务执行、Observe/Replan/Close）。不得新增 Heatmap / Scheduler / Dijkstra / Camera-to-SLAM / RAG Agent；RAG 仅可作为 Robot Operations Agent 的 Knowledge Tool。
 
-**LOCKED / TODO**：Robot Operations Agent 有 Read Tools（事件、详情、KPI、热点、利用率、robot/fleet/capability/POI/location/task/camera evidence 等）及低风险 Action Tools（创建清洁/配送/待命任务、dispatch/pause/resume/cancel、请求证据、状态更新）。任务可直接执行但必须经 Policy Guard；Relocation 目标只可来自合法 POI / approved location，Agent 不得直接控制底盘坐标。
+**IMPLEMENTED / LOCKED（P1-F）**：Robot Operations Agent 有 Read Tools（事件、详情、KPI、热点、利用率、robot/fleet/capability/POI/location/task/camera evidence 等）及低风险 Action Tools（创建清洁/配送/待命任务、dispatch/pause/resume/cancel、请求证据、状态更新）。任务可直接执行但必须经 Policy Guard；Relocation 目标只可来自合法 POI / approved location，Agent 不得直接控制底盘坐标。
 
-**LOCKED / TODO**：Agent 永远没有 `update_slam_map`、禁行区/范围/能力/标定/Coverage/Scheduler policy/自动处置阈值/速度/门禁/电梯权限等 Write Tools。安全边界必须由代码级工具白名单实现，不是 Prompt 自律。物理动作需写 Action Audit：用户原话/ASR、intent、tool/args、Policy Guard、Task ID、机器人、结果、异常、replan、最终状态。
+**IMPLEMENTED / LOCKED（P1-F）**：Agent 永远没有 `update_slam_map`、禁行区/范围/能力/标定/Coverage/Scheduler policy/自动处置阈值/速度/门禁/电梯权限等 Write Tools。安全边界必须由代码级工具白名单实现，不是 Prompt 自律。物理动作需写 Action Audit：用户原话/ASR、intent、tool/args、Policy Guard、Task ID、机器人、结果、异常、replan、最终状态。
 
 ## D09｜Agent 页面形态、Analytics Advice 与语音
 
-**LOCKED / TODO**：只有一个共享 Robot Operations Agent。Workbench 与 Event Center 是可拖动 Floating Window：没有已保存 UI position 时默认左下角，已保存的 localStorage position 优先；仅 Header/Drag Handle 可拖、不能出 viewport、展开/收起保持位置、跨 Workbench/Event Center 与刷新保持。Analytics 不显示 Floating Agent，改为右侧固定 Panel：上半 AI 运营优化建议，下半同一 Agent 对话。切页不丢 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。
+**IMPLEMENTED / LOCKED（P1-F）**：只有一个共享 Robot Operations Agent。Workbench 与 Event Center 是可拖动 Floating Window：没有已保存 UI position 时默认左下角，已保存的 localStorage position 优先；仅 Header/Drag Handle 可拖、不能出 viewport、展开/收起保持位置、跨 Workbench/Event Center 与刷新保持。Analytics 不显示 Floating Agent，改为右侧固定 Panel：上半 AI 运营优化建议，下半同一 Agent 对话。切页不丢 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。
 
-**LOCKED / TODO**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
+**IMPLEMENTED / LOCKED（P1-F）**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
 
-**LOCKED / TODO**：Analytics Advice 不是第三个 Optimization Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
+**IMPLEMENTED / LOCKED（P1-F）**：Analytics Advice 不是第三个 Optimization Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
 
 ## D10｜Multi-view Perception Agent
 
-**LOCKED / TODO**：新链路固定为：Fixed Camera → Edge YOLO / controlled edge evidence → **Single-view Cloud VLM** → Evidence Sufficiency Judgment → conditional Multi-view Perception Agent → Multi-view Cloud VLM → Business Decision → Camera→SLAM → Capability → Scheduler → Robot → Verification。`confidence` 与 `evidence_sufficient` 是不同字段；Single-view VLM 应输出 event type、need action、confidence、evidence sufficient、ambiguity type（reflection / occlusion / perspective / lens contamination / insufficient view / small object / semantic uncertainty / other）。
+**IMPLEMENTED / LOCKED（P1-C）**：新链路固定为：Fixed Camera → Edge YOLO / controlled edge evidence → **Single-view Cloud VLM** → Evidence Sufficiency Judgment → conditional Multi-view Perception Agent → Multi-view Cloud VLM → Business Decision → Camera→SLAM → Capability → Scheduler → Robot → Verification。`confidence` 与 `evidence_sufficient` 是不同字段；Single-view VLM 应输出 event type、need action、confidence、evidence sufficient、ambiguity type（reflection / occlusion / perspective / lens contamination / insufficient view / small object / semantic uncertainty / other）。
 
-**LOCKED / TODO**：Evidence Sufficiency Gate 的优先级高于最终 confidence disposition。Single-view VLM 同时返回 `confidence`、`evidence_sufficient`、`ambiguity_type`；当 `evidence_sufficient=false`，且 ambiguity 为 reflection / occlusion / perspective / lens_contamination / insufficient_view 等可由额外视角缓解的问题，并存在合法 supporting cameras 时，Multi-view Agent 可通过真实 model tool calling 先主动补证。此时不得仅因 Single-view `confidence < 0.50` 提前终止为 `HUMAN_REVIEW`。正确顺序为 Single-view evidence → evidence sufficiency → 可恢复时自主 Multi-view evidence acquisition → final semantic judgment → confidence gate。
+**IMPLEMENTED / LOCKED（P1-C）**：Evidence Sufficiency Gate 的优先级高于最终 confidence disposition。Single-view VLM 同时返回 `confidence`、`evidence_sufficient`、`ambiguity_type`；当 `evidence_sufficient=false`，且 ambiguity 为 reflection / occlusion / perspective / lens_contamination / insufficient_view 等可由额外视角缓解的问题，并存在合法 supporting cameras 时，Multi-view Agent 可通过真实 model tool calling 先主动补证。此时不得仅因 Single-view `confidence < 0.50` 提前终止为 `HUMAN_REVIEW`。正确顺序为 Single-view evidence → evidence sufficiency → 可恢复时自主 Multi-view evidence acquisition → final semantic judgment → confidence gate。
 
-**LOCKED / TODO**：Multi-view 是 Active Visual Evidence Acquisition，不是 “if confidence < threshold” Workflow。模型先只看 Main Camera Image、YOLO bbox/detection、必要 Camera Context；以 `tool_choice=auto` 自主决定是否补证、选哪 1–2 路、是否继续、何时停止。没有合法 supporting camera、Evidence Fetch 失败，或最多 2 rounds 后仍 `evidence_sufficient=false` 时，必须 `HUMAN_REVIEW`；即使 raw confidence 较高，最终 `evidence_sufficient=false` 也不得自动机器人处置。不得按 `demo_id` 强制、不得初轮塞三图、不得 `tool_choice=required`、不得前端 `setTimeout` 假装 Agent。
+**IMPLEMENTED / LOCKED（P1-C）**：Multi-view 是 Active Visual Evidence Acquisition，不是 “if confidence < threshold” Workflow。模型先只看 Main Camera Image、YOLO bbox/detection、必要 Camera Context；以 `tool_choice=auto` 自主决定是否补证、选哪 1–2 路、是否继续、何时停止。没有合法 supporting camera、Evidence Fetch 失败，或最多 2 rounds 后仍 `evidence_sufficient=false` 时，必须 `HUMAN_REVIEW`；即使 raw confidence 较高，最终 `evidence_sufficient=false` 也不得自动机器人处置。不得按 `demo_id` 强制、不得初轮塞三图、不得 `tool_choice=required`、不得前端 `setTimeout` 假装 Agent。
 
-**LOCKED / TODO**：Agent 只有 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 这类等价工具；最多 2 路额外摄像头、最多 2 个 evidence acquisition rounds。PoC Evidence Adapter 可返回 controlled evidence assets，必须如实说明，不得假装 RTSP 同步；未来可替换 RTSP/VMS/NVR/Camera Platform。Agent 不得改 Coverage、邻接、calibration、SLAM、地图、机器人、confidence 或自动处置阈值。
+**IMPLEMENTED / LOCKED（P1-C）**：Agent 只有 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 这类等价工具；最多 2 路额外摄像头、最多 2 个 evidence acquisition rounds。PoC Evidence Adapter 可返回 controlled evidence assets，必须如实说明，不得假装 RTSP 同步；未来可替换 RTSP/VMS/NVR/Camera Platform。Agent 不得改 Coverage、邻接、calibration、SLAM、地图、机器人、confidence 或自动处置阈值。
 
-**LOCKED / TODO**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → final semantic judgment → confidence gate → 高仙 Omnie → verification → CLOSED。最终 `0.50 <= confidence < 0.85` 的 independent targeted second review 可读取本次合法取得的完整 evidence set，但不得读取上一轮模型答案或 reasoning。客户 UI 只展示来自 Agent Trace / Tool Audit / Cloud Response / Transition 的精简中文步骤，不展示 Chain-of-Thought；Advanced 才看技术 trace。
+**IMPLEMENTED / LOCKED（P1-C）**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → final semantic judgment → confidence gate → 高仙 Omnie → verification → CLOSED。最终 `0.50 <= confidence < 0.85` 的 independent targeted second review 可读取本次合法取得的完整 evidence set，但不得读取上一轮模型答案或 reasoning。客户 UI 只展示来自 Agent Trace / Tool Audit / Cloud Response / Transition 的精简中文步骤，不展示 Chain-of-Thought；Advanced 才看技术 trace。
 
 ## D11｜External Delivery Platform Integration
 
@@ -99,25 +151,25 @@
 
 **IMPLEMENTED / LOCKED**：阶段 API 与 SQLite 审计已拆分；Cloud 仅在 cloud-review，Scheduler 仅在 assign，Verification 仅在 verify 或 Demo04 人工完成后。`assignment_decision` 是当前行动机器人的唯一事实源；旧 `/runs/*` 已 410。后续实现必须保留该边界，不能回到“先算完整结果再播放”。
 
-## D13｜Advanced Technical Observability / 高级模式
+## D13｜Advanced Technical Observability / 高级模式（P1-H IMPLEMENTED；P2 仍 LOCKED/TODO）
 
-**LOCKED / TODO**：Advanced 正式定位为 **Technical Observability & Execution Trace Inspector**，是 read-mostly 技术透明、运行审计与执行链路查看页面；它不是普通客户运营页、管理员配置后台、模型训练平台、SLAM 编辑器、Scheduler 配置台、参数调试后台或黑客终端。沿用 React + TypeScript + Vite + Tailwind + shadcn/ui，浅色、克制、企业 SaaS；禁止黑客终端、霓虹、赛博朋克、Glassmorphism、复杂 3D 或第二 UI System。
+**IMPLEMENTED / LOCKED**：Advanced 已作为 **Technical Observability & Execution Trace Inspector** 实现为 read-mostly 技术透明、运行审计与执行链路查看页面；它不是普通客户运营页、管理员配置后台、模型训练平台、SLAM 编辑器、Scheduler 配置台、参数调试后台或黑客终端。沿用 React + TypeScript + Vite + Tailwind + shadcn/ui，浅色、克制、企业 SaaS；禁止黑客终端、霓虹、赛博朋克、Glassmorphism、复杂 3D 或第二 UI System。
 
-**LOCKED / TODO**：只允许查看、审计、追溯、展开技术详情与用户主动切换 LIVE / Stable Replay。绝不允许编辑 SLAM、Camera Calibration、Camera Coverage、禁行区、清洁/巡检范围、机器人 Capability、Scheduler Policy、自动处置 Threshold、Dijkstra topology、门禁/电梯权限、安全速度或 Agent 工具权限；未来 Admin / Configuration 是独立产品能力。
+**IMPLEMENTED / LOCKED**：只允许查看、审计、追溯、展开技术详情与用户主动切换 LIVE / Stable Replay。绝不允许编辑 SLAM、Camera Calibration、Camera Coverage、禁行区、清洁/巡检范围、机器人 Capability、Scheduler Policy、自动处置 Threshold、Dijkstra topology、门禁/电梯权限、安全速度或 Agent 工具权限；未来 Admin / Configuration 是独立产品能力。
 
-**LOCKED / TODO**：顶部为轻量 Runtime Strip：LIVE / Stable Replay、Cloud Model Available / Unavailable、Last Request Success / Failed / Idle、真实最近 latency；可补 Provider、Model、Request Time，不堆系统指标、不展示 API Key / Secret / Access Token / Authorization Header / 环境变量值。主体为左 62–65% Execution Trace、右 35–38% Selected Node Detail，交互固定为 Trace → Node → Inspect，不默认铺完整 JSON。
+**IMPLEMENTED / LOCKED**：顶部为轻量 Runtime Strip：LIVE / Stable Replay、Cloud Model Available / Unavailable、Last Request Success / Failed / Idle、真实最近 latency；可补 Provider、Model、Request Time，不堆系统指标、不展示 API Key / Secret / Access Token / Authorization Header / 环境变量值。主体为左 62–65% Execution Trace、右 35–38% Selected Node Detail，交互固定为 Trace → Node → Inspect，不默认铺完整 JSON。
 
-**LOCKED / TODO**：四个核心模块固定为：(1) AI Recognition Trace；(2) Spatial / Capability / Scheduling / Route Trace；(3) Runtime / Model / Tool / Error Observability；(4) System Reality Matrix。不得重复放普通 Event List、Analytics KPI / 热力图、业务大屏或普通 Fleet Dashboard。
+**IMPLEMENTED / LOCKED**：四个核心模块固定为：(1) AI Recognition Trace；(2) Spatial / Capability / Scheduling / Route Trace；(3) Runtime / Model / Tool / Error Observability；(4) System Reality Matrix。不得重复放普通 Event List、Analytics KPI / 热力图、业务大屏或普通 Fleet Dashboard。
 
-**LOCKED / TODO**：AI Recognition Trace 固定六段：Edge Detection、Single-view Cloud VLM、Conditional Multi-view Perception Agent、Multi-view Cloud Judgment、Business Decision / Fusion、Verification。未触发 Multi-view 时第 3/4 段如实显示 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`，不得假装调用。Node 展示结构化输入/输出摘要、camera、bbox/ROI、confidence、evidence sufficiency、ambiguity、latency、second-review status、verification ROI/verdict；禁止 Chain-of-Thought、scratchpad 或 reasoning tokens。Edge 仍为受控 bbox 时必须显示 `CONTROLLED EDGE DEMO`，不得声称 REAL YOLO。
+**IMPLEMENTED / LOCKED**：AI Recognition Trace 固定六段：Edge Detection、Single-view Cloud VLM、Conditional Multi-view Perception Agent、Multi-view Cloud Judgment、Business Decision / Fusion、Verification。未触发 Multi-view 时第 3/4 段如实显示 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`，不得假装调用。Node 展示结构化输入/输出摘要、camera、bbox/ROI、confidence、evidence sufficiency、ambiguity、latency、second-review status、verification ROI/verdict；禁止 Chain-of-Thought、scratchpad 或 reasoning tokens。Edge 仍为受控 bbox 时必须显示 `CONTROLLED EDGE DEMO`，不得声称 REAL YOLO。
 
-**LOCKED / TODO**：Spatial / Capability / Scheduling / Route Trace 固定四段：Camera→SLAM、Capability Engine、Scheduler、Dijkstra Route。Camera→SLAM 展示 camera、bbox ground point、u/v、4-point homography、calibration status、building/floor/zone/map/x/y；Capability 展示 TaskProfile、硬约束、候选与 Demo Configuration 边界；Scheduler 展示 current state/map/battery/task/route cost/capability fit/priority 与 `AssignmentDecision`；Dijkstra 展示 start/target map、node/segment path、cost、数量与小 topology preview。清洁机器人选择永远来自 Capability Engine + Scheduler，不得标为 LLM / Agent selected robot；Dijkstra 只代表园区级全局 topology planning，不等于 Nav2 或局部动态避障。
+**IMPLEMENTED / LOCKED**：Spatial / Capability / Scheduling / Route Trace 固定四段：Camera→SLAM、Capability Engine、Scheduler、Dijkstra Route。Camera→SLAM 展示 camera、bbox ground point、u/v、4-point homography、calibration status、building/floor/zone/map/x/y；Capability 展示 TaskProfile、硬约束、候选与 Demo Configuration 边界；Scheduler 展示 current state/map/battery/task/route cost/capability fit/priority 与 `AssignmentDecision`；Dijkstra 展示 start/target map、node/segment path、cost、数量与小 topology preview。清洁机器人选择永远来自 Capability Engine + Scheduler，不得标为 LLM / Agent selected robot；Dijkstra 只代表园区级全局 topology planning，不等于 Nav2 或局部动态避障。
 
-**LOCKED / TODO**：Runtime Observability 包含 Runtime Mode、Model Runtime、Agent Tool Trace、Error & Recovery。统一 Tool Trace component 显示 tool、trigger source、start time、duration、status、input/result summary；trigger source 仅为 `MODEL_TOOL_CALL`、`SYSTEM_WORKFLOW`、`USER_ACTION`。错误层级固定为 `MODEL_ERROR`、`TOOL_ERROR`、`POLICY_REJECTED`、`SPATIAL_ERROR`、`SCHEDULER_ERROR`、`ROUTE_ERROR`、`VERIFICATION_ERROR`、`EXTERNAL_ADAPTER_ERROR`；LIVE failure 禁止 silent Replay。Recovery 只可展示 Policy Guard 白名单内 retry/wait/re-query/allowed alternative/notify，不能借 Recovery 改基础设施配置。
+**IMPLEMENTED / LOCKED**：Runtime Observability 包含 Runtime Mode、Model Runtime、Agent Tool Trace、Error & Recovery。统一 Tool Trace component 显示 tool、trigger source、start time、duration、status、input/result summary；trigger source 仅为 `MODEL_TOOL_CALL`、`SYSTEM_WORKFLOW`、`USER_ACTION`。错误层级固定为 `MODEL_ERROR`、`TOOL_ERROR`、`POLICY_REJECTED`、`SPATIAL_ERROR`、`SCHEDULER_ERROR`、`ROUTE_ERROR`、`VERIFICATION_ERROR`、`EXTERNAL_ADAPTER_ERROR`；LIVE failure 禁止 silent Replay。Recovery 只可展示 Policy Guard 白名单内 retry/wait/re-query/allowed alternative/notify，不能借 Recovery 改基础设施配置。
 
-**LOCKED / TODO**：关键 Node / Evidence 使用统一 Source Badge：`LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`。Reality Status 未来由 Runtime fact、configuration、provider status、evidence source、authorization status 自动决定，前端用户不得手改。System Reality Matrix 至少覆盖 Cloud Qwen、Multi-view Tool Calling、supplemental evidence、YOLO/edge evidence、Camera→SLAM、Capability、Scheduler、Dijkstra、robot movement、elevator/Skybridge、verification、Replay、delivery adapter、FlashBot Max delivery runtime、ASR，并展示 Capability / Current Reality Status / Short Explanation、PoC boundary 与 future adapter replacement point。
+**IMPLEMENTED / LOCKED**：关键 Node / Evidence 使用统一 Source Badge：`LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`。Reality Status 已由 Runtime fact、configuration、provider status、evidence source、authorization status 自动投影，前端用户不得手改。System Reality Matrix 至少覆盖 Cloud Qwen、Multi-view Tool Calling、supplemental evidence、YOLO/edge evidence、Camera→SLAM、Capability、Scheduler、Dijkstra、robot movement、elevator/Skybridge、verification、Replay、delivery adapter、FlashBot Max delivery runtime、ASR，并展示 Capability / Current Reality Status / Short Explanation、PoC boundary 与 future adapter replacement point。
 
-**LOCKED / TODO**：Advanced 不是新 Runtime。它只读投影 CleaningEvent transitions、Cloud request records、Agent Action/Tool Audit、spatial mapping、capability evaluation、AssignmentDecision、route、verification、provider status 与 reality source metadata；不得独立重跑模型、Scheduler 或 Route Planner，不得前端伪造 trace、tool call、latency、error、source badge、model status 或 reality status。未来 CleaningEvent / AgentTask 应有独立 Trace ID（不等于 Event ID）串联 Workbench、Event Center、Advanced、Action Card、Tool Trace、Model Request 与 Task Runtime。
+**IMPLEMENTED / LOCKED**：Advanced 不是新 Runtime。它只读投影 CleaningEvent transitions、Cloud request records、Agent Action/Tool Audit、spatial mapping、capability evaluation、AssignmentDecision、route、verification、provider status 与 reality source metadata；不得独立重跑模型、Scheduler 或 Route Planner，不得前端伪造 trace、tool call、latency、error、source badge、model status 或 reality status。CleaningEvent / AgentTask 已有独立 Trace ID（不等于 Event ID）串联 Workbench、Event Center、Advanced、Action Card、Tool Trace、Model Request 与 Task Runtime；原生 Delivery/Relocation 的独立查询入口仍为 P2。
 
 ## SUPERSEDED 决策索引
 
@@ -128,12 +180,12 @@
 | 初轮三张图同时给 Cloud 后假装主动取证 | 初轮只给主视角；补充图只能来自真实 tool call |
 | Command Bar + 独立语音入口 + Floating Assistant 三入口 | 一个 Robot Operations Agent；Workbench/Event Center 浮窗，Analytics 固定 Panel；语音只是输入模态 |
 | 独立 Analytics Optimization Agent | Robot Operations Agent 的运营分析能力；Analytics Engine 仍确定性 |
-| demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（TODO） |
-| demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（TODO） |
-| Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（TODO） |
-| HUMAN_REVIEW 截断/重建时间轴 | 完整历史永久保留（TODO） |
-| CLOSED 自动复位机器人 | 终点保留，new demo/reset 才复位（TODO） |
+| demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（P1-A 代码与测试通过） |
+| demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（P1-A 代码与测试通过） |
+| Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（P1-A 代码与测试通过） |
+| HUMAN_REVIEW 截断/重建时间轴 | 完整历史保留（P1-B 代码、测试与浏览器通过） |
+| CLOSED 自动复位机器人 | 终点保留，仅显式 baseline/reset 才复位（P1-A/B 代码、测试与浏览器通过） |
 | raw Qwen next_action 当客户系统建议 | 模型判断与系统业务决策分离 |
 | “地面纸巾”“大型纸箱”面客类目 | 其他小型垃圾 / 大件物品 |
-| 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（TODO） |
+| 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（P1-A 代码与测试通过） |
 | LIVE 失败偷偷成功回放 | NO SILENT FALLBACK |

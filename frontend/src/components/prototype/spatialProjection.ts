@@ -1,0 +1,243 @@
+/**
+ * Pure projection and motion helpers for the P1-B MapCanvas.
+ *
+ * The backend remains the source of route order, fleet positions and targets.
+ * These functions only put those facts on the one campus white-model plane;
+ * they never infer a route from a demo id or mutate runtime state.
+ */
+
+export type CanvasPoint = { x: number; y: number; label?: string; nodeId?: string };
+
+export type FleetPosition = {
+  id: string;
+  map_id: string;
+  coordinates: { x: number; y: number };
+};
+
+export type EventTarget = { map_id: string; x: number; y: number };
+
+export type RouteSegment = { from?: string; to?: string; type?: string; cost?: number };
+
+export type NavigationPlan = {
+  node_path?: string[];
+  display_anchors?: string[];
+  segments?: RouteSegment[];
+  total_cost?: number;
+};
+
+export type MotionPlan = {
+  points: CanvasPoint[];
+  totalDistance: number;
+  travelDurationMs: number;
+  elevatorPause: { atDistance: number; durationMs: number } | null;
+  totalDurationMs: number;
+};
+
+export type MotionSample = {
+  position: CanvasPoint | null;
+  travelledDistance: number;
+  complete: boolean;
+  isElevatorPause: boolean;
+};
+
+export type ContainedFrame = { left: number; top: number; width: number; height: number };
+
+/** Persisted pause clocks make refresh and repeated pause/resume deterministic. */
+export function navigationElapsedMs(startedAt: number, now: number, paused: boolean, pauseStartedAt: number, pausedMs: number): number {
+  if (!Number.isFinite(startedAt)) return 0;
+  const end = paused ? (Number.isFinite(pauseStartedAt) ? pauseStartedAt : startedAt) : now;
+  const excluded = Number.isFinite(pausedMs) ? Math.max(0, pausedMs) : 0;
+  return Math.max(0, end - startedAt - excluded);
+}
+
+// These anchors are the campus white-model's visual references. Their values
+// are percentages *inside the image plane*, never percentages of a parent UI
+// card. Backend map/node data selects which anchor is used.
+export const CAMPUS_TOPOLOGY_ANCHORS: Record<string, CanvasPoint> = {
+  OUTDOOR: { x: 25, y: 78, label: "园区道路", nodeId: "OUTDOOR" },
+  A_B1: { x: 33, y: 66, label: "A栋 B1", nodeId: "A_B1" },
+  A_1F: { x: 35, y: 52, label: "A栋 1F", nodeId: "A_1F" },
+  A_2F: { x: 35, y: 28, label: "A栋 2F", nodeId: "A_2F" },
+  B_1F: { x: 74, y: 57, label: "B栋 1F", nodeId: "B_1F" },
+  B_2F: { x: 74, y: 34, label: "B栋 2F", nodeId: "B_2F" },
+  A_ELEVATOR_1F: { x: 40, y: 49, label: "A栋电梯", nodeId: "A_ELEVATOR_1F" },
+  A_ELEVATOR_2F: { x: 39, y: 31, label: "A栋电梯", nodeId: "A_ELEVATOR_2F" },
+  B_ELEVATOR_1F: { x: 76, y: 52, label: "B栋电梯", nodeId: "B_ELEVATOR_1F" },
+  B_ELEVATOR_2F: { x: 76, y: 37, label: "B栋电梯", nodeId: "B_ELEVATOR_2F" },
+  SKYBRIDGE_B: { x: 61, y: 29, label: "连廊 B 端", nodeId: "SKYBRIDGE_B" },
+  SKYBRIDGE_A: { x: 50, y: 29, label: "连廊 A 端", nodeId: "SKYBRIDGE_A" },
+};
+
+const FALLBACK_ANCHOR: CanvasPoint = { x: 50, y: 50, label: "园区位置" };
+
+function clamp(value: number, minimum = 2, maximum = 98): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function samePoint(left: CanvasPoint, right: CanvasPoint): boolean {
+  return Math.abs(left.x - right.x) < 0.01 && Math.abs(left.y - right.y) < 0.01;
+}
+
+export function calculateContainedFrame(
+  containerWidth: number,
+  containerHeight: number,
+  assetWidth: number,
+  assetHeight: number,
+): ContainedFrame {
+  if (containerWidth <= 0 || containerHeight <= 0 || assetWidth <= 0 || assetHeight <= 0) {
+    return { left: 0, top: 0, width: 0, height: 0 };
+  }
+  const scale = Math.min(containerWidth / assetWidth, containerHeight / assetHeight);
+  const width = assetWidth * scale;
+  const height = assetHeight * scale;
+  return { left: (containerWidth - width) / 2, top: (containerHeight - height) / 2, width, height };
+}
+
+/** Project a Phase 2 local map coordinate onto its campus white-model anchor. */
+export function projectMapCoordinate(mapId: string, x: number, y: number): CanvasPoint {
+  const anchor = CAMPUS_TOPOLOGY_ANCHORS[mapId] ?? FALLBACK_ANCHOR;
+  // The current six Phase 2 maps are all explicitly 100 × 60 metres in
+  // backend/spatial/spatial_data.py. This remains an overview projection, not
+  // a calibration transform or a replacement for the backend SLAM geometry.
+  return {
+    x: clamp(anchor.x + (x - 50) * 0.085),
+    y: clamp(anchor.y + (y - 30) * 0.085),
+    label: anchor.label,
+    nodeId: anchor.nodeId,
+  };
+}
+
+export function projectTopologyNode(nodeId: string): CanvasPoint | null {
+  const anchor = CAMPUS_TOPOLOGY_ANCHORS[nodeId];
+  return anchor ? { ...anchor } : null;
+}
+
+export function compactRoutePoints(points: CanvasPoint[]): CanvasPoint[] {
+  return points.filter((point, index) => index === 0 || !samePoint(point, points[index - 1]));
+}
+
+/**
+ * Add backend fleet start and Camera→SLAM target to the actual Dijkstra node
+ * path. There is deliberately no scenario/demo branch in this projection.
+ */
+export function projectBackendRoute(
+  plan: NavigationPlan | null | undefined,
+  fleetRobot: FleetPosition | null | undefined,
+  target: EventTarget | null | undefined,
+): CanvasPoint[] {
+  const nodeIds = plan?.node_path;
+  // A visually plausible start→target line without a backend Dijkstra plan
+  // would misrepresent an assignment as a navigable route.
+  if (!fleetRobot || !target || !Array.isArray(nodeIds) || !nodeIds.length) return [];
+  const topologyPoints = nodeIds.map(projectTopologyNode);
+  // Never silently skip unknown planner nodes: reject the whole route until
+  // the backend can provide a projection that preserves its exact topology.
+  if (topologyPoints.some((point) => point === null)) return [];
+  const points: CanvasPoint[] = [];
+  points.push(projectMapCoordinate(fleetRobot.map_id, fleetRobot.coordinates.x, fleetRobot.coordinates.y));
+  points.push(...topologyPoints as CanvasPoint[]);
+  points.push(projectMapCoordinate(target.map_id, target.x, target.y));
+  return compactRoutePoints(points);
+}
+
+export function distanceBetween(start: CanvasPoint, end: CanvasPoint): number {
+  return Math.hypot(end.x - start.x, end.y - start.y);
+}
+
+export function routeLength(points: CanvasPoint[]): number {
+  return points.slice(1).reduce((total, point, index) => total + distanceBetween(points[index], point), 0);
+}
+
+export function pointAtRouteDistance(points: CanvasPoint[], distance: number): CanvasPoint | null {
+  if (!points.length) return null;
+  if (points.length === 1) return points[0];
+  const totalDistance = routeLength(points);
+  if (distance >= totalDistance) return points[points.length - 1];
+  let remaining = Math.max(0, distance);
+  for (let index = 1; index < points.length; index += 1) {
+    const start = points[index - 1];
+    const end = points[index];
+    const segmentLength = distanceBetween(start, end);
+    if (Math.abs(remaining - segmentLength) < 0.0001) return end;
+    if (remaining <= segmentLength || index === points.length - 1) {
+      const fraction = segmentLength ? Math.min(1, remaining / segmentLength) : 1;
+      return { x: start.x + (end.x - start.x) * fraction, y: start.y + (end.y - start.y) * fraction };
+    }
+    remaining -= segmentLength;
+  }
+  return points[points.length - 1];
+}
+
+function distanceToNode(points: CanvasPoint[], nodeIndex: number): number {
+  return routeLength(points.slice(0, nodeIndex + 1));
+}
+
+export function buildMotionPlan(points: CanvasPoint[], segments: RouteSegment[] = []): MotionPlan {
+  const totalDistance = routeLength(points);
+  const elevator = segments.find((segment) => segment.type === "elevator");
+  // Pause at the actual entry node (`segment.from`), not the exit node. Node
+  // IDs survive route compaction, unlike positional segment indexes.
+  const pauseNodeIndex = elevator?.from ? points.findIndex((point) => point.nodeId === elevator.from) : -1;
+  const elevatorPause = pauseNodeIndex > 0
+    ? { atDistance: distanceToNode(points, pauseNodeIndex), durationMs: 1000 }
+    : null;
+  // This duration is a labelled PoC visualisation pacing, derived from route
+  // length—not device telemetry or a scheduler estimate.
+  const travelDurationMs = totalDistance ? Math.max(2400, Math.round(totalDistance * 105)) : 0;
+  return {
+    points,
+    totalDistance,
+    travelDurationMs,
+    elevatorPause,
+    totalDurationMs: travelDurationMs + (elevatorPause?.durationMs ?? 0),
+  };
+}
+
+export function sampleRouteMotion(plan: MotionPlan, elapsedMs: number): MotionSample {
+  if (!plan.points.length) return { position: null, travelledDistance: 0, complete: true, isElevatorPause: false };
+  if (!plan.totalDistance || !plan.travelDurationMs) {
+    return { position: plan.points[plan.points.length - 1], travelledDistance: plan.totalDistance, complete: true, isElevatorPause: false };
+  }
+  const elapsed = Math.max(0, elapsedMs);
+  const pause = plan.elevatorPause;
+  const beforePauseTravel = pause ? plan.travelDurationMs * (pause.atDistance / plan.totalDistance) : Infinity;
+  if (pause && elapsed >= beforePauseTravel && elapsed < beforePauseTravel + pause.durationMs) {
+    return {
+      position: pointAtRouteDistance(plan.points, pause.atDistance),
+      travelledDistance: pause.atDistance,
+      complete: false,
+      isElevatorPause: true,
+    };
+  }
+  const adjustedElapsed = pause && elapsed >= beforePauseTravel + pause.durationMs ? elapsed - pause.durationMs : elapsed;
+  const travelledDistance = Math.min(plan.totalDistance, plan.totalDistance * (adjustedElapsed / plan.travelDurationMs));
+  return {
+    position: pointAtRouteDistance(plan.points, travelledDistance),
+    travelledDistance,
+    complete: elapsed >= plan.totalDurationMs,
+    isElevatorPause: false,
+  };
+}
+
+export function svgPath(points: CanvasPoint[], distance?: number): string {
+  let displayed = points;
+  if (distance !== undefined) {
+    displayed = [];
+    let remaining = Math.max(0, distance);
+    if (points.length) displayed.push(points[0]);
+    for (let index = 1; index < points.length; index += 1) {
+      const start = points[index - 1];
+      const end = points[index];
+      const segmentLength = distanceBetween(start, end);
+      if (remaining >= segmentLength) {
+        displayed.push(end);
+        remaining -= segmentLength;
+        continue;
+      }
+      const partial = pointAtRouteDistance([start, end], remaining);
+      if (partial && !samePoint(partial, start)) displayed.push(partial);
+      break;
+    }
+  }
+  return displayed.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
+}

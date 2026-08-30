@@ -8,5 +8,9 @@
   "object_type": "beverage_spill",
   "expected_robot": "ROBOT_B",
   "asset_role": "before_and_after",
-  "source_note": "Approved customer demo material. The initial image is intentionally a confidence-gray-zone input."
+  "source_note": "CONTROLLED EVIDENCE: original primary.png retained. primary-ambiguous-v2.png is an imagegen-edited optical-ambiguity test frame, not a production camera stream. Semantic sufficiency and confidence must be decided by the real model, never by this metadata.",
+  "primary_evidence_version": "primary-ambiguous-v2.png",
+  "evidence_edit": "Localized translucent lens smear/glare over the existing patch; same camera framing and normalized ROI, original retained; supplemental assets unchanged.",
+  "evidence_edit_method": "built-in image_gen",
+  "evidence_edit_date": "2026-08-30"
 }

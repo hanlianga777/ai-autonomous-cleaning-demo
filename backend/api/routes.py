@@ -4,9 +4,9 @@ import json
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from database.connection import get_transitions_after, list_events, read_snapshot
+from database.connection import get_event, get_fleet_state, get_transitions_after, list_events, read_snapshot, reset_fleet_state
+from event_archive.service import archive_index
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
-from optimization.agent import generate_recommendations
 from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
 from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload, system_ai_status
 from spatial.calibration import CalibrationError, map_pixel_to_slam
@@ -47,8 +47,11 @@ def _demo_stage(handler, *args, **kwargs) -> dict:
 
 
 @router.post("/demo-v1/events", tags=["Integrated Customer Demo"])
-def post_demo_v1_event(demo_id: str = Query(..., pattern="^demo0[1-4]$")) -> dict:
-    return _demo_stage(create_demo_event, demo_id)
+def post_demo_v1_event(
+    demo_id: str = Query(..., pattern="^demo0[1-4]$"),
+    mode: str = Query("live", pattern="^(live|replay)$"),
+) -> dict:
+    return _demo_stage(create_demo_event, demo_id, "STABLE_REPLAY" if mode == "replay" else "LIVE")
 
 
 @router.post("/demo-v1/events/{event_id}/edge-review", tags=["Integrated Customer Demo"])
@@ -108,6 +111,11 @@ def post_demo_v1_unavailable(demo_id: str) -> dict:
 
 @router.post("/demo-v1/manual-work-orders/{event_id}/complete", tags=["Integrated Customer Demo"])
 def post_demo_v1_manual_completion(event_id: str) -> dict:
+    # A cleaning event delegated to Robot Operations has one mutation owner.
+    # Its task-card action supplies the session boundary and durable lease; do
+    # not leave this legacy endpoint as a bypass merely because it is hidden.
+    if (get_event(event_id) or {}).get("operations_task_id"):
+        raise HTTPException(status_code=409, detail="Task-owned manual completion must use the Robot Operations task action.")
     try:
         return complete_demo04_manual(event_id)
     except (ValueError, RealInferenceError) as error:
@@ -132,13 +140,18 @@ def get_park() -> dict:
 
 @router.get("/robots")
 def get_robots() -> list[dict]:
-    return read_snapshot("robots")
+    return get_fleet_state()
+
+
+@router.post("/fleet/reset", tags=["Integrated Customer Demo"])
+def post_fleet_reset() -> dict:
+    return {"fleet": _demo_stage(reset_fleet_state), "source": "explicit_demo_reset"}
 
 
 @router.get("/dashboard")
 def get_dashboard() -> dict:
     park = read_snapshot("park")
-    robots = read_snapshot("robots")
+    robots = get_fleet_state()
     return {
         "park": park,
         "robots": robots,
@@ -152,8 +165,12 @@ def get_dashboard() -> dict:
 
 
 @router.get("/analytics/overview", tags=["Analytics + Optimization"])
-def get_analytics_overview() -> dict:
-    return analytics_overview()
+def get_analytics_overview(event_type: str | None = None, since: str | None = None,
+                           until: str | None = None, hour: int | None = Query(None, ge=0, le=23), time_slot: str | None = None) -> dict:
+    try:
+        return analytics_overview(event_type=event_type, since=since, until=until, hour=hour, time_slot=time_slot)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get("/analytics/heatmap", tags=["Analytics + Optimization"])
@@ -178,7 +195,7 @@ def get_analytics_task_history() -> list[dict]:
 
 @router.post("/optimization/recommend", tags=["Analytics + Optimization"])
 def post_optimization_recommendations() -> dict:
-    return generate_recommendations()
+    raise HTTPException(status_code=410, detail="Fixed recommendations are retired. Use /api/robot-operations/advice; regeneration requires an explicit POST.")
 
 
 @router.get("/workbench/scenario02/assets", tags=["Customer Workbench"])
@@ -261,7 +278,7 @@ async def post_operations_upload(file: UploadFile = File(...)) -> dict:
 
 @router.get("/robots/{robot_id}")
 def get_robot(robot_id: str) -> dict:
-    robot = next((item for item in read_snapshot("robots") if item["id"] == robot_id), None)
+    robot = next((item for item in get_fleet_state() if item["id"] == robot_id), None)
     if robot is None:
         raise HTTPException(status_code=404, detail="Robot not found")
     return robot
@@ -348,6 +365,19 @@ def post_multiview_scenario_02() -> dict:
 @router.get("/events", tags=["Workflow + Scheduler"])
 def get_events(limit: int = Query(20, ge=1, le=100)) -> list[dict]:
     return list_events(limit)
+
+
+@router.get("/event-archive", tags=["Read-only Event Archive"])
+def get_event_archive(category: str = "all", q: str = Query("", max_length=200),
+                      event_type: str | None = None, handling_mode: str | None = None,
+                      since: str | None = None, until: str | None = None, map_id: str | None = None,
+                      offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100),
+                      hour: int | None = Query(None, ge=0, le=23), x: float | None = None, y: float | None = None, time_slot: str | None = None) -> dict:
+    try:
+        return archive_index(category=category, q=q, event_type=event_type, handling_mode=handling_mode,
+                             since=since, until=until, map_id=map_id, offset=offset, limit=limit, hour=hour, x=x, y=y, time_slot=time_slot)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get("/events/templates", tags=["Workflow + Scheduler"])

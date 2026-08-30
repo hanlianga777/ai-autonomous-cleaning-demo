@@ -12,6 +12,8 @@ export type PrototypeState =
   | "CLEANING"
   | "VERIFYING"
   | "CLOSED"
+  | "CANCELLED"
+  | "PAUSED"
   | "HUMAN_FALLBACK"
   | "HUMAN_REVIEW";
 

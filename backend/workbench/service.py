@@ -34,7 +34,7 @@ DEMO_SCENARIOS: dict[str, dict[str, Any]] = {
         "title": "Scenario 02 · 大堂奶茶污渍", "subtitle": "低置信度液体重污 · 多视角确认后由 Robot B 清洁",
         "template": "multiview_heavy_spill", "mock_case": "low_confidence_milk_tea_spill", "primary_camera_id": "CAM-A1-01",
         "expected_robot": "ROBOT_B", "verification_mode": "AUTONOMOUS", "location_label": "A 栋 · 1F · 主大堂",
-        "assets": [("CAM-A1-01", "primary.png", "清洁前主视角", "before"), ("CAM-A1-02", "secondary.png", "补充视角", "evidence"), ("CAM-A1-04", "secondary.png", "补充视角", "evidence"), ("CAM-A1-01", "after.png", "清洁后固定摄像头图", "after")],
+        "assets": [("CAM-A1-01", "primary-ambiguous-v2.png", "受控主视角 · 局部成像模糊", "before"), ("CAM-A1-02", "secondary.png", "补充视角", "evidence"), ("CAM-A1-04", "secondary.png", "补充视角", "evidence"), ("CAM-A1-01", "after.png", "清洁后固定摄像头图", "after")],
     },
     "event-indoor-can-003": {
         "title": "Scenario 03 · 二楼易拉罐", "subtitle": "室内地毯小型干垃圾 · Robot C 跨楼栋自主闭环",
@@ -45,7 +45,7 @@ DEMO_SCENARIOS: dict[str, dict[str, Any]] = {
     "event-oversized-box-004": {
         "title": "Scenario 04 · 走廊大型纸箱", "subtitle": "超出机器人能力边界 · 人工搬运后由云端 AI 验收",
         "template": "oversized_object_a2", "mock_case": "oversized_box_or_bag", "primary_camera_id": "CAM-A2-11",
-        "expected_robot": "HUMAN_FALLBACK", "verification_mode": "HUMAN_REQUIRED", "location_label": "A 栋 · 2F · 走廊回收点",
+        "expected_robot": "HUMAN_FALLBACK", "verification_mode": "HUMAN_REQUIRED", "location_label": "A 栋 · 2F · 公共通道 / 疏散区域",
         "assets": [("CAM-A2-11", "primary.png", "清洁前主视角", "before"), ("CAM-A2-11", "after.png", "人工清理后固定摄像头图", "after")],
     },
 }
@@ -82,6 +82,9 @@ def scenario_assets(event_id: str) -> dict[str, Any]:
         "verification_mode": scenario["verification_mode"],
         "location_label": scenario["location_label"],
         "metadata": metadata,
+        # Scenario facts travel with the persisted manifest. Expected robot /
+        # verification_mode remain presentation hints, never model inputs.
+        "scene_context": {key: metadata[key] for key in ("camera_id", "zone_type", "storage_policy", "object_context", "context_scope", "context_source", "context_confirmed_at") if metadata and key in metadata},
         "assets": assets,
         "missing_assets": [asset["filename"] for asset in assets if not asset["available"]],
     }
