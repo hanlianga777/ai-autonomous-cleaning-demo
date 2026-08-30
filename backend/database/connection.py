@@ -10,6 +10,7 @@ from contextvars import ContextVar
 from pathlib import Path
 
 from data.mock_data import PARK, ROBOTS
+from observability.context import new_trace_id, CURRENT_TRACE
 
 DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_demo.db"
 _TRANSACTION: ContextVar[sqlite3.Connection | None] = ContextVar("runtime_transaction", default=None)
@@ -159,6 +160,12 @@ def initialize_database() -> None:
             )
             """
         )
+        connection.execute("CREATE TABLE IF NOT EXISTS runtime_requests (request_id TEXT PRIMARY KEY, trace_id TEXT, payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE IF NOT EXISTS runtime_spans (span_id TEXT PRIMARY KEY, trace_id TEXT, payload TEXT NOT NULL)")
+        for table in ("model_records", "event_transitions"):
+            columns = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+            if "trace_id" not in columns:
+                connection.execute(f"ALTER TABLE {table} ADD COLUMN trace_id TEXT")
 
 
 def read_snapshot(snapshot_key: str) -> dict | list:
@@ -205,6 +212,11 @@ def update_fleet_robot(robot_id: str, **updates: object) -> dict:
 
 
 def save_event(event: dict) -> None:
+    if not event.get("trace_id"):
+        previous = get_event(event["event_id"])
+        event["trace_id"] = (previous or {}).get("trace_id") or new_trace_id()
+    if "demo_v1" in event:
+        event["demo_v1"]["trace_id"] = event["trace_id"]
     payload = json.dumps(event, ensure_ascii=False, default=str)
     with database_session() as connection:
         connection.execute(
@@ -241,18 +253,19 @@ def list_events(limit: int = 20) -> list[dict]:
 
 
 def record_transition(event_id: str, state: str, detail: dict) -> int:
+    trace_id = (get_event(event_id) or {}).get("trace_id")
     with database_session() as connection:
         cursor = connection.execute(
-            "INSERT INTO event_transitions (event_id, state, detail) VALUES (?, ?, ?)",
-            (event_id, state, json.dumps(detail, ensure_ascii=False, default=str)),
+            "INSERT INTO event_transitions (event_id, state, detail, trace_id) VALUES (?, ?, ?, ?)",
+            (event_id, state, json.dumps(detail, ensure_ascii=False, default=str), trace_id),
         )
         return int(cursor.lastrowid)
 
 
 def get_transitions(event_id: str) -> list[dict]:
     with database_session() as connection:
-        rows = connection.execute("SELECT id, state, detail, created_at FROM event_transitions WHERE event_id = ? ORDER BY id", (event_id,)).fetchall()
-    return [{"id": row["id"], "state": row["state"], "detail": json.loads(row["detail"]), "created_at": row["created_at"]} for row in rows]
+        rows = connection.execute("SELECT id, state, detail, created_at, trace_id FROM event_transitions WHERE event_id = ? ORDER BY id", (event_id,)).fetchall()
+    return [{"id": row["id"], "state": row["state"], "detail": json.loads(row["detail"]), "created_at": row["created_at"], "trace_id": row["trace_id"]} for row in rows]
 
 
 def get_transitions_after(after_id: int = 0) -> list[dict]:
@@ -275,8 +288,8 @@ def save_model_record(source_event_id: str, phase: str, mode: str, payload: dict
     """Persist a structured external-AI result for opt-in Stable Replay."""
     with database_session() as connection:
         connection.execute(
-            "INSERT INTO model_records (source_event_id, phase, mode, payload) VALUES (?, ?, ?, ?)",
-            (source_event_id, phase, mode, json.dumps(payload, ensure_ascii=False, default=str)),
+            "INSERT INTO model_records (source_event_id, phase, mode, payload, trace_id) VALUES (?, ?, ?, ?, ?)",
+            (source_event_id, phase, mode, json.dumps(payload, ensure_ascii=False, default=str), CURRENT_TRACE.get()),
         )
 
 

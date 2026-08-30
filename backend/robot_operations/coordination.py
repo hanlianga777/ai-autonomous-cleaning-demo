@@ -5,6 +5,8 @@ from functools import wraps
 
 from database.connection import get_event, runtime_transaction
 from robot_operations import repository as repo
+from observability.context import trace_context
+from observability.requests import execute_stage
 
 _OWNER = ContextVar("operations_task_owner", default=None)
 
@@ -38,8 +40,9 @@ def event_stage(function):
     def guarded(event_id, *args, **kwargs):
         event = get_event(event_id)
         task_id = (event or {}).get("operations_task_id")
-        if not task_id:
-            return function(event_id, *args, **kwargs)
-        with task_lease(task_id):
-            return function(event_id, *args, **kwargs)
+        with trace_context((event or {}).get("trace_id")):
+            if not task_id:
+                return execute_stage(function, event_id, *args, **kwargs)
+            with task_lease(task_id):
+                return execute_stage(function, event_id, *args, **kwargs)
     return guarded

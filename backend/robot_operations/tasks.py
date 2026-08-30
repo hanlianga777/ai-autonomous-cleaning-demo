@@ -12,6 +12,7 @@ from scheduling.profiles import ROBOT_CAPABILITIES
 from robot_operations import repository as repo
 from robot_operations.catalog import poi, DELIVERY_DEPLOYMENT_POLICY
 from robot_operations.coordination import task_lease
+from observability.context import new_trace_id
 
 TERMINAL = {"CLOSED", "CANCELLED", "FAILED", "HUMAN_REVIEW"}
 DELIVERY_STATES = ["ASSIGNED", "TO_PICKUP", "ARRIVED_PICKUP", "PICKED_UP", "ELEVATOR_TRANSIT", "TO_DESTINATION", "DELIVERED", "CLOSED"]
@@ -76,6 +77,10 @@ def create_task(session_id, kind, *, event_id=None, robot_id=None, origin_poi=No
     else:
         raise ValueError("Unsupported task kind.")
     task = {"task_id": f"task-{uuid4().hex[:16]}", "session_id": session_id, "kind": kind,
+            "trace_id": event.get("trace_id") if kind == "cleaning" else new_trace_id(),
+            "event_trace_id": event.get("trace_id") if kind == "cleaning" else None,
+            "session_trace_id": repo.get("session", session_id).get("trace_id"),
+            "origin_request_trace_id": repo.get("session", session_id).get("active_request_trace_id"),
             "robot_id": robot_id, "origin": origin, "destination": destination, "event_id": event_id,
             "source": "POC_SIMULATION", "created_at": repo.now(), "status": "CREATED", "transitions": [], "route": None}
     if kind == "cleaning":

@@ -3,6 +3,14 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO 验收计划 · 2026-08-30**
 > 本文区分已发生的真实调用、当前代码边界和未来必须达到的验收标准。固定 bbox 仍是 `CONTROLLED_EDGE_DEMO`，不是本地 REAL YOLO。
 
+## P1-H Trace Inspector 验收（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- `tests/test_observability.py`14/14：独立Trace/transition持久化、legacy GET零写/零Runtime调用、10节点未执行标识、充分证据不假触发Agent、真实request metadata无body、错误无secret、model payload不变、实际stage/tool timing、递归API脱敏、8类taxonomy、HF非错误、404零写、Task关联、同Session两个event+delivery隔离、Replay新Trace/真实阶段且无新Cloud。
+- 完整后端135项=132 PASS+3 paid opt-in skipped；前端42/42/build与git diff --check通过。单测fake-provider仅测试契约，不冒充Cloud实跑。Reviewer A/E复审PASS，P0/P1=0；曾发现的跨session归因与自由errorcode泄漏已修复并回归。
+- 实际浏览器1280×720：旧事件`integrated-demo03-545dc25681`显示历史Trace缺失，未执行节点无假时间/来源；点击Camera→SLAM只换详情。新Demo04 LIVE的Cloud、zeroCandidate、人工完成与验收节点另有本轮实跑记录；不属于P1-G连续稳定性批次。
+- 新Demo04 `integrated-demo04-98da376c63` / `trace-c5c8ca9922ff4e95ac956a584ce13c0b`：2026-08-30T03:59:08Z创建，Cloud .95需要处置large_object，Locate→candidate0→人工完成→Verification .95→CLOSED（04:00:50Z）。Advanced显示两个真实model request（4352/4783ms）、5个实际stage span、USER_ACTION人工完成、未触发Multi-view、不生成假Dijkstra路线；浏览器节点切换正常。数值仅历史实测，不是未来UI固定值。
+- P2：原生Delivery/Relocation独立Trace查询入口、生产身份/分布式追踪/审计留存、真实设备/ASR未实现。Advanced不会把session所有请求混到同一event，也不会回填旧Trace。
+
 ## P1-F Robot Operations 实跑与验收（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 - 后端 `test_robot_operations.py` 16/16：真实 SQLite/Task/Fleet，模型 transport 仅在单元测试中注入；覆盖并发唯一占用、原阶段 lease、必须先派发、暂停状态同步、session归属、POI/权限 fail closed、完整配送状态机、真正新解释器重启保留、非法工具/云端失败审计、只读建议缓存与伪造引用拒绝、外部 Adapter 未授权。
@@ -150,7 +158,7 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 - **UI / ASR**：Workbench/Event Center 同一可拖动浮窗；无已保存位置默认左下角，localStorage 位置优先，刷新/跨页/展开/收起保持，拖动不出 viewport。Analytics 仅固定 Panel；不出现第二 Agent。Microphone 只有配置的真实 ASR provider 可调用时才可用；未配置时必须 disabled 或显示“语音服务未配置”，不得使用预设文本、timer、mock transcript 或 fake voice animation。
 - **Delivery Adapter**：没有真实平台授权必须是 `ADAPTER READY` / `AUTH REQUIRED`；不得显示 `CONNECTED` 或模拟外部 callback。真实授权后才测试 webhook / 双向状态同步。
 
-## 7. Advanced Technical Observability 验收（LOCKED / TODO）
+## 7. Advanced Technical Observability 验收（P1-H工程IMPLEMENTED；连续场景终验P1-G）
 
 | 场景 | 必须可审计的 Advanced Trace |
 |---|---|
@@ -181,5 +189,5 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 - 当前不宣称 REAL YOLO、生产多机位同步、真实机器人遥测、真实电梯、真实外卖平台集成或生产阈值。
 - 旧 Stable Replay 不能叫完整稳定回归，直到满足本文件第 3 节定义。
 - Demo03 目前的 `retry` 必须如实保留；不能通过 Demo ID 特判或写死 PASS 修复。
-- 当前 Advanced 仅是基础 shell；不宣称已完成 Trace Inspector、Reality Matrix、结构化 audit、真实 Tool / Error / source projection 或 Trace ID。
-- 早前 docs-only 限制已由 Unified Implementation 授权取代；本轮已运行第 1 节所列代码/模型测试，未运行浏览器交互验收；仍无 P1-A 验收完成声明。
+- Advanced已P1-H工程验收；不宣称生产OTel、独立原生Task Inspector或最终P1-G稳定性已完成。
+- 早前docs-only限制已由Unified Implementation授权取代；A/B/C/D/E/F/H已有代码、测试、浏览器与审查证据，历史当轮说明不覆盖页首最新状态。

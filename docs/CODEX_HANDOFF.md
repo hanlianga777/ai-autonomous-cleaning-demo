@@ -3,7 +3,15 @@
 > **状态：LOCKED · 2026-08-30**
 > 新 Session 必须依次完整阅读：`PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、本文件、`AI_INTEGRATION_TEST.md`；随后检查代码、`git status`、`git log`。不要用聊天记忆补全事实。
 
-### 最新交接：P1-F IMPLEMENTED · A/E PASS
+### 最新交接：P1-H IMPLEMENTED · A/E PASS
+
+实施分支`codex/unified-implementation`：A/B/C/D/E/F已提交推送，F `06ef575`。H本次独立提交，精确hash读git log；按授权继续P1-G最终稳定性回归，全PASS前不合并main。
+
+H：14定向、完整135项（132PASS/3paid opt-in skipped）、前端42/build、实际浏览器与A/E PASS。新Trace/请求/任务关联在写时记录；旧event没有Trace时明确LEGACY_MISSING，GET不修补。受控edge、真实Cloud、确定性Runtime、PoC与未授权设备明确分离；没有第二运行引擎。Advanced API不暴露原始错误文本/Prompt/secret/CoT。
+
+P1-G必须继续：Demo01/02/03各连续5次至少4成功、Demo04连续3次全成功、四Demo Replay各3次全成功、Agent越权/档案/Analytics/Advanced最终回归。Demo03此前after ROI真实拒绝尚未收敛，不能写死通过。P2包括原生Delivery/Relocation独立Trace查询入口、生产身份/分布式追踪/审计留存/真实设备，不阻塞本地H。
+
+### P1-F 当时交接：IMPLEMENTED · A/E PASS
 
 实施分支 `codex/unified-implementation`：A `fcd01d4` / B `b2a1899` / C `c9cf220` / D `a350ad5` / E `4c6a8a8` 已推送。F 本次独立提交（精确 hash 读 git log），然后按授权自动进入 **P1-H → P1-G**；全阶段 PASS 前不合并 main，不回退为一次性播放。
 
@@ -31,8 +39,8 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 
 - 仓库：`ai-autonomous-cleaning-demo`；实施分支：`codex/unified-implementation`；已验收文档基线：`00bd982982c81450e41f1755a3ba95be94c25b23`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`；它不能回退为一次性 `/runs` + 前端播放。
-- Robot Operations Agent与未授权配送Adapter边界已P1-F IMPLEMENTED；真实外部接入与Advanced Technical Observability仍为 **LOCKED/TODO**；新 Multi-view 已按 P1-C **IMPLEMENTED**，不得与其它未实现目标混写。
-- **Unified Implementation 已明确授权。P1-A `fcd01d4`、P1-B `b2a1899` 已提交推送，P1-C `c9cf220` 与 P1-D 工程验收 PASS，P1-D `a350ad5` 已提交，P1-E `4c6a8a8`已提交推送，P1-F当前工程PASS，独立提交后进入P1-H。** P1-C 最新测试见页首；P1-H/G 仍 LOCKED/TODO，最终产品验收未完成。
+- Robot Operations Agent/未授权配送Adapter已P1-F IMPLEMENTED，Advanced已P1-H IMPLEMENTED，新Multi-view已P1-C IMPLEMENTED；真实外部接入仍TODO。
+- **Unified Implementation已明确授权，A/B/C/D/E/F/H工程PASS，独立提交后继续P1-G。** 精确提交链读git log；最终产品稳定性与用户验收未完成。
 
 ### P1-B 当时交接： MapCanvas / 统一详情工程完成
 
@@ -53,7 +61,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 3. 旧基线的模板 locate / 演示锚点路线已由 P1-A 改为 bbox→共享 `map_pixel_to_slam()` + Fleet current map→`plan_route()`；P1-B 唯一 MapCanvas 已接入这些事实并通过浏览器验收；不再使用旧外层独立路线投影。
 4. P1-A 的共享 Fleet 已有正式名称及 product_capability / demo_configuration，主工作台外仍有旧静态 mock 文案待清理；保持内部 ID `robot-a` / `robot-b` / `robot-c` / `robot-d`。
 5. Demo04 cloud 直接人工分支已删除，当前阶段 Runtime 只允许 Capability zero candidate 产生 HUMAN_FALLBACK；用户确认 context 后，真实完整路径与 Replay 已通过。
-6. 当前 Advanced 只是技术状态卡片 + 当前事件 JSON 的基础 shell；没有 Trace Inspector、node detail、structured Tool Audit、Reality Matrix、错误分类或 Trace ID，不能称为 Batch C 已完成。
+6. 当前 Advanced 已按P1-H实现只读Trace Inspector、node detail、structured Tool Audit、Reality Matrix、错误分类与Trace ID；最终连续场景稳定性仍P1-G，不将工程PASS当作最终用户验收。
 
 ## 不可违反规则
 

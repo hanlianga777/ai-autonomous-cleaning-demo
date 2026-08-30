@@ -40,6 +40,7 @@ from demo_v1.perception_records import (
 from workflow.fixtures import EVENT_TEMPLATES
 from workbench.service import DEMO_SCENARIOS, scenario_assets
 from robot_operations.coordination import event_stage
+from observability.errors import classify as classify_error
 
 ASSET_ROOT = Path(__file__).resolve().parents[2] / "sample_data" / "camera_events"
 
@@ -227,6 +228,9 @@ def _require_state(stored: dict[str, Any], *allowed: str) -> None:
 
 
 def _save_stage(stored: dict[str, Any], state: str, detail: dict[str, Any], **updates: Any) -> dict[str, Any]:
+    projected_error = classify_error(updates.get("error"))
+    if projected_error:
+        updates["error"] = {**updates["error"], "error_type": projected_error["type"]}
     result = stored.setdefault("demo_v1", {})
     result.update(updates)
     stored["state"] = state

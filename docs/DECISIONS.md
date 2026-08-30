@@ -3,6 +3,13 @@
 > **状态：LOCKED · 2026-08-30**
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
+## P1-H 可观测性边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- Advanced GET只投影SQLite已保存事实；点击节点不调用模型、Scheduler、Dijkstra或Fleet更新。新事件独立Trace UUID，Ops每次消息独立request trace，Task明确event/origin request关联；不得按共享session把不同任务的请求混为一个事件。
+- legacy未记录Trace显示LEGACY_MISSING，GET不补写；model_records新增关联列但不改变Replay payload/fingerprint。Replay只重用AI响应，工具/阶段真实重跑，其tool duration不得用历史model latency冒充。
+- 错误API仅返回8类taxonomy code与安全说明；结构化字段白名单递归过滤，不返回原始Prompt、模型思维链、原话、密钥、token、base64或本地路径。模型/阶段真实start/duration仅新执行时采集；旧数据缺值不倒推。
+- Reality来源使用锁定6类；未执行/未选择另设execution_status。边缘节点额外明确CONTROLLED EDGE DEMO；controlled evidence不是生产YOLO/RTSP，PoC不是设备遥测。当前Trace Inspector以集成事件为入口，不能声称已有独立原生Task Inspector。
+
 ## P1-F 执行与真实性边界（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 - Robot Operations Agent 与 Multi-view 共用现有 Qwen transport，但工具白名单不同；`tool_choice=auto`，Ops 每轮最多8工具/4写操作，建议最多4只读工具。未知工具、额外坐标参数、越界 POI/机器人范围均由代码拒绝并审计，不依赖 Prompt 自律。
@@ -48,7 +55,7 @@
 
 **LOCKED**：Workbench 回答“现在正在发生什么”；Event Center 回答“一个 AI 事件发生了什么、系统为何这样处理、如何闭环”；Analytics 回答“历史事件整体说明什么、下一步如何优化”。三者必须使用同一套 `CleaningEvent` / SQLite / history snapshot，不能分别维护 Mock 数据。
 
-**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center 已按 P1-D 实现；Analytics、Robot Operations Agent 和 Advanced 完整产品化分别属于 P1-E/F/H。本批只允许在现有 Advanced shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；不得借此重做完整 Advanced 页面。
+**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center/Analytics/Operations/Advanced分别已按P1-D/E/F/H实施。早期仅shell控制区限制已被Unified P1-H明确授权取代，但不得扩展为配置后台。
 
 ## D03｜机器人正式命名与能力边界
 

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from database.connection import database_session
+from observability.context import new_trace_id, CURRENT_TRACE
 
 
 def now():
@@ -62,11 +63,16 @@ def tasks(session_id=None):
 
 
 def new_session():
-    return save("session", {"id": f"ops-{uuid4().hex}", "created_at": now(), "messages": [], "page_context": {}, "busy": False})
+    return save("session", {"id": f"ops-{uuid4().hex}", "trace_id": new_trace_id(), "created_at": now(), "messages": [], "page_context": {}, "busy": False})
 
 
 def audit(session_id, **fields):
-    entry = {"created_at": now(), **fields}
+    session = get("session", session_id)
+    request_trace_id = CURRENT_TRACE.get() or session.get("active_request_trace_id")
+    trace_id = request_trace_id or session.get("trace_id")
+    if fields.get("task_id"):
+        trace_id = get("task", fields["task_id"]).get("trace_id") or trace_id
+    entry = {"created_at": now(), "trace_id": trace_id, "request_trace_id": request_trace_id, "session_trace_id": session.get("trace_id"), **fields}
     with database_session() as connection:
         cursor = connection.execute("INSERT INTO ops_audit(session_id,payload) VALUES(?,?)", (session_id, json.dumps(entry, ensure_ascii=False)))
     return {"id": cursor.lastrowid, **entry}

@@ -11,12 +11,14 @@ import base64
 from copy import deepcopy
 import json
 from datetime import datetime, timezone
+from time import perf_counter
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from perception import qwen
 from perception.multiview.tools import _contains
 from spatial.spatial_data import CAMERAS
+from observability.context import CURRENT_TRACE
 
 
 MAX_ADDITIONAL_CAMERAS = 2
@@ -102,7 +104,9 @@ def _audit_entry(
 ) -> None:
     # The audit is deliberately restricted to tool facts: no prompt, model
     # content, local paths, data URLs, secrets or model reasoning are retained.
-    safe = {key: value for key, value in entry.items() if key not in {"content", "messages", "image", "path", "raw"}}
+    safe = {key: value for key, value in entry.items() if key not in {"content", "messages", "image", "path", "raw", "_tool_started"}}
+    if "_tool_started" in entry:
+        safe["tool_duration_ms"] = round((perf_counter() - entry["_tool_started"]) * 1000)
     safe["timestamp"] = datetime.now(timezone.utc).isoformat()
     audit.append(safe)
     if callback:
@@ -386,6 +390,8 @@ def run_autonomous_acquisition(
             name, call_id, arguments = _call_function(call)
             safe_args = {"camera_id": arguments.get("camera_id")} if isinstance(arguments, dict) and "camera_id" in arguments else {}
             base_audit = {
+                "_tool_started": perf_counter(), "started_at": datetime.now(timezone.utc).isoformat(),
+                "trace_id": CURRENT_TRACE.get(),
                 "source": "MODEL_TOOL_CALL", "model_source": response_source,
                 "tool_call_id": call_id or "missing", "name": name or "unknown", "arguments": safe_args,
                 "elapsed_ms": elapsed_ms if response_source == "LIVE_MODEL" else None,

@@ -1,7 +1,7 @@
 # AI 自主清洁 Demo｜真实任务清单
 
 > **状态：LOCKED · 2026-08-30**
-> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E/F 工程验收通过；F独立提交推送后进入 P1-H，后续阶段仍逐阶段验收提交。
+> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E/F/H 工程验收通过；H独立提交推送后进入P1-G最终回归，全部PASS前不合并main。
 
 ## 已实现基线（IMPLEMENTED，禁止回退）
 
@@ -86,22 +86,23 @@
 - [ ] **Event / Analytics / Agent 回归**：历史 snapshot 不被当前 Fleet 覆盖；状态分类与 URL 恢复正确；Analytics 无硬编码 KPI；Action Card / Policy Guard / Audit 与 Delivery Adapter 授权状态可验证。
 - [ ] **实现后文档更新**：仅在代码、测试、浏览器证据和用户验收都存在时，将对应 TODO 转为 IMPLEMENTED，并更新六份事实源。
 
-## P1-H｜Advanced Technical Observability（Batch C）
+## P1-H｜Advanced Technical Observability（IMPLEMENTED · A/E PASS）
 
-- [ ] **Trace Inspector layout**：在现有 Advanced shell 上实现浅色 read-mostly Technical Observability & Execution Trace Inspector；顶部 Runtime Strip，左 62–65% Execution Trace、右 35–38% Selected Node Detail，交互为 Trace → Node → Inspect；不做配置后台、黑客终端或满屏 JSON。
-- [ ] **AI Recognition 6-stage Trace**：投影 Edge、Single-view Cloud、conditional Multi-view Agent、Multi-view Cloud、Business Decision/Fusion、Verification；未触发 Multi-view 如实显示 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`，不伪造调用或固定 confidence。
-- [ ] **Multi-view Agent / unified Tool Trace**：统一展示 tool、`MODEL_TOOL_CALL` / `SYSTEM_WORKFLOW` / `USER_ACTION`、start time、duration、status、input/result summary；Demo02 可审计 single-view insufficiency、candidate、selected camera、fetch、final judgment，不显示 Chain-of-Thought。
-- [ ] **Source / Reality badges 与 Reality Matrix**：统一 `LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`；Reality Matrix 覆盖 AI、空间、调度、机器人、电梯/Skybridge、验证、Replay、Delivery、ASR，并由 Runtime facts 自动决定，用户不可手改。
-- [ ] **空间、能力、调度、路线 Inspector**：展示 Camera→SLAM 4-point homography / u-v / map-x-y、TaskProfile 与 Capability 硬约束、Scheduler factors / AssignmentDecision、Dijkstra global topology route 与 Demo03 Skybridge；不宣称 Nav2 或真实局部避障。
-- [ ] **Runtime / Model / Error / Recovery Inspector**：实现 LIVE/Replay strip、真实 provider/model/request/latency、错误 taxonomy、Policy Guard recovery audit、LIVE failure no silent Replay；不泄漏任何 secret。
-- [ ] **Trace ID、PoC Boundaries 与 Adapter Points**：以独立 Trace ID 串联 Event / AgentTask / Tool / model / task runtime；展示当前 PoC boundary、future Evidence/Robot/Delivery/ASR/Elevator Adapter replacement point；Advanced 只读真实 Runtime Records，绝不独立重跑模型、Scheduler 或 Route Planner。
-- [ ] **Advanced acceptance**：完成 `AI_INTEGRATION_TEST.md` 的 Demo01–04 Trace、Reality Badge、Runtime/Error、sensitive-data 检查；必须证明无 fake trace/tool/latency/error/badge/status。
+- [x] **Trace Inspector layout**：63/37浅色只读Trace→Node→Inspect，独立AdvancedView；不是配置后台或满屏JSON。
+- [x] **AI Recognition 6-stage Trace**：Edge/Single-view/conditionalMulti-view/Multi-viewCloud/Fusion/Verification，未触发如实显示；缺失不伪造。
+- [x] **Unified Tool Trace**：MODEL_TOOL_CALL / SYSTEM_WORKFLOW / USER_ACTION，真实start/duration、结果摘要；历史无timing保持空值，不以历史模型latency冒充tool时长。
+- [x] **Reality Matrix**：锁定6类来源，execution_status单独显示；edge明确CONTROLLED EDGE DEMO。真实Cloud不等于生产摄像头/YOLO/设备。
+- [x] **空间/能力/调度/路线**：只读已保存共享Camera→SLAM、TaskProfile、Capability候选/排除、Scheduler权重得分、Dijkstra节点/代价。
+- [x] **Runtime/Model/Error**：真实request metadata及8类taxonomy，API白名单/敏感信息过滤，LIVE失败不Replay；GET不运行模型/调度/路线。
+- [x] **Trace关联**：Event/每消息Request/Task独立关联，sharedSession多任务不串Trace；legacy无回填。Replay模型payload不变，真实Runtime新Trace。
+- [x] **H工程验收**：14定向、135完整后端（132PASS+3skip）、前端42/build、浏览器、Reviewer A/E PASS。四Demo连续LIVE/Replay终验仍P1-G，不据H提前宣称全稳定。
+- [ ] **P1-H P2**：独立原生Delivery/Relocation Task Trace入口；生产级OTel/跨服务观测、身份权限、审计留存与持续安全审计。当前本地SQLite单worker，不冒称生产追踪系统。
 
 ## 后续 Batch（不在 Unified Implementation Batch 的范围）
 
 - [ ] 在 P1-H 完成并验收后，才另行讨论 Advanced 的非必要增强体验；不得稀释已锁定的四模块 Trace Inspector 范围。
 - [ ] 经授权的真实 RTSP/VMS/NVR、生产机器人/电梯/门禁与外部配送平台 Adapter。
-- [ ] **Batch C / Part 3 Advanced**：方案已 `LOCKED/TODO`，由 P1-H 承载；Unified Implementation 已授权，但须按阶段依赖在 P1-H 实施。
+- [x] **Batch C / Part 3 Advanced**：已按Unified P1-H完成工程验收；非必要增强不在本轮。
 
 ## 不在授权范围
 

@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 
 from perception.models import normalize_task_profile
 from perception.yolo import RealInferenceError
+from observability.requests import traced_model_request
 
 PROMPT = """You are a cleaning perception verifier. Return JSON only, with this schema:
 {"need_clean": boolean, "confidence": number, "summary": string,
@@ -30,6 +31,7 @@ def _image_data_url(image_path: Path) -> str:
     return f"data:{mime};base64,{base64.b64encode(image_path.read_bytes()).decode('ascii')}"
 
 
+@traced_model_request
 def _request_qwen(content: list[dict[str, Any]], model: str, *, messages: list[dict] | None = None, tools: list[dict] | None = None) -> tuple[dict[str, Any], int]:
     """Shared DashScope transport for every Qwen-VL entry point.
 

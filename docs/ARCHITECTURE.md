@@ -3,6 +3,12 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
+## P1-H 当前观测架构（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+`observability/context.py`传递独立Trace；`requests.py`只在实际调用时记录模型metadata和stage spans；`service.py`是只读SQLite投影，`redaction.py/errors.py`在API边界执行白名单及taxonomy安全映射，`routes.py`仅GET。`AdvancedView/advancedTraceModel`负责63/37布局和节点选择，不拥有Runtime。
+
+Event trace在创建时持久化；模型记录外层新增trace列，canonical payload不改。Operations session/request/nativeTask有独立关联；每消息request trace写audit，CleaningTask绑定event trace并保留origin_request_trace_id。GET按event/task/明确request关联，不按整个session关联。legacy只显示缺失，禁止startup/GET回填。新stage/model/tool均真实计时，历史缺失不补造。
+
 ## P1-F 当前执行架构（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 `robot_operations/` 按职责分离：`repository`（SQLite session/task/audit/cache）、`catalog`（Approved POI/原生配送部署策略/未授权平台 registry）、`tools`（严格参数与白名单）、`agent`（唯一 Ops model-tool loop/Advice）、`tasks`（Task state machines）、`coordination`（跨原工作台与 Agent 的 durable lease）、`routes`（薄 HTTP）。
@@ -44,7 +50,7 @@ React / Vite customer shell (/ and /prototype)
   ├── Workbench：CameraMonitorGrid + SpatialDispatchView + EventDetailPanel
   ├── Event Center：P1-D 只读档案列表/筛选/URL + 共用 history EventDetailPanel
   ├── Analytics：同库Seed/Runtime聚合 + 5KPI/热点/区间利用率；P1-F共享Agent建议
-  └── Advanced：状态与 trace shell
+  └── Advanced：只读Trace → Node → Inspect / Tool / Error / Reality Matrix
   ▼
 FastAPI /api
   ├── demo_v1.service（阶段 Runtime）
@@ -201,7 +207,7 @@ Shared AgentSession / Message / ActionAudit / Task context
 
 清洁仍是主业务。未获得平台授权、资质与 API 权限时，Delivery Adapter 只能显示 `ADAPTER READY` / `AUTH REQUIRED`；不得声称 `CONNECTED` 或伪造 platform callback。授权后，结构化订单走确定性 Adapter / POI normalization / Policy / Delivery Workflow / FlashBot Max / status callback；不确定例外才升级给 Robot Operations Agent。
 
-## 10. Advanced Technical Observability（LOCKED / TODO）
+## 10. Advanced Technical Observability（IMPLEMENTED · P1-H）
 
 ```text
 Existing Runtime
@@ -216,7 +222,7 @@ Existing Runtime
        └── System Reality Matrix
 ```
 
-Advanced 是 read-mostly **Technical Observability & Execution Trace Inspector**，不是新 Runtime：不得独立重跑模型、Scheduler 或 Route Planner。当前代码仅有基础技术状态卡片与当前事件 JSON；目标实现改为顶部 Runtime Strip、左 62–65% Execution Trace、右 35–38% Selected Node Detail 的 Trace → Node → Inspect，不默认展平 JSON。
+Advanced 是 read-mostly **Technical Observability & Execution Trace Inspector**，不是新 Runtime：不得独立重跑模型、Scheduler 或 Route Planner。当前为顶部 Runtime Strip、左63% Execution Trace、右37% Selected Node Detail 的 Trace → Node → Inspect，不默认展平 JSON。
 
 AI Trace 固定投影 Edge Detection、Single-view Cloud VLM、Conditional Multi-view Perception Agent、Multi-view Cloud Judgment、Business Decision/Fusion、Verification 六段。Multi-view 未发生时必须明确 `NOT_TRIGGERED / EVIDENCE_ALREADY_SUFFICIENT`；发生时 Tool Trace 必须来自真实 Agent audit，并记录 `MODEL_TOOL_CALL`。每个 Node 只显示结构化 input/output summary、evidence, confidence、sufficiency、ambiguity、latency、second-review、ROI/verdict，不显示 Chain-of-Thought。
 

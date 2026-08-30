@@ -11,6 +11,7 @@ from analytics.history_seed import seed_history
 from robot_operations.repository import initialize as initialize_operations
 from robot_operations.repository import recover_interrupted_requests
 from robot_operations.routes import router as operations_router
+from observability.routes import router as observability_router
 
 
 @asynccontextmanager
@@ -41,3 +42,4 @@ app.add_middleware(
 app.mount("/demo-assets", StaticFiles(directory=Path(__file__).resolve().parents[1] / "sample_data" / "camera_events"), name="demo-assets")
 app.include_router(router)
 app.include_router(operations_router)
+app.include_router(observability_router)
