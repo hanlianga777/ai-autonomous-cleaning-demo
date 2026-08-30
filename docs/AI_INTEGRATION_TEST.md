@@ -3,6 +3,26 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO 验收计划 · 2026-08-30**
 > 本文区分已发生的真实调用、当前代码边界和未来必须达到的验收标准。固定 bbox 仍是 `CONTROLLED_EDGE_DEMO`，不是本地 REAL YOLO。
 
+## P1-C 实跑与对抗验收（2026-08-30，IMPLEMENTED · Reviewer A/E PASS）
+
+- 自动化：`python -m unittest tests.test_autonomous_multiview tests.test_perception_records tests.test_p1c_pipeline -v`：22 PASS；严格 provider schema/内部 projection、低 confidence不足优先补证、最终不足/低 confidence失败、合法二审输入隔离、两camera/两round、坏tool、Replay重跑 Coverage/Fetch、安全失败均覆盖；修改 Agent system prompt、tool schema/description 或 budget 后，旧记录不可重用。
+- 完整后端 `python -m unittest discover -s tests -q`：89 tests，86 PASS + 3 paid opt-in skipped；前端 `npm test` 17 PASS、`npm run build` PASS；`git diff --check` PASS。
+- 实际型号检查：单视角现配 `qwen-vl-max`；图像+function calling 使用 `DASHSCOPE_AGENT_MODEL=qwen3-vl-plus`。真实 image + auto-tool probe 返回工具调用，耗时 3081ms。依据[阿里云 Function Calling 官方说明](https://help.aliyun.com/zh/model-studio/qwen-function-calling)，未创建第二 provider/SDK，也未写入或暴露 API Key。
+- 旧主图真实尝试：`fc8bc25eb3` 与 `9818e95f7f` 均 single .85 / sufficient=true，未触发 Agent，Fusion .83→HUMAN_REVIEW；试 `qwen3-vl-plus` 的 `6b33734fbf` 为 .75/sufficient=true，独立二审 .75，Fusion .77→HUMAN_REVIEW。该图液体边缘清晰，不能为了 demo 强迫不足。
+- 新受控模糊版首次 `5008bfedef`：single .30/insufficient/reflection→真实 find→自选CAM-A1-02 fetch→final .85/sufficient。旧代码仍按“2额外摄像头”才计 multiview consistency，Fusion .83→HUMAN_REVIEW；随后修复为“主图+≥1合法成功fetch”，没有改权重、阈值或模型输出。
+- opt-in `RUN_P1C_LIVE_ACCEPTANCE=1 python -m unittest tests.test_p1c_live_acceptance -v`：1 PASS，23.311s。LIVE `integrated-demo02-43d9d933e5`：single .30、insufficient/reflection→find(2240ms)→模型自选CAM-A1-02 fetch(2570ms)→finish(7735ms)，1 round、final .85、Fusion .91、robot-b、verification .95→CLOSED。Replay `integrated-demo02-a53f4b66dd` 禁止 `_request_qwen` transport 仍 CLOSED，工具重新执行/新审计时间、历史 model latency、本次 model elapsed=null；不是整段录像。
+- 实际浏览器 localhost:5174→隔离后端8001：LIVE `integrated-demo02-16d3080c0e` single .30/insufficient→auto find(1912ms)/fetch CAM-A1-02(2077ms)/finish(7349ms)→final .92/Fusion .952→Omnie→verification .95→CLOSED。显式点 Advanced Stable Replay 后 `integrated-demo02-dbe74999b0` 亦 CLOSED；页面明确 REPLAY/工具重新执行、仍显示单视角/完整工具与能力派单/路线/after/Fleet终点。顶部仍主相机+空闲相机，不被补图替换。02:00 UTC 后 Console error=[]。
+- Reviewers：A Architecture/Runtime PASS（P0=0/P1=0），E Adversarial QA PASS（P0=0/P1=0）；文档复核在提交前完成。P2：模型turn保护上限与acquisitionround口径须保持清晰。上述数字都是历史真实测试结果，不是未来 Runtime 固定值。
+- 提交前 Replay key 补齐 Agent system prompt/tool schema-description/budget 后，再次实际执行 opt-in：1 PASS / 21.138s；LIVE `integrated-demo02-e5c21bbe3f` .30 insufficient→find 1930ms→fetch CAM-A1-02 2015ms→finish 7122ms→.85/Fusion .91/robot-b/verification .95/CLOSED；禁 transport Replay `integrated-demo02-df41e9b856` 亦 CLOSED。
+
+### Demo02 evidence variant 来源与编辑提示
+
+新增 `sample_data/camera_events/CAM-A1-01/event-beverage-spill-002/primary-ambiguous-v2.png`；原 `primary.png`、两张 supporting/after 保留。built-in image_gen 在原构图上增加局部半透明镜头模糊/反光，保留归一化 ROI/机位；删除原图不一致的内嵌 camera 字样，camera identity 仍来自 metadata。源码 metadata 明确 CONTROLLED EVIDENCE/生成方式/日期；不是生产摄像头故障数据、不是模型响应或检测框。仅当真实模型判不足才补证。完整编辑提示如下（此提示只用于生成受控测试图，**不传给运行中的 VLM**）：
+
+> Use case: lighting-weather / precise camera imaging edit. Image 1 is the edit target, a CONTROLLED SYNTHETIC CCTV test asset for a transparently labeled multi-view perception demo. Create ONE version of exactly this camera frame, same 4:3 aspect ratio, identical viewpoint, room geometry, floor tile lines, glass entrance, and location of the tiny yellowish patch near normalized x=.50,y=.52. Change ONLY camera optical visibility: a localized soft translucent lens smear / diffuse reflected glare across the central region makes the patch and its boundaries genuinely indistinct. It should no longer be visually possible to confidently distinguish actual liquid on the floor from a reflection or lens contamination using this single frame alone. Keep a faint ambiguous patch in its current spot, do NOT draw a clearly outlined puddle, cup, boxes or extra objects. The surrounding room and floor outside this localized hazy glare remain naturally sharp. This is an optical ambiguity TEST INPUT, NOT model output or a fake detection result. No boxes, no confidence numbers, no annotations, no model answers, no new text. Remove the existing small black timestamp/camera text strip and reconstruct background there, because camera identity/timestamp are supplied as separate factual metadata. Do not move, crop, or redesign the scene.
+
+P1-C 并不代替 P1-G：连续5次至少4次成功、四场景Repeat/完整Analytics/Operations/Advanced验收仍待后续。
+
 ## 1. 当前 AI / Runtime 事实（IMPLEMENTED）
 
 ### 2026-08-30 P1-B 浏览器与前端工程验收（IMPLEMENTED · Reviewer A/E PASS）
@@ -18,7 +38,7 @@ P1-A 已提交推送 `fcd01d4`。P1-B 本次仅前端与文档改动，不修改
 - Demo04 `integrated-demo04-6b02cb6896`：在真实 cloud-review 处理中刷新；服务访问日志证明该事件 cloud-review 只有 1 次 POST，刷新后 GET 读取 SQLite，再继续 locate/assign 至 zero-candidate HUMAN_FALLBACK。只验证同会话防重复，未声称跨新标签页幂等。
 - 浏览器发现并修复过 route Hook 等值数组引发的 maximum update depth、UTC 解析导致瞬间完成、已走路线拐点丢失；最终检查无新运行时错误。空间面板有独立错误边界，故障不清空工作台。
 
-Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。P1-C 新 Agent、P1-D 完整事件列表、P1-E/F/H 与最终多次 LIVE 稳定性尚未实施/验收。
+Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。该段为 P1-B 当时的记录；P1-C 新 Agent 当前已完成（见本文最新记录），P1-D 完整事件列表、P1-E/F/H 与最终多次 LIVE 稳定性仍未实施/验收。
 
 ### 2026-08-30 P1-A Closure 最新验收（IMPLEMENTED · Reviewer A/E PASS）
 
@@ -40,10 +60,10 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 - 最终工程命令（cwd=`backend/`）：`PYTHONPATH=tests:. .venv/bin/python -m unittest test_demo_v1 test_spatial_engine test_p1a_closure test_fleet_restart -q` → **36/36 PASS**；`.venv/bin/python -m unittest discover -s tests -q` → **Ran 63：61 PASS + 2 skipped**。2 个 skipped 是上述真实云端 opt-in 测试，不计为通过；单独实际执行为 1 PASS / 1 FAIL。`frontend/` 下 `npm run build` PASS；仓库 `git diff --check` PASS。本轮未进行浏览器交互验收，不把构建等同浏览器验收。
 
 - 云端 transport 唯一入口为 `perception.qwen._request_qwen`；密钥只在本地环境变量。
-- 当前实现的首轮 `run_event_qwen_vl` 使用 `confidence >= 0.85` 不触发独立二审、`0.50 <= confidence < 0.85` 调用 `run_targeted_event_qwen_vl`、`confidence < 0.50` 进入 `HUMAN_REVIEW`。未来新 Multi-view Runtime 必须按第 4 节先完成 Evidence Sufficiency Gate，再执行最终 confidence disposition。
+- P1-C 已先完成 Evidence Sufficiency Gate，再以最终充分证据执行 confidence disposition：`confidence >= 0.85` 不独立二审、`0.50 <= confidence < 0.85` 独立二审、`confidence < 0.50` 为 HUMAN_REVIEW。首轮不足不能被这个最终门控提前终止。
 - Fusion 为 `0.60 raw cloud + 0.20 category + 0.12 camera/location/time + 0.08 multiview`；veto 不被融合覆盖；raw next_action 不负责系统派单。
 - Cloud 只在 cloud-review，Scheduler 只在 assign，Verification 只在 verify / Demo04 人工完成后。LIVE 不可用时停止在 Human Review，无 silent replay。
-- 当前 Multi-view 是有 2 路摄像头 / 2 iteration 上限的受控 LangGraph；其触发条件是当前灰区阈值，coverage/frame/VLM 工具顺序固定，使用 controlled evidence assets。这是 IMPLEMENTED 基线，不是下一节锁定的主动视觉取证验收。
+- 历史 Multi-view 的灰区固定 LangGraph 顺序已退出主 Demo 链路；P1-C 主链路为真实自主工具获取受控证据。该历史技术路径仍保留，不代表生产 RTSP 同步。
 
 ## 2. 真实历史记录（不可当作未来成功保证）
 
@@ -66,7 +86,7 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 - **Demo03 verification（TODO）**：目标 ROI，不是整图找不同；输入原类别、bbox/ROI、before/after 全图和 ROI；机器人、人员、阴影、光照、无关变化不能单独导致失败。非目标干扰失败时独立 ROI 二审，不读取第一次答案。
 - **Demo04（本轮已真实验证一次，连续 3 次总回归属 P1-G）**：已验证 Cloud → Locate → Capability Engine zero candidate → `HUMAN_FALLBACK` → 人工完成 → after → 云端验收，不允许 Demo ID 或 Cloud 直接跳人工。
 
-## 4. 新 Multi-view Agent 验收（LOCKED / TODO）
+## 4. 新 Multi-view Agent 验收（P1-C 核心已通过；P1-G 连续5次仍 TODO）
 
 ### 通用不变量
 

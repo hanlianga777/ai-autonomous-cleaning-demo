@@ -40,6 +40,12 @@ class AiRuntime:
     qwen_ready: bool
 
 
+def get_agent_model() -> str:
+    """Explicit configurable image/tool model, separate from semantic VLM."""
+    _load_project_env()
+    return os.getenv("DASHSCOPE_AGENT_MODEL", "qwen3-vl-plus").strip() or "qwen3-vl-plus"
+
+
 def get_runtime() -> AiRuntime:
     """Resolve a truthful AI runtime without attempting any cloud call.
 

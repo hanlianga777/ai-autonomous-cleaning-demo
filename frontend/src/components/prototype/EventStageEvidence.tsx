@@ -3,6 +3,7 @@ import { customerTerm, eventCamera, type RecordValue, type TimelineEntry } from 
 import type { ActiveEvent } from "./types";
 
 const percent = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? `${Math.round(value * 100)}%` : "—";
+const sufficiency = (value: unknown) => value === true ? "充分" : value === false ? "不足" : "未记录（历史 schema）";
 const card = "mt-2 space-y-1.5 border border-slate-200 bg-slate-50 p-2 text-[11px] leading-5 text-slate-600";
 
 function CameraEvidence({ event, cameraId, after = false, detections = false }: { event: ActiveEvent; cameraId?: string; after?: boolean; detections?: boolean }) {
@@ -17,11 +18,12 @@ function CloudSummary({ event }: { event: ActiveEvent }) {
   const second = result?.second_qwen_review;
   const fusion = result?.evidence_fusion;
   if (!review) return <p className="mt-2 text-[11px] text-amber-700">尚未取得有效的云端结构化判断。</p>;
-  const times = [first?.elapsed_ms ?? review.elapsed_ms, second?.elapsed_ms].filter((t) => typeof t === "number");
+  const times = [first?.elapsed_ms ?? review.elapsed_ms, ...(result.multi_view?.model_requests ?? []).map((request: RecordValue) => request.elapsed_ms), second?.elapsed_ms].filter((t) => typeof t === "number");
   return <div className={card}>
     <p className="font-medium text-slate-800">{review.need_clean ? "需要处置" : "无需处置"} · {customerTerm(review.event_type)}</p>
     <p>污染程度：{customerTerm(review.severity)} · 地面：{customerTerm(review.surface_type)}</p>
     <p>首轮云端置信度：{percent(first?.decision_confidence ?? review.decision_confidence)}</p>
+    <p>最终语义置信度：{percent(review.decision_confidence)} · 证据{sufficiency(review.evidence_sufficient)}</p>
     {second && <p>独立复核置信度：{percent(second.decision_confidence)}</p>}
     {review.evidence_summary && <p>证据摘要：{String(review.evidence_summary)}</p>}
     {Array.isArray(review.interference_factors) && review.interference_factors.length > 0 && <p>干扰因素：{review.interference_factors.map(customerTerm).join("、")}</p>}
@@ -62,10 +64,12 @@ export function EventStageEvidence({ event, entry, mode, onCompleteManual }: { e
   switch (entry.state) {
     case "DETECTED": return <p className="mt-1 text-[11px] text-slate-500">现场证据已接收，事件已持久化。</p>;
     case "EDGE_DETECTED": return <div className={card}><CameraEvidence event={event} detections /><p>受控边缘检测证据 · 检测框与原图同坐标系；不代表本地 YOLO 实跑。</p></div>;
+    case "SINGLE_VIEW_REVIEW": return <div className={card}><p>仅主摄像头单张图像 · {percent(entry.detail.confidence)}</p><p>证据{entry.detail.evidence_sufficient ? "充分" : "不足"} · {customerTerm(entry.detail.ambiguity_type)}</p><p>{entry.detail.source === "REPLAY" ? "历史 LIVE 结构化响应（REPLAY）" : "真实单视角云端响应"}</p></div>;
     case "MULTI_VIEW": {
       const selected = result.multi_view?.selected_cameras ?? [];
-      const ids = [...new Set<string>([event.scenario.cameraId, ...selected.map((s: RecordValue) => s.camera_id)])];
-      return <div className={card}><p>已取得的多视角证据 · 主视角 + {Math.max(0, ids.length - 1)} 路补充</p>{ids.map((id) => <div key={id}><CameraEvidence event={event} cameraId={id} /><p className="text-[10px]">{id}</p></div>)}<p>已记录迭代：{result.multi_view?.iteration_count ?? "—"}</p><p>仅展示已取得的证据，不展示模型思维链。</p></div>;
+      const ids = [...new Set<string>([event.scenario.cameraId, ...selected.map((s: string | RecordValue) => typeof s === "string" ? s : s.camera_id)])];
+      const audit = result.multi_view?.audit ?? [];
+      return <div className={card}><p>模型工具调用 · {result.mode === "STABLE_REPLAY" ? "REPLAY · 工具重新执行" : "LIVE"}</p>{audit.map((call: RecordValue, index: number) => <p key={index} className="border-l-2 border-slate-300 pl-2">{call.name} {call.arguments?.camera_id ?? ""} · {call.status}{typeof call.elapsed_ms === "number" ? ` · ${call.elapsed_ms} ms` : ""}{call.reason ? ` · ${call.reason}` : ""}</p>)}<p>已取得的多视角证据 · 主视角 + {Math.max(0, ids.length - 1)} 路补充</p>{ids.map((id) => <div key={id}><CameraEvidence event={event} cameraId={id} /><p className="text-[10px]">{id}</p></div>)}<p>证据获取轮次：{result.multi_view?.iteration_count ?? "—"} / 2</p><p>最终置信度：{percent(result.multi_view?.final_confidence ?? result.multi_view?.review?.decision_confidence)} · {result.multi_view?.decision ?? "等待结果"}</p><p>使用受控证据资产，不代表生产级多摄像头同步；不展示模型思维链。</p></div>;
     }
     case "CLOUD_REVIEW": return <CloudSummary event={event} />;
     case "LOCATED": {

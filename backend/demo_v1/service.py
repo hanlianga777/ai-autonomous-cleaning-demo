@@ -12,8 +12,8 @@ from math import isfinite
 from typing import Any
 from uuid import uuid4
 
-from perception.config import get_runtime
-from perception.multiview.agent import run_multi_view_agent
+from perception.config import get_agent_model, get_runtime
+from perception.multiview.autonomous import RECOVERABLE_AMBIGUITIES, acquisition_contract, run_autonomous_acquisition
 from perception.qwen import run_event_qwen_vl, run_targeted_event_qwen_vl, run_verification_qwen_vl
 from perception.yolo import RealInferenceError
 from database.connection import (
@@ -30,8 +30,12 @@ from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
-from spatial.spatial_data import MAPS
+from spatial.spatial_data import CAMERAS, MAPS
 from demo_v1.replay import evidence_key, load_replay_bundle, save_live_bundle, validate_response
+from demo_v1.perception_records import (
+    PIPELINE_SCHEMA, RecordedToolTurns, load_perception_record,
+    save_perception_record, validate_judgment,
+)
 from workflow.fixtures import EVENT_TEMPLATES
 from workbench.service import DEMO_SCENARIOS, scenario_assets
 
@@ -68,6 +72,7 @@ def _validated_cloud_review(response: dict[str, Any]) -> dict[str, Any]:
         raise RealInferenceError("Cloud event response is missing a valid event type.")
     response = {**response, "event_type": _event_type(response["event_type"])}
     validate_response(response, "event_review")
+    validate_judgment(response)
     return response
 
 
@@ -167,7 +172,15 @@ def _fusion_score(review: dict[str, Any], evidence: list[dict[str, Any]], multi_
     categories = {str(item.get("class_name", "")).replace("疑似区域", "污渍") for item in evidence}
     category_consistency = 1.0 if len(categories) == 1 else 0.0
     camera_mapping_consistency = 1.0 if evidence else 0.0
-    multi_view_consistency = 1.0 if multi_view and len(multi_view.get("selected_cameras", [])) >= 2 else 0.0
+    # One legal supporting camera plus the primary already is multi-view.
+    # Count successful fetched evidence, never candidates or metadata alone.
+    successful_fetches = {item.get("arguments", {}).get("camera_id") for item in (multi_view or {}).get("audit", [])
+                          if item.get("name") == "fetch_camera_evidence" and item.get("status") == "OK"}
+    fetched_assets = {item.get("camera_id") for item in (multi_view or {}).get("evidence_assets", [])}
+    final_view = (multi_view or {}).get("review") or {}
+    multi_view_consistency = float(bool(successful_fetches & fetched_assets)
+                                   and final_view.get("evidence_sufficient") is True
+                                   and final_view.get("image_count", 0) >= 2)
     raw = float(review.get("decision_confidence", 0.0))
     score = 0.60 * raw + 0.20 * category_consistency + 0.12 * camera_mapping_consistency + 0.08 * multi_view_consistency
     return {"name": "Evidence Fusion Composite Disposal Score", "score": round(score, 4), "components": {"second_raw_cloud_confidence": raw, "yolo_category_consistency": category_consistency, "camera_location_time_mapping_consistency": camera_mapping_consistency, "multi_view_consistency": multi_view_consistency}, "formula": "0.60×raw_cloud + 0.20×yolo_category + 0.12×camera_mapping + 0.08×multi_view"}
@@ -275,130 +288,174 @@ def edge_review(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "DETECTED")
     manifest = stored["demo_v1"]["asset_manifest"]
-    evidence = _controlled_evidence(manifest)
+    evidence = _controlled_evidence({**manifest, "assets": [_primary_asset(stored["demo_v1"])]})
     return _save_stage(
         stored,
         "EDGE_DETECTED",
         {"source": "CONTROLLED_EDGE_DEMO", "camera_count": len({item["camera_id"] for item in evidence})},
         controlled_yolo=evidence,
-        reason="受控边缘证据已生成，等待多视角或云端综合研判。",
+        reason="主摄像头受控边缘证据已生成，等待单视角云端语义研判。",
     )
 
 
 def multi_view_review(event_id: str) -> dict[str, Any]:
-    """Run the bounded Multi-view Agent for Demo02 and persist its evidence package."""
-    stored = _load_stage_event(event_id)
-    _require_state(stored, "EDGE_DETECTED")
-    result = stored["demo_v1"]
-    if result["demo_id"] != "demo02":
-        raise ValueError("Multi-view review is available only for Demo02.")
+    """Retired manual entry: acquisition is owned by the cloud evidence gate."""
+    _load_stage_event(event_id)
+    raise ValueError("Multi-view is evidence-gated inside cloud-review, not a caller-selected stage.")
+
+
+def _cloud_images(result: dict[str, Any], selected_ids: set[str] | None = None) -> tuple[list[Path], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Never disclose supporting pixels/edge labels until legally acquired."""
     manifest = result["asset_manifest"]
-    primary = next(asset for asset in manifest["assets"] if asset["role"] == "before")
-    multi_view = run_multi_view_agent(
-        YOLO_CONFIDENCE[primary["camera_id"]], primary["camera_id"], stored["location"], "scenario02"
-    )
-    selected = multi_view.get("selected_cameras", [])
-    if len(selected) > 2:
-        raise ValueError("Multi-view Agent exceeded the approved two additional camera limit.")
+    selected_ids = selected_ids or set()
+    assets = [_primary_asset(result)] + [
+        asset for asset in manifest["assets"]
+        if asset["role"] == "evidence" and asset["camera_id"] in selected_ids
+    ]
+    filtered = {**manifest, "assets": assets}
+    evidence = _controlled_evidence(filtered)
+    return [_asset_path(asset) for asset in assets], evidence, _camera_contexts(filtered, evidence)
+
+
+def _perception_failure(stored: dict, code: str, message: str) -> dict:
     return _save_stage(
-        stored,
-        "MULTI_VIEW",
-        {"selected_cameras": selected, "iteration_count": multi_view.get("iteration_count")},
-        multi_view=multi_view,
-        reason="多视角证据包已完成，等待云端综合研判。",
+        stored, "HUMAN_REVIEW", {"reason": code},
+        error={"error_type": "PERCEPTION_ERROR", "code": code, "message": message},
+        reason=message,
+        human_work_order={"status": "OPEN", "reason": message, "source": "cloud_gate"},
     )
-
-
-def _cloud_images(result: dict[str, Any]) -> tuple[list[Path], list[dict[str, Any]], list[dict[str, Any]]]:
-    manifest = result["asset_manifest"]
-    evidence = result.get("controlled_yolo") or _controlled_evidence(manifest)
-    primary = next(asset for asset in manifest["assets"] if asset["role"] == "before")
-    qwen_images = [_asset_path(primary)]
-    if result["demo_id"] == "demo02":
-        selected_ids = {item["camera_id"] for item in (result.get("multi_view") or {}).get("selected_cameras", [])}
-        qwen_images.extend(
-            _asset_path(asset)
-            for asset in manifest["assets"]
-            if asset["role"] == "evidence" and asset["camera_id"] in selected_ids
-        )
-        if len(qwen_images) != 3:
-            raise ValueError("Demo02 cloud review requires the primary frame plus exactly two selected views.")
-    return qwen_images, evidence, _camera_contexts(manifest, evidence)
 
 
 def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, Any]:
-    """Perform the first (and, if necessary, independent second) cloud review only."""
+    """Single view → evidence acquisition → final confidence → independent review.
+
+    Only external model responses are replayable. Coverage, evidence fetch,
+    gates, Fusion and every later business stage execute for the new event.
+    """
     stored = _load_stage_event(event_id)
+    _require_state(stored, "EDGE_DETECTED")
     result = stored["demo_v1"]
-    _require_state(stored, "MULTI_VIEW" if result["demo_id"] == "demo02" else "EDGE_DETECTED")
     manifest = result["asset_manifest"]
-    qwen_images, evidence, contexts = _cloud_images(result)
+    images, evidence, contexts = _cloud_images(result)
     result["cloud_context"] = contexts
-    mode = str(result.get("mode", "LIVE"))
-    if force_unavailable:
-        return _save_stage(
-            stored, "HUMAN_REVIEW", {"reason": "simulated_cloud_unavailable"},
-            controlled_yolo=evidence,
-            reason="云端综合研判不可用；未创建机器人任务。",
-            human_work_order={"status": "OPEN", "reason": "云端综合研判不可用", "source": "cloud_review"},
-        )
+    replay = result.get("mode") == "STABLE_REPLAY"
     runtime = get_runtime()
-    if mode == "STABLE_REPLAY":
-        try:
-            key = evidence_key(qwen_images, {"evidence": evidence, "cameras": contexts}, runtime.qwen_model)
-            bundle = load_replay_bundle(stored, "event_review", key)
-        except RealInferenceError:
-            return _save_stage(
-                stored, "HUMAN_REVIEW", {"reason": "replay_record_unavailable"},
-                reason="没有可用于稳定回放的历史真实 AI 结构化记录；未创建机器人任务。",
-                human_work_order={"status": "OPEN", "reason": "稳定回放记录不可用", "source": "stable_replay"},
-            )
-        first, second = bundle["first"], bundle["second"]
-        decision_review = second or first
-    elif not runtime.qwen_ready:
-        return _save_stage(
-            stored, "HUMAN_REVIEW", {"reason": "cloud_not_configured"},
-            controlled_yolo=evidence,
-            reason="未配置云端综合研判；未创建机器人任务。",
-            human_work_order={"status": "OPEN", "reason": "未配置云端综合研判", "source": "cloud_review"},
+    if force_unavailable:
+        return _perception_failure(stored, "simulated_cloud_unavailable", "云端综合研判不可用；未创建机器人任务。")
+    if not replay and not runtime.qwen_ready:
+        return _perception_failure(stored, "cloud_not_configured", "未配置云端综合研判；未创建机器人任务。")
+
+    try:
+        # Hashing available evidence is a cache-compatibility check, not a model
+        # disclosure: the initial provider request still receives ONE image.
+        available_assets = [asset for asset in manifest["assets"] if asset["role"] in {"before", "evidence"}]
+        key = evidence_key(
+            [_asset_path(asset) for asset in available_assets],
+            {"pipeline": PIPELINE_SCHEMA, "evidence": evidence, "cameras": contexts,
+             "asset_cameras": [asset["camera_id"] for asset in available_assets],
+             "camera_coverage": CAMERAS, "agent_model": get_agent_model(), "agent_contract": acquisition_contract()},
+            runtime.qwen_model,
         )
-    else:
+        bundle = load_perception_record(stored, key) if replay else None
+        first = _validated_cloud_review(bundle["responses"]["first"] if replay else run_event_qwen_vl(images, evidence, contexts, runtime.qwen_model))
+    except RealInferenceError as error:
+        return _perception_failure(stored, "replay_record_unavailable" if replay else "cloud_error", str(error))
+
+    _save_stage(stored, "SINGLE_VIEW_REVIEW", {
+        "confidence": first["decision_confidence"], "evidence_sufficient": first["evidence_sufficient"],
+        "ambiguity_type": first["ambiguity_type"], "source": "REPLAY" if replay else "LIVE_MODEL",
+    }, first_qwen_review=first, qwen_review=first, reason="单视角研判已返回，正在检查证据充分性。")
+    final = first
+    turns = []
+    if not first["evidence_sufficient"]:
+        if first["ambiguity_type"] not in RECOVERABLE_AMBIGUITIES:
+            return _perception_failure(stored, "unrecoverable_ambiguity", "当前证据不足且无法通过额外视角缓解，转人工复核。")
         try:
-            key = evidence_key(qwen_images, {"evidence": evidence, "cameras": contexts}, runtime.qwen_model)
-            first = _validated_cloud_review(run_event_qwen_vl(qwen_images, evidence, contexts, runtime.qwen_model))
-            second = None
-            decision_review = first
-            if 0.5 <= first["decision_confidence"] < 0.85:
-                second = _validated_cloud_review(run_targeted_event_qwen_vl(qwen_images, evidence, contexts, runtime.qwen_model))
-                decision_review = second
-        except RealInferenceError as error:
-            return _save_stage(
-                stored, "HUMAN_REVIEW", {"reason": "cloud_error", "error": str(error)},
-                controlled_yolo=evidence,
-                reason=f"云端综合研判失败：{error}",
-                human_work_order={"status": "OPEN", "reason": "云端综合研判失败", "source": "cloud_review"},
-            )
-        save_live_bundle(stored, "event_review", key, {"first": first, "second": second})
+            # This is only a Coverage query hint. The dispatch location is still
+            # written exclusively by the later explicit Locate stage.
+            coverage_location = _located_position(result, first["event_type"])
+        except (CalibrationError, KeyError, TypeError, ValueError, StopIteration) as error:
+            return _save_stage(stored, "HUMAN_REVIEW", {"error_type": "SPATIAL_ERROR", "reason": str(error)},
+                               error={"error_type": "SPATIAL_ERROR", "code": "CAMERA_MAPPING_FAILED", "message": str(error)},
+                               reason="证据获取前的 Camera→SLAM 定位失败；不会派发任务。")
+        result["multi_view"] = {"audit": [], "selected_cameras": [], "decision": None, "iteration_count": 0}
+        def persist_audit(entry: dict) -> None:
+            result["multi_view"]["audit"].append(entry)
+            if entry.get("name") == "fetch_camera_evidence" and entry.get("status") == "OK":
+                result["multi_view"]["selected_cameras"].append(entry["arguments"]["camera_id"])
+            if entry.get("name") == "agent_start" and stored["state"] != "MULTI_VIEW":
+                _save_stage(stored, "MULTI_VIEW", {"source": "REPLAY" if replay else "LIVE_MODEL"},
+                            reason="证据不足，Multi-view Agent 正在调用工具获取合法补充视角。")
+            else:
+                save_event(stored)
+
+        feed = RecordedToolTurns(bundle["model_turns"]) if replay else None
+        acquired = run_autonomous_acquisition(
+            initial_review=first, primary_asset=_primary_asset(result), primary_path=images[0],
+            location=coverage_location, supporting_assets=manifest["assets"], model=get_agent_model(),
+            resolve_asset=_asset_path, on_audit=persist_audit,
+            request_turn=feed, response_source="REPLAY" if replay else "LIVE_MODEL",
+            primary_context={"cameras": contexts, "edge_evidence": evidence},
+        )
+        result["multi_view"] = {key: value for key, value in acquired.items() if key != "model_turns"}
+        turns = acquired["model_turns"]
+        result["multi_view"]["model_requests"] = [
+            {field: turn.get(field) for field in ("turn", "source", "elapsed_ms", "historical_elapsed_ms")}
+            for turn in turns
+        ]
+        final = acquired["review"]
+        if replay:
+            try:
+                feed.assert_consumed()
+            except RealInferenceError as error:
+                return _perception_failure(stored, "replay_execution_mismatch", str(error))
+            # Use archived attribution only after legal tools have re-executed.
+            saved_final = bundle["responses"]["final"]
+            if any(final.get(field) != saved_final.get(field) for field in ("need_clean", "event_type", "decision_confidence", "evidence_sufficient", "ambiguity_type")):
+                return _perception_failure(stored, "replay_execution_mismatch", "回放工具执行结果与已保存语义结果不一致。")
+            final = saved_final
+            result["multi_view"]["review"] = final
+        result["qwen_review"] = final
+        if acquired["error"] or not final["evidence_sufficient"]:
+            return _perception_failure(stored, acquired["error"] or "final_evidence_insufficient", "合法多视角证据不足或获取失败，转人工复核。")
+        images, evidence, contexts = _cloud_images(result, set(acquired["selected_cameras"]))
+        result["cloud_context"] = contexts
+    elif replay and bundle["model_turns"]:
+        return _perception_failure(stored, "replay_execution_mismatch", "充分的单视角记录不得包含额外 Agent 调用。")
+
+    second = None
+    try:
+        if final["evidence_sufficient"] and 0.50 <= final["decision_confidence"] < 0.85:
+            # Fresh independent judgment: only the legally acquired image set
+            # and factual camera/edge context, never a previous model answer.
+            second = _validated_cloud_review(bundle["responses"]["second"] if replay else run_targeted_event_qwen_vl(images, evidence, contexts, runtime.qwen_model))
+        if not replay:
+            save_perception_record(stored, key, first, final, second, turns)
+    except RealInferenceError as error:
+        return _perception_failure(stored, "cloud_error", str(error))
+    decision_review = second or final
+    result.update({"qwen_review": decision_review, "second_qwen_review": second, "controlled_yolo": evidence})
+    if result.get("multi_view"):
+        result["multi_view"].update({
+            "final_confidence": decision_review["decision_confidence"],
+            "decision": "HUMAN_REVIEW" if not decision_review["evidence_sufficient"] or decision_review["decision_confidence"] < 0.50
+            else "CONFIRM" if decision_review["need_clean"] else "REJECT",
+        })
+    if not decision_review["evidence_sufficient"] or decision_review["decision_confidence"] < 0.50:
+        return _perception_failure(stored, "final_evidence_or_confidence_gate", "最终证据不足或置信度低于 0.50；转人工复核。")
+
     fusion = _fusion_score(decision_review, evidence, result.get("multi_view"))
     profile = _task_profile(decision_review, stored["location"])
-    # Keep the canonical Phase 3 field at event root as well as the customer
-    # projection payload, so later capability evaluation never consumes UI data.
     stored["task_profile"] = profile
-    veto = not decision_review["need_clean"] or decision_review["event_type"] == "unknown" or decision_review["next_action"] == "ignore"
+    veto = not decision_review["need_clean"] or decision_review["event_type"] == "unknown"
+    updates = dict(controlled_yolo=evidence, qwen_review=decision_review, first_qwen_review=first,
+                   second_qwen_review=second, evidence_fusion=fusion, task_profile=profile)
     if veto or fusion["score"] < 0.85:
         reason = "云端综合研判未达到自动派发门控；未创建机器人任务。"
-        return _save_stage(
-            stored, "HUMAN_REVIEW", {"reason": reason, "cloud_review": decision_review, "fusion": fusion},
-            controlled_yolo=evidence, qwen_review=decision_review, first_qwen_review=first,
-            second_qwen_review=second, evidence_fusion=fusion, task_profile=profile, reason=reason,
-            human_work_order={"status": "OPEN", "reason": reason, "source": "cloud_gate"},
-        )
-    return _save_stage(
-        stored, "CLOUD_REVIEW", {"cloud_review": decision_review, "fusion": fusion},
-        controlled_yolo=evidence, qwen_review=decision_review, first_qwen_review=first,
-        second_qwen_review=second, evidence_fusion=fusion, task_profile=profile,
-        reason="云端综合研判通过，等待空间定位。",
-    )
+        return _save_stage(stored, "HUMAN_REVIEW", {"reason": reason, "cloud_review": decision_review, "fusion": fusion},
+                           **updates, reason=reason, human_work_order={"status": "OPEN", "reason": reason, "source": "cloud_gate"})
+    return _save_stage(stored, "CLOUD_REVIEW", {"cloud_review": decision_review, "fusion": fusion},
+                       **updates, reason="云端综合研判通过，等待空间定位。")
 
 
 def locate_event(event_id: str) -> dict[str, Any]:
@@ -561,8 +618,6 @@ def run_demo(demo_id: str, mode: str = "live", force_unavailable: bool = False) 
     normalized_mode = "STABLE_REPLAY" if mode.lower() in {"replay", "stable_replay"} else mode.upper()
     event_id = create_demo_event(demo_id, normalized_mode)["event_id"]
     edge_review(event_id)
-    if demo_id == "demo02":
-        multi_view_review(event_id)  # Existing bounded workflow; replaced in P1-C.
     reviewed = cloud_review(event_id, force_unavailable=force_unavailable)
     if reviewed["state"] != "CLOUD_REVIEW":
         return reviewed

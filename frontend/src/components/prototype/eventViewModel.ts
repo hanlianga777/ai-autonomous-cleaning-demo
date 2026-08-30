@@ -6,6 +6,7 @@ export type RecordValue = Record<string, any>;
 export type TimelineEntry = { state: string; label: string; timestamp?: string; detail: RecordValue; pending?: boolean };
 
 export const stateLabels: Record<string, string> = {
+  SINGLE_VIEW_REVIEW: "单视角语义与证据充分性",
   DETECTED: "发现现场事件", EDGE_DETECTED: "边缘目标识别", MULTI_VIEW: "多视角证据研判",
   CLOUD_REVIEW: "云端综合研判", LOCATED: "空间定位", ASSIGNED: "能力匹配与机器人派单",
   NAVIGATING: "机器人前往现场", ARRIVED: "机器人到达现场", CLEANING_COMPLETED: "清洁动作完成",
@@ -13,6 +14,7 @@ export const stateLabels: Record<string, string> = {
   HUMAN_REVIEW: "待人工复核",
 };
 export const displayStates: Record<string, PrototypeState> = {
+  SINGLE_VIEW_REVIEW: "CLOUD_REVIEW",
   DETECTED: "DISCOVERED", EDGE_DETECTED: "EDGE_DETECTED", MULTI_VIEW: "MULTI_VIEW",
   CLOUD_REVIEW: "CLOUD_REVIEW", LOCATED: "LOCATING", ASSIGNED: "ROBOT_ASSIGNED",
   NAVIGATING: "NAVIGATING", ARRIVED: "NAVIGATING", CLEANING_COMPLETED: "CLEANING",

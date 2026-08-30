@@ -21,14 +21,23 @@ from spatial.calibration import CalibrationError, CAMERAS
 
 def _review(event_type, confidence=.91):
     return {"provider": "test transport", "model": "qwen-vl-max", "elapsed_ms": 120,
-            "need_clean": True, "event_type": event_type, "decision_confidence": confidence,
+            "need_clean": True, "evidence_sufficient": True, "ambiguity_type": "none", "event_type": event_type, "decision_confidence": confidence,
             "severity": "medium", "surface_type": "asphalt" if event_type == "small_litter" else "tile",
-            "next_action": "dispatch_robot", "evidence_summary": "Deterministic test fixture, not real AI."}
+            "next_action": "dispatch_robot", "evidence_summary": "Deterministic test fixture, not real AI.",
+            "interference_factors": [], "recommended_capabilities": []}
 
 
 def _verification(*args, **kwargs):
     return {"provider": "test transport", "verification_pass": True, "confidence": .95,
             "next_action": "close", "elapsed_ms": 130}
+
+
+def _raw_review(event_type, confidence=.91):
+    """Provider JSON, without the internal provenance/Phase 3 projection envelope."""
+    projected = _review(event_type, confidence)
+    return {"need_action": projected["need_clean"], "confidence": confidence,
+            **{key: projected[key] for key in ("event_type", "evidence_sufficient", "ambiguity_type", "severity",
+               "surface_type", "interference_factors", "evidence_summary", "recommended_capabilities")}}
 
 
 class ClosureTests(unittest.TestCase):
@@ -93,7 +102,7 @@ class ClosureTests(unittest.TestCase):
         self.assertIsNone(replay["qwen_review"]["elapsed_ms"])
         self.assertEqual(replay["qwen_review"]["replay_event_id"], live_id)
         self.assertEqual(next(r for r in db.get_fleet_state() if r["id"] == "robot-a")["battery"], 71)
-        self.assertEqual([t["state"] for t in db.get_transitions(replay_id)], ["DETECTED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATED", "ASSIGNED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED", "VERIFYING", "CLOSED"])
+        self.assertEqual([t["state"] for t in db.get_transitions(replay_id)], ["DETECTED", "EDGE_DETECTED", "SINGLE_VIEW_REVIEW", "CLOUD_REVIEW", "LOCATED", "ASSIGNED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED", "VERIFYING", "CLOSED"])
         for call in (self.cloud, self.second, self.verify):
             call.assert_not_called()
         self.assertEqual(len(db.list_model_records(live["source_event_id"], "event_review")), 1)
@@ -126,12 +135,12 @@ class ClosureTests(unittest.TestCase):
         self.assertEqual(replay["human_work_order"]["status"], "COMPLETED")
         self.assertEqual(replay["verification"]["source"], "REPLAY")
         self.assertEqual(db.get_fleet_state(), before)
-        self.assertEqual([t["state"] for t in db.get_transitions(replay_id)], ["DETECTED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATED", "HUMAN_FALLBACK", "VERIFYING", "CLOSED"])
+        self.assertEqual([t["state"] for t in db.get_transitions(replay_id)], ["DETECTED", "EDGE_DETECTED", "SINGLE_VIEW_REVIEW", "CLOUD_REVIEW", "LOCATED", "HUMAN_FALLBACK", "VERIFYING", "CLOSED"])
 
     def test_confirmed_context_reaches_first_and_independent_review(self):
         event_id = runtime.create_demo_event("demo04")["event_id"]
         runtime.edge_review(event_id)
-        with patch.object(runtime, "run_event_qwen_vl", wraps=qwen.run_event_qwen_vl), patch.object(runtime, "run_targeted_event_qwen_vl", wraps=qwen.run_targeted_event_qwen_vl), patch.object(qwen, "_request_qwen", side_effect=[(_review("large_object", .7), 1), (_review("large_object", .95), 2)]) as transport:
+        with patch.object(runtime, "run_event_qwen_vl", wraps=qwen.run_event_qwen_vl), patch.object(runtime, "run_targeted_event_qwen_vl", wraps=qwen.run_targeted_event_qwen_vl), patch.object(qwen, "_request_qwen", side_effect=[(_raw_review("large_object", .7), 1), (_raw_review("large_object", .95), 2)]) as transport:
             reviewed = runtime.cloud_review(event_id)
         self.assertEqual(transport.call_count, 2)
         for call in transport.call_args_list:
@@ -208,8 +217,8 @@ class ClosureTests(unittest.TestCase):
 
     def test_raw_provider_bool_and_confidence_types_are_strict(self):
         for adapter in (qwen.run_event_qwen_vl, qwen.run_targeted_event_qwen_vl):
-            for change in ({"need_clean": "false"}, {"decision_confidence": True}, {"decision_confidence": float("nan")}):
-                with self.subTest(adapter=adapter.__name__, change=change), patch.object(qwen, "_request_qwen", return_value=({**_review("small_litter"), **change}, 1)):
+            for change in ({"need_action": "false"}, {"confidence": True}, {"confidence": float("nan")}):
+                with self.subTest(adapter=adapter.__name__, change=change), patch.object(qwen, "_request_qwen", return_value=({**_raw_review("small_litter"), **change}, 1)):
                     with self.assertRaises(RealInferenceError):
                         adapter([], [], [], "model")
         for change in ({"verification_pass": "false"}, {"confidence": True}, {"confidence": float("inf")}):
@@ -266,7 +275,7 @@ class ClosureTests(unittest.TestCase):
     def test_live_failure_never_automatically_loads_existing_replay(self):
         self.finish(self.reviewed())
         for configured in (True, False):
-            with self.subTest(configured=configured), patch.object(runtime, "load_replay_bundle") as replay, patch.object(runtime, "get_runtime", return_value=SimpleNamespace(qwen_ready=configured, qwen_model="qwen-vl-max")):
+            with self.subTest(configured=configured), patch.object(runtime, "load_perception_record") as replay, patch.object(runtime, "get_runtime", return_value=SimpleNamespace(qwen_ready=configured, qwen_model="qwen-vl-max")):
                 self.cloud.side_effect = RealInferenceError("provider unavailable")
                 event_id = runtime.create_demo_event("demo01")["event_id"]
                 runtime.edge_review(event_id)

@@ -3,12 +3,20 @@
 > **状态：LOCKED · 2026-08-30**
 > 新 Session 必须依次完整阅读：`PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、本文件、`AI_INTEGRATION_TEST.md`；随后检查代码、`git status`、`git log`。不要用聊天记忆补全事实。
 
+### 最新交接：P1-C IMPLEMENTED · A/E PASS
+
+P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P1-C 完成，独立提交后 **下一步 P1-D**，无需重新向用户询问授权；仍不得提前合并 main。22 项定向、86 后端 PASS + 3 opt-in skipped、前端17/build、真实 Demo02 LIVE→Replay 与浏览器均通过。后续最终五次稳定性等仍 P1-G TODO，不把本轮两次真实成功等同全部终验。
+
+关键实现：`autonomous.py` 真实 tool_choice=auto；`perception_records.py` 只回放 provider response，工具/policy仍真实跑；first single-view不足即使 confidence<0.50 也先合法补证；最终不足不能自动派发。Demo02 原图清晰未触发补证是正确行为，因此新增透明的受控模糊 variant（原图保留），不是 fixed confidence 或假 trace。model configurable，原用户 .env 未改。
+
+请先读测试事实源 P1-C 记录、检查 git log/status，再开始 D；不要回到旧 demo02 先固定多图后 Cloud 路径。P2：6 model turns 不是6取证轮次；旧技术AI Lab兼容路径/生产同步/跨标签页幂等未因本轮自动升级。影像版本与完整编辑提示记录在测试事实源。
+
 ## 当前基线与授权状态
 
 - 仓库：`ai-autonomous-cleaning-demo`；实施分支：`codex/unified-implementation`；已验收文档基线：`00bd982982c81450e41f1755a3ba95be94c25b23`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`；它不能回退为一次性 `/runs` + 前端播放。
-- 当前最新文档已锁定第一、二、三部分：Event Center、Analytics、Robot Operations Agent、外部配送边界、新 Multi-view 架构与 Advanced Technical Observability；这些是 **LOCKED/TODO，不是 IMPLEMENTED**。
-- **Unified Implementation 已明确授权。P1-A 已提交推送 `fcd01d4`。P1-B 工程验收 PASS，独立提交后按顺序进入 P1-C。** P1-B 前端 17/17、后端 64 PASS + 2 opt-in skipped、build、浏览器、A/E 均 PASS；P1-C/D/E/F/H/G 仍 LOCKED/TODO，最终产品验收未完成。
+- 当前 Event Center 产品化、Analytics、Robot Operations Agent、外部配送边界、Advanced Technical Observability 仍为 **LOCKED/TODO**；新 Multi-view 已按 P1-C **IMPLEMENTED**，不得与其它未实现目标混写。
+- **Unified Implementation 已明确授权。P1-A `fcd01d4`、P1-B `b2a1899` 已提交推送，P1-C 工程验收 PASS，独立提交后进入 P1-D。** P1-C 最新测试见页首；P1-D/E/F/H/G 仍 LOCKED/TODO，最终产品验收未完成。
 
 ### 最新交接：P1-B MapCanvas / 统一详情工程完成
 
@@ -25,7 +33,7 @@
 ## 先理解的实现事实与文档冲突
 
 1. P1-B 已将 Event Center 详情改为复用 history `EventDetailPanel`；列表/URL/完整分类仍待 P1-D。Analytics 含演示 baseline / 固定聚合；Optimization 是确定性 mock recommendation；均不可称为最终产品。
-2. 当前 Multi-view 是“灰区阈值 + 固定 coverage/frame/VLM 顺序”的受控 LangGraph 流程，且当前 Demo Runtime 可按 Demo 场景进入。它不符合新目标的 Single-view Cloud `evidence_sufficient` + `tool_choice=auto` 自主补证，不能写作完成。
+2. 主 Runtime 已完成 P1-C single-view→evidence gate→真实 model auto-tool 自主补证；旧受控 LangGraph 仅遗留技术路径，不再从主 Demo 路径进入，不可混淆两者。
 3. 旧基线的模板 locate / 演示锚点路线已由 P1-A 改为 bbox→共享 `map_pixel_to_slam()` + Fleet current map→`plan_route()`；P1-B 唯一 MapCanvas 已接入这些事实并通过浏览器验收；不再使用旧外层独立路线投影。
 4. P1-A 的共享 Fleet 已有正式名称及 product_capability / demo_configuration，主工作台外仍有旧静态 mock 文案待清理；保持内部 ID `robot-a` / `robot-b` / `robot-c` / `robot-d`。
 5. Demo04 cloud 直接人工分支已删除，当前阶段 Runtime 只允许 Capability zero candidate 产生 HUMAN_FALLBACK；用户确认 context 后，真实完整路径与 Replay 已通过。

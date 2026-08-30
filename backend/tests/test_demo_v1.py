@@ -34,7 +34,7 @@ def _review(event_type: str, confidence: float = 0.91) -> dict:
         "model": "qwen-vl-max",
         "image_count": 1,
         "elapsed_ms": 120,
-        "need_clean": True,
+        "need_clean": True, "evidence_sufficient": True, "ambiguity_type": "none",
         "event_type": event_type,
         "decision_confidence": confidence,
         "severity": "medium",
@@ -84,24 +84,14 @@ class DemoV1Tests(unittest.TestCase):
                 self.assertEqual(result["assignment_decision"]["selected_robot_id"], expected_robot)
                 self.assertEqual(result["task_profile"]["object_type"], event_type)
 
-    def test_multiview_uses_one_three_image_qwen_call_then_robot_b(self) -> None:
-        multiview = {
-            "triggered": True,
-            "selected_cameras": [{"camera_id": "CAM-A1-02"}, {"camera_id": "CAM-A1-04"}],
-            "tool_calls": [{"tool": "camera_coverage"}, {"tool": "frame_fetch"}, {"tool": "vlm"}],
-            "evidence": [],
-            "final_confidence": 0.74,
-            "decision": "HUMAN_REVIEW",
-            "iteration_count": 1,
-            "limits": {"max_additional_cameras": 2, "max_agent_iterations": 2},
-        }
-        review = _review("liquid")
-        with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_multi_view_agent", return_value=multiview), patch("demo_v1.service.run_event_qwen_vl", return_value=review) as qwen_call, patch("demo_v1.service.run_verification_qwen_vl", side_effect=_verification):
+    def test_sufficient_single_view_never_calls_agent_even_for_liquid(self) -> None:
+        with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_autonomous_acquisition") as agent, patch("demo_v1.service.run_event_qwen_vl", return_value=_review("liquid")) as cloud, patch("demo_v1.service.run_verification_qwen_vl", side_effect=_verification):
             result = run_demo("demo02")
         self.assertEqual(result["status"], "CLOSED")
         self.assertEqual(result["assignment_decision"]["selected_robot_id"], "robot-b")
-        self.assertEqual(len(qwen_call.call_args.args[0]), 3)
-        self.assertEqual(result["multi_view"]["selected_cameras"], multiview["selected_cameras"])
+        self.assertEqual(len(cloud.call_args.args[0]), 1)
+        self.assertEqual(len(cloud.call_args.args[2]), 1)
+        agent.assert_not_called()
 
     def test_large_object_keeps_human_fallback(self) -> None:
         with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_event_qwen_vl", return_value=_review("large_object")):
@@ -141,22 +131,14 @@ class DemoV1Tests(unittest.TestCase):
             verify.assert_not_called()
             self.assertEqual(verify_event(event_id)["state"], "CLOSED")
             self.assertEqual(verify.call_count, 1)
-            self.assertEqual([item["state"] for item in get_transitions(event_id)], ["DETECTED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATED", "ASSIGNED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED", "VERIFYING", "CLOSED"])
+            self.assertEqual([item["state"] for item in get_transitions(event_id)], ["DETECTED", "EDGE_DETECTED", "SINGLE_VIEW_REVIEW", "CLOUD_REVIEW", "LOCATED", "ASSIGNED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED", "VERIFYING", "CLOSED"])
 
-    def test_demo02_stage_keeps_three_views_before_cloud_and_robot_b_after_assign(self) -> None:
-        multiview = {"triggered": True, "selected_cameras": [{"camera_id": "CAM-A1-02"}, {"camera_id": "CAM-A1-04"}], "tool_calls": [], "evidence": [], "final_confidence": 0.74, "decision": "HUMAN_REVIEW", "iteration_count": 1, "limits": {"max_additional_cameras": 2, "max_agent_iterations": 2}}
-        with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_multi_view_agent", return_value=multiview), patch("demo_v1.service.run_event_qwen_vl", return_value=_review("liquid")) as cloud:
-            event_id = create_demo_event("demo02")["event_id"]
-            edge_review(event_id)
-            viewed = multi_view_review(event_id)
-            self.assertEqual(viewed["state"], "MULTI_VIEW")
-            cloud.assert_not_called()
-            reviewed = cloud_review(event_id)
-            self.assertEqual(len(cloud.call_args.args[0]), 3)
-            self.assertIsNone(reviewed["assignment_decision"])
-            locate_event(event_id)
-            assigned = assign_event(event_id)
-            self.assertEqual(assigned["assignment_decision"]["selected_robot_id"], "robot-b")
+    def test_manual_multiview_entry_cannot_bypass_single_view(self) -> None:
+        event_id = create_demo_event("demo02")["event_id"]
+        edge_review(event_id)
+        with self.assertRaisesRegex(ValueError, "evidence-gated"):
+            multi_view_review(event_id)
+        self.assertEqual(get_event(event_id)["state"], "EDGE_DETECTED")
 
     def test_cloud_unavailable_stage_stops_before_scheduler_or_verification(self) -> None:
         event_id = create_demo_event("demo01")["event_id"]

@@ -3,6 +3,16 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
+## P1-C 当前实现补充（IMPLEMENTED · A/E PASS）
+
+`perception/qwen.py`：唯一 provider transport + 严格 canonical visual schema；`perception/multiview/autonomous.py`：只读 evidence policy / model tool loop；`demo_v1/perception_records.py`：LIVE structured response + model turns 持久化/校验；`demo_v1/service.py`：阶段组合，不拥有第二套 Scheduler/Spatial。
+
+`cloud-review` 开始只传 primary image、primary edge、camera-scoped context；持久化 SINGLE_VIEW_REVIEW。可恢复不足时，先用同一 Camera→SLAM helper 计算 **Coverage 查询 hint**，不写正式定位/派单目标；Agent 用 Phase 2 coverage polygon 与 manifest evidence 白名单交集。成功工具输出与图片随后追加到 model conversation；从不预装补图。正式 LOCATED/dispatch target 仍由后续 locate stage 写入。最终充分证据再作 confidence gate，灰区二审只读本次合法图片/事实 context，不读之前模型答案。
+
+Audit 保存 UTC 时间、agent start、候选、model tool calls、selected camera/fetch、语义结果、实际 provider latency；不保存 prompt/image data URL/CoT。额外摄像头≤2、fetch rounds≤2、model turns≤6（含 query/final，不等同取证轮数）。原有 legacy LangGraph / AI Lab 技术接口仍保留，但不在主工作台新闭环上，也不声称已经全面迁移。
+
+Semantic records 使用 `p1c.visual-pipeline.v1`，绑定图像字节、camera context/coverage、模型标识、semantic/Agent system prompt、工具 schema/description、budget 与 schema；Replay 解码安全 OpenAI assistant message，再运行同一个 Agent 的 Coverage/Fetch/白名单与门控。verification records 仍按 P1-A 合约；旧不兼容记录缺失时安全失败。新 schema 不改变共享 TaskProfile、Capability、Scheduler、Dijkstra、Fleet。
+
 ## 1. 当前运行形态（IMPLEMENTED）
 
 ```text
@@ -15,22 +25,21 @@ React / Vite customer shell (/ and /prototype)
 FastAPI /api
   ├── demo_v1.service（阶段 Runtime）
   ├── perception/qwen（唯一云端 transport）
-  ├── perception/multiview（灰区、受控顺序的 LangGraph）
+  ├── perception/multiview/autonomous（证据不足时真实 model auto-tool）
   ├── spatial（地图、标定、Dijkstra global topology planner / plan_route()）
   ├── scheduling（Capability Engine + Scheduler）
   ├── analytics / optimization（演示聚合与确定性 mock recommendation）
   └── SQLite（CleaningEvent / transitions / decisions / human work orders）
 ```
 
-**实现边界**：当前 Event Center、Analytics、Optimization 与 Multi-view 的代码存在，但只代表上述现状；它们不代表 D06–D10 的 LOCKED 目标已经完成。
+**实现边界**：当前 Event Center、Analytics、Optimization 的代码存在，但只代表上述现状；它们不代表 D06–D09 的 LOCKED 目标已经完成；D10 新 Multi-view 已按 P1-C 完成。
 
 ## 2. 已实现的阶段边界（IMPLEMENTED / LOCKED）
 
 ```text
 POST create event
   → edge-review
-  → multi-view（当前：仅 Demo02 / 灰区受控流程）
-  → cloud-review（一次 Cloud / 必要时独立二审 / Fusion）
+  → cloud-review（single-view → evidence gate → optional autonomous multi-view → final confidence / independent second / Fusion）
   → locate
   → assign（Capability Engine + Scheduler）
   → start-navigation → complete-navigation → complete-cleaning
@@ -43,7 +52,7 @@ POST create event
 - `assignment_decision` 是前端行动机器人的唯一事实源。旧 `/api/demo-v1/runs/*` 已 RETIRED (410)。
 - 受控 bbox 是 `CONTROLLED_EDGE_DEMO`，不是本地权重推理；现有 operation playback 也不得称为真实机器人遥测。
 
-## 3. 锁定的清洁 Runtime（TODO）
+## 3. 锁定的清洁 Runtime（P1-A/B/C IMPLEMENTED；target-aware Verification 最终验收仍 TODO）
 
 ```text
 Fixed Camera
@@ -65,18 +74,18 @@ Fixed Camera
 
 `confidence` 与 `evidence_sufficient` 必须是不同输出，且 **Evidence Sufficiency Gate 优先于最终 confidence disposition**。Single-view `evidence_sufficient=false`、ambiguity 属于 reflection / occlusion / perspective / lens_contamination / insufficient_view 等可由额外视角缓解的问题、并存在合法 supporting cameras 时，先进入自主 Multi-view evidence acquisition；不能仅因 Single-view `confidence < 0.50` 提前 `HUMAN_REVIEW`。取得最终充分 evidence 后，才执行 `confidence >= 0.85` 不独立二审、`0.50 <= confidence < 0.85` 独立 targeted second review、`confidence < 0.50` 为 `HUMAN_REVIEW`。没有合法 supporting camera、Evidence Fetch 失败、或最多 2 rounds 后仍不充分时必须 `HUMAN_REVIEW`；最终 evidence 不充分即使 raw confidence 高也不得自动机器人处置。
 
-**CURRENT vs TARGET（P1-A IMPLEMENTED，工程验收通过）**：活跃 stage API 已用 bbox 地面代表点调用共享 `map_pixel_to_slam()`；navigation 从 SQLite Fleet 当前 map 调 Dijkstra `plan_route()`。Camera→SLAM 失败持久化 `error.error_type=SPATIAL_ERROR` 与 HUMAN_REVIEW transition，阻止后续 Scheduler/assignment/route；完整 taxonomy 仍属 P1-H。当前 Multi-view 仍是固定灰区工具序列，初轮可使用多图上下文；自主视觉取证仍属 P1-C，不宣称已经实现。
+**CURRENT vs TARGET（P1-A IMPLEMENTED，工程验收通过）**：活跃 stage API 已用 bbox 地面代表点调用共享 `map_pixel_to_slam()`；navigation 从 SQLite Fleet 当前 map 调 Dijkstra `plan_route()`。Camera→SLAM 失败持久化 `error.error_type=SPATIAL_ERROR` 与 HUMAN_REVIEW transition，阻止后续 Scheduler/assignment/route；完整 taxonomy 仍属 P1-H。P1-C 已替换活跃 Multi-view 为先单图、证据不足时真实自主取证；旧初轮多图/场景强制已删除。
 
 ### P1-A Closure 的持久化与 Replay（IMPLEMENTED · Reviewer A/E PASS）
 
 - `system_snapshots.fleet_state` 是活跃阶段 Runtime 的共享 Fleet；初始化不覆盖已有位置/电量/状态/active_event_id，事件保存独立 fleet_snapshot。底层数据库 session 每步关闭；真正重启测试另起 Python interpreter 后重读 SQLite。
-- `model_records` 保存 LIVE provider structured response bundle，而非预计算路由或整场演示。`demo_v1/replay.py` 校验 schema、image hash、model、Prompt 合约、事实 context 及关联 LIVE event；一审/二审分开保留。灰区一审缺二审的 bundle 不合法。
+- `model_records` 保存 LIVE provider structured response bundle，而非预计算路由或整场演示。P1-A `demo_v1/replay.py`（verification 继续使用，semantic 已由 P1-C `perception_records.py` 替代）校验 schema、image hash、model、Prompt 合约、事实 context 及关联 LIVE event；一审/二审分开保留。灰区一审缺二审的 bundle 不合法。
 - 显式 Stable Replay 仅替换 cloud/verification response source；Camera→SLAM、Capability、Scheduler、Dijkstra、Fleet、SQLite、任务阶段和验收门控均重新运行。Replay 缺 semantic record 时安全停止；缺 after verification record 时先保存 VERIFYING，再 HUMAN_REVIEW / VERIFICATION_ERROR。
 - 用户确认的废弃待清运事实存于主摄像头事件 metadata，以 `scene_context` 纳入 Scenario manifest；按 camera_id 匹配的 `operational_context` 进入一/二审相同事实 context，并以 `cloud_context` 持久化。模型不可读取 expected_robot/verification_mode 等预期结论；Replay key 包含该 context。事实限定本事件的两箱，不扩展到该摄像头所有未来物体。
 - Demo04 人工完成不依赖 demo_id，而要求已持久化的 `HUMAN_FALLBACK` + `candidate_count=0`；机器人/人工完成调用同一 verification workflow。真实模型 veto 仍可阻止此前路径，不得为闭环展示绕过。
 - 此处 Task Runtime 指当前 CleaningEvent/assignment/active_event_id 阶段执行；P1-F Agent Task/Action Card 尚未实现。`run_demo` 兼容入口仅委托同一 stage runtime；旧合成 `_stable_replay` 及旧持久化捷径已删除，旧 `/runs/*` 仍 410。P1-A Event/targeted 的 need_clean 与 verification 的 verification_pass 及其 confidence 必须在规范化前严格校验 JSON boolean / 非 boolean 的有限数值，禁止字符串 `"false"` 或布尔置信度转换成成功结果。 AI Lab 旧 run_qwen_vl 与非关单字段 issue_remaining 的宽松规范化尚待后续统一硬化，不属于本轮已验证范围。
 
-## 4. Multi-view Perception Agent（LOCKED / TODO）
+## 4. Multi-view Perception Agent（IMPLEMENTED / LOCKED · P1-C）
 
 ```text
 Single-view VLM

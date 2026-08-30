@@ -34,7 +34,7 @@ DEMO_SCENARIOS: dict[str, dict[str, Any]] = {
         "title": "Scenario 02 · 大堂奶茶污渍", "subtitle": "低置信度液体重污 · 多视角确认后由 Robot B 清洁",
         "template": "multiview_heavy_spill", "mock_case": "low_confidence_milk_tea_spill", "primary_camera_id": "CAM-A1-01",
         "expected_robot": "ROBOT_B", "verification_mode": "AUTONOMOUS", "location_label": "A 栋 · 1F · 主大堂",
-        "assets": [("CAM-A1-01", "primary.png", "清洁前主视角", "before"), ("CAM-A1-02", "secondary.png", "补充视角", "evidence"), ("CAM-A1-04", "secondary.png", "补充视角", "evidence"), ("CAM-A1-01", "after.png", "清洁后固定摄像头图", "after")],
+        "assets": [("CAM-A1-01", "primary-ambiguous-v2.png", "受控主视角 · 局部成像模糊", "before"), ("CAM-A1-02", "secondary.png", "补充视角", "evidence"), ("CAM-A1-04", "secondary.png", "补充视角", "evidence"), ("CAM-A1-01", "after.png", "清洁后固定摄像头图", "after")],
     },
     "event-indoor-can-003": {
         "title": "Scenario 03 · 二楼易拉罐", "subtitle": "室内地毯小型干垃圾 · Robot C 跨楼栋自主闭环",

@@ -3,6 +3,12 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文件与 `DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 是后续 Session 的唯一外部事实源。必须先读完六份文件，再读代码、`git status`、`git log`；聊天记录和旧 Prompt 不可替代事实源。
 
+## 最新工程状态：P1-C IMPLEMENTED（2026-08-30）
+
+P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成代码、22 项定向测试、完整后端 86 PASS + 3 opt-in skipped、前端 17/17 与 build、实际浏览器 LIVE/Replay、Reviewer A/E PASS。完成独立 commit 后继续 P1-D；P1-D/E/F/H/G 仍 TODO，最终用户产品验收未完成。
+
+主 Runtime 已移除按 Demo02/固定 confidence 强制 Multi-view：单图云端返回 evidence_sufficient/ambiguity，再由真实 `qwen3-vl-plus`（`DASHSCOPE_AGENT_MODEL` 可配置）以 `tool_choice=auto` 选择合法补图。单图/独立二审仍使用 `DASHSCOPE_VL_MODEL`，未改现有用户 .env。原 Demo02 图过于清晰，真实模型不触发补证；按 Unified §71 允许的 evidence 优化，新增保留原图的 `primary-ambiguous-v2.png`，仅模拟主相机局部成像模糊，明确 CONTROLLED EVIDENCE。不预设模型 confidence、need_action 或工具选择。具体实跑数值仅在测试事实源记录。
+
 ## 1. 产品目标与当前授权边界
 
 这是面向 AI 解决方案专家岗位面试的园区自主清洁 PoC：固定摄像头发现地面事件，受控边缘证据提供候选，云端模型做语义理解，确定性空间/能力/调度系统决定处置，固定摄像头 + 云端验收形成可解释闭环。
@@ -14,7 +20,7 @@
 - **AI 自主清洁运营分析中心（Analytics）**：回答“历史事件整体说明什么、下一步应如何优化”。
 - **Advanced Technical Observability / 高级模式**：回答“系统如何运行、哪些记录与能力是真实、确定性、受控证据或 PoC 模拟”。
 
-用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。P1-A 已独立提交并推送 `fcd01d4`；P1-B 代码、17 项前端测试、完整后端回归、构建、浏览器检查与 Reviewer A/E 均 PASS（工程 IMPLEMENTED），随后独立提交。P1-C/D/E/F/H/G 仍为后续任务，最终用户产品验收未被工程 PASS 替代。
+用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。P1-A 已独立提交并推送 `fcd01d4`；P1-B 代码、17 项前端测试、完整后端回归、构建、浏览器检查与 Reviewer A/E 均 PASS（工程 IMPLEMENTED），随后独立提交。P1-C 已工程完成（见上节）；P1-D/E/F/H/G 仍为后续任务，最终用户产品验收未被工程 PASS 替代。
 
 本轮已补齐版本化 AI response Replay、空间失败保护、共享 Fleet 与重启测试。用户已确认 Demo04 两纸箱是废弃待清运物品；该事实作为 event-scoped Scenario / Camera / Zone Context 传给云端，不写死输出。真实 Demo01 与 Demo04 均完成 LIVE→持久化→Replay 闭环；Demo04 人工兜底只由 Capability zero candidate 产生。旧失败保留为历史，测试证据见 `AI_INTEGRATION_TEST.md`。
 
@@ -36,9 +42,9 @@
 ## 3. 当前已实现事实（IMPLEMENTED）
 
 - React/Vite/Tailwind/shadcn、FastAPI/SQLite、6 张模拟 SLAM map、Global Spatial Graph、Camera Coverage、四点标定、Dijkstra global topology planner / `plan_route()`、Phase 3 Capability Engine + Scheduler 均存在。
-- `demo_v1` 是阶段 REST Runtime：create → edge → conditional multi-view → cloud → locate → assign → navigation → cleaning → verify；每步写入 SQLite `CleaningEvent` transition。旧 `/runs/*` 一次性入口为 410。
+- `demo_v1` 是阶段 REST Runtime：create → edge → cloud-review（single-view → evidence gate → optional multi-view → final gate）→ locate → assign → navigation → cleaning → verify；每步写入 SQLite `CleaningEvent` transition。旧 `/runs/*` 一次性入口为 410。
 - 云端调用统一经 `perception.qwen._request_qwen`；已有一次 Cloud 与独立 targeted second review/Fusion 的代码边界。`confidence >= 0.85` 不独立二审；`0.50 <= confidence < 0.85` 独立二审；`confidence < 0.50` 转 `HUMAN_REVIEW`。
-- 当前 Multi-view 是受限 LangGraph 流程：仅灰区触发、受控 evidence、固定 coverage / frame / VLM 工具顺序。它不是本轮锁定的“Single-view VLM evidence sufficiency 驱动的自主工具调用”实现。
+- P1-C 主 Runtime 已完成 evidence-sufficiency 驱动的真实 model auto-tool 自主补证；旧受控 LangGraph 仅为遗留技术路径，不能当作主工作台当前执行链路。
 - P1-B Event Center 已复用同一只读历史 `EventDetailPanel`，列表/过滤/URL 产品化仍待 P1-D。Analytics 使用结构化 Demo history + persisted event increment；Optimization 是确定性 mock recommendation；均不等于最终目标产品。
 - 当前 Advanced 是技术状态卡片 + 当前事件 JSON 的基础 shell；它不具备最终 Trace → Node → Inspect、结构化 audit、Reality Matrix 或错误分层，不得称为 Advanced Trace Inspector。
 - P1-B 的唯一 MapCanvas 使用 object-contain 内层平面，投影已存 SLAM target、Fleet 和 Dijkstra node_path；路线起点读 ASSIGNED 快照，终态位置读 Fleet 快照。连续移动是明确标识的 PoC 视觉插值，不是设备遥测。无后端路线不画假路线。
@@ -87,7 +93,7 @@ Advanced 是 **Technical Observability & Execution Trace Inspector**，面向售
 |---|---|---|
 | 定位 | P1-A bbox→共享四点映射，非法输入停止派单；P1-B 同一 MapCanvas 显示落点 | 不宣称真实生产 SLAM |
 | 路径 | P1-A Dijkstra `plan_route()` 保存 node_path/segments；P1-B 连续插值、电梯入口停留与终态路线保留 | 不宣称 A* Runtime 或真实机器人遥测 |
-| Multi-view | YOLO/受控置信度灰区会进入固定工具流程，初轮可使用三图上下文 | Evidence Sufficiency Gate 优先于最终 confidence disposition：Single-view Cloud 先判断 `evidence_sufficient` / `ambiguity_type`；可恢复不足才以 `tool_choice=auto` 自主选择 1–2 路补证，最多 2 轮；最终充分证据才进入 confidence gate |
+| Multi-view | P1-C 已实现 Single-view → evidence gate → model auto-tool，仅在成功 fetch 后追加模型选定的合法补图 | 核心顺序已完成；P1-G 连续多次 LIVE 稳定性与完整最终验收仍待执行 |
 | Demo04 | 活跃阶段 API 已删除 cloud 大件直接人工分支；确定性回归通过，最新真实 LIVE→Replay 人工闭环通过，P1-A 工程验收通过 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` →人工完成→验收 |
 | Event Center | 基础列表 + 同一 `EventDetailPanel(mode="history")` 读取事件快照，保留完整阶段 | P1-D：紧凑 archive list、URL state、完整过滤与状态分类 |
 | Analytics | 存在演示历史聚合、固定利用率/建议和基础图 | 可追溯的 KPI、Heatmap、drill-down、真实 increment、无虚构 trend / utilization |

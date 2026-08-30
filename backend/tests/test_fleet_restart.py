@@ -26,7 +26,7 @@ REVIEW = {
     "model": "test-model",
     "image_count": 1,
     "elapsed_ms": 1,
-    "need_clean": True,
+    "need_clean": True, "evidence_sufficient": True, "ambiguity_type": "none",
     "event_type": "can",
     "decision_confidence": 0.93,
     "severity": "medium",

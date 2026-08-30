@@ -38,12 +38,14 @@
 - [ ] **P1-B/P1-H P2**：同会话 request keys 的终态清理、跨标签页/后端全局幂等、网络结果不确定时的审计恢复流程；当前只读 GET 同步，绝不自动重发模型。未知模型 enum 统一中文待复核，不把未识别语义编造成肯定结论。
 - [ ] **P1-G Demo03 ROI 验收**：本轮真实模型返回“地面上仍有红色罐体未清理”，verification_pass=false 并转 HUMAN_REVIEW；具体误判/证据根因尚未核实。P1-B 如实呈现，未篡改输出。ROI/ontology/证据检查优化与重复 LIVE 稳定性仍待后续。
 
-## P1-C｜新 Multi-view Perception Agent
+## P1-C｜新 Multi-view Perception Agent（IMPLEMENTED · A/E PASS）
 
-- [ ] **Single-view Cloud schema 与 Gate 顺序**：第一次仅输入主视角、YOLO bbox/detection、必要 Camera Context；输出 `event_type`、`need_action`、`confidence`、`evidence_sufficient`、`ambiguity_type`。Evidence Sufficiency Gate 优先于最终 confidence disposition：可恢复不足先补证，最终充分 evidence 才进入 `>=0.85` / `0.50 <= confidence < 0.85` / `<0.50` 处置。
-- [ ] **Evidence acquisition Agent**：以 `tool_choice=auto` 实现 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 等价工具；当证据不足、歧义可由额外视角缓解且存在合法 camera 时，模型自主选择补证摄像头，最多 2 路、最多 2 rounds；无合法 camera、fetch 失败或最终仍不充分则 `HUMAN_REVIEW`，不允许 demo_id 或固定 confidence branch。
-- [ ] **PoC Evidence Adapter、二审与审计**：明确 controlled evidence assets，不伪称真实 RTSP 同步；持久化 Agent Start、single-view result、sufficiency、ambiguity、tool call、candidates、selected cameras、fetch、multi-view result、final decision、latency。最终 `0.50 <= confidence < 0.85` 的 independent second review 可读取合法 evidence set，但不读取上一轮模型答案或 reasoning。
-- [ ] **Demo02 真实演示**：CAM-A1-01 单视角的液体/反光歧义必须由模型自己发起 Tool Call；补充图来自 tool audit，客户只显示 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision，不显示 Chain-of-Thought。
+- [x] **Single-view Cloud schema 与 Gate 顺序**：第一次仅输入主视角、YOLO bbox/detection、必要 Camera Context；输出 `event_type`、`need_action`、`confidence`、`evidence_sufficient`、`ambiguity_type`。Evidence Sufficiency Gate 优先于最终 confidence disposition：可恢复不足先补证，最终充分 evidence 才进入 `>=0.85` / `0.50 <= confidence < 0.85` / `<0.50` 处置。
+- [x] **Evidence acquisition Agent**：以 `tool_choice=auto` 实现 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 等价工具；当证据不足、歧义可由额外视角缓解且存在合法 camera 时，模型自主选择补证摄像头，最多 2 路、最多 2 rounds；无合法 camera、fetch 失败或最终仍不充分则 `HUMAN_REVIEW`，不允许 demo_id 或固定 confidence branch。
+- [x] **PoC Evidence Adapter、二审与审计**：明确 controlled evidence assets，不伪称真实 RTSP 同步；持久化 Agent Start、single-view result、sufficiency、ambiguity、tool call、candidates、selected cameras、fetch、multi-view result、final decision、latency。最终 `0.50 <= confidence < 0.85` 的 independent second review 可读取合法 evidence set，但不读取上一轮模型答案或 reasoning。
+- [x] **Demo02 真实演示**：CAM-A1-01 单视角的液体/反光歧义必须由模型自己发起 Tool Call；补充图来自 tool audit，客户只显示 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision，不显示 Chain-of-Thought。
+
+验收：22 targeted PASS、backend 86 PASS + 3 paid opt-in skipped、frontend 17/build PASS、真实 LIVE→Replay 与浏览器闭环 PASS。影像版本、真实模型返回与完整编辑提示见测试事实源；新 `primary-ambiguous-v2.png` 为公开受控成像模糊 variant，原图保留。2 camera/2 acquisition rounds 外另设 6 model turns 保护限，不增加取证轮次。P1-G 五次稳定性仍未代替。
 
 ## P1-D｜Event Center（AI 事件处置档案中心）
 

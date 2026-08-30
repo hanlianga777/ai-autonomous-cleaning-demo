@@ -11,7 +11,7 @@ export const cameras: Record<string, Camera> = {
   },
   "CAM-A1-01": {
     id: "CAM-A1-01", location: "A栋1F大堂",
-    image: asset("CAM-A1-01", "event-beverage-spill-002", "primary.png"),
+    image: asset("CAM-A1-01", "event-beverage-spill-002", "primary-ambiguous-v2.png"),
     afterImage: asset("CAM-A1-01", "event-beverage-spill-002", "after.png"),
     overlay: [{ label: "液体污渍", confidence: 0.58, bbox: [643 / 1448, 544 / 1086, 827 / 1448, 641 / 1086] }],
   },

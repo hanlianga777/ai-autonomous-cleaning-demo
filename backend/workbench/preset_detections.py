@@ -16,6 +16,9 @@ from typing import Any
 # image-space convention.  ``source`` is retained in the API payload rather
 # than being presented as a live model response.
 _OVERLAYS: dict[tuple[str, str, str], list[dict[str, Any]]] = {
+    ("event-beverage-spill-002", "CAM-A1-01", "primary-ambiguous-v2.png"): [
+        {"label": "液体污渍", "bbox": [643, 544, 827, 641], "confidence": 0.67},
+    ],
     ("event-outdoor-tissue-001", "CAM-OUT-01", "primary.png"): [
         {"label": "地面纸巾", "bbox": [716, 675, 775, 716], "confidence": 0.94},
     ],
