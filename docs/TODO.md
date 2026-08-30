@@ -71,7 +71,7 @@
 - [x] **Campus Spatial Event Heatmap**：用 map_id/x/y/event_type/timestamp 聚合，复用 SLAM white model；实现 type/time filters、热点 drill-down、跳转 Event Center 的 location/type/time URL filter。
 - [x] **辅助分析**：事件结构、区域/时段规律、清洁机器人运营效率；FlashBot Max 不进清洁利用率排名；利用率必须由任务状态时间 ÷ 可用时间计算。
 
-- [ ] **ANALYTICS-01｜运营分析信息架构、AI运营洞察、数据统计、热力图与共享AI Chat（LOCKED TARGET；未 IMPLEMENTED）**：一级“运营分析”下必须有默认“运营洞察”和“数据统计”；洞察单屏只呈现极简 5 KPI + 固定近30天连续 Density Heat Layer，统计页为时段/利用率/类型/闭环 2×2。客户移除大标题、筛选、口径长文、Data Composition、技术 ID/evidence；raw type 必须归一聚合，待研判最多一行。热图按真实位置事实、可验证几何与五区测试渲染，Top 2–3 克制呼吸，保留只读跳转事件中心；默认 Dataset 排除开发/测试/验收/Legacy。右侧约340–380px固定 AI Area：最多三条简洁事实建议 + 与 AI-UI-01 相同的共享 Chat；无语音/Tool Audit/技术 trace，仅用户与AI消息及简洁业务任务卡。必须共享同一 Robot Operations Agent / Session / Task / Audit，禁止第二 Agent。未来报告须交付 ANALYTICS-01.1–01.28 的 Requirement→Code→Test→Screenshot/User Acceptance；缺一不得 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#analytics-01运营分析信息架构ai运营洞察数据统计热力图与共享ai-chat`。
+- [ ] **ANALYTICS-01｜运营分析信息架构、AI运营洞察、数据统计、热力图与共享AI Chat（LOCKED TARGET；未 IMPLEMENTED）**：一级“运营分析”下必须有默认“运营洞察”和“数据统计”；洞察单屏按极简 5 KPI → 最多三列横向 AI运营建议 → 固定近30天连续 Density Heat Layer，统计页为时段/利用率/类型/闭环 2×2。客户移除大标题、筛选、口径长文、Data Composition、技术 ID/evidence；raw type 必须归一聚合，待研判最多一行。热图按真实位置事实、可验证几何与五区测试渲染，Top 2–3 克制呼吸，保留只读跳转事件中心；默认 Dataset 排除开发/测试/验收/Legacy。右侧约340–380px固定 AI Area **只保留**与 AI-UI-01 相同的共享 Chat；旧右侧 Advice + Chat **SUPERSEDED BY ANALYTICS-DELTA-01**。无语音/Tool Audit/技术 trace，仅用户与AI消息及简洁业务任务卡。必须共享同一 Robot Operations Agent / Session / Task / Audit，禁止第二 Agent。未来报告须交付 ANALYTICS-01.1–01.28 和 ANALYTICS-DELTA-01 的 Requirement→Code→Test→Screenshot/User Acceptance；缺一不得 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#analytics-01运营分析信息架构ai运营洞察数据统计热力图与共享ai-chat`。
 
 验收：backend定向12/12、完整105项=102PASS+3paid opt-in skipped、前端32/32、build/diff check、实际热点→81条对应档案/Seed来源/UTC范围浏览器验收，A/E PASS。默认近30天；自定义范围按实际period返回；时段保持D07四bucket。
 
@@ -82,7 +82,7 @@
 - [x] **Agent runtime / Policy Guard / Audit**：实现白名单 Read Tools、低风险 Action Tools、代码级禁止 Write Tools、Observe/Replan/Close 与 Action Audit；不得产生 Scheduler / Dijkstra / Heatmap / RAG 等额外 Agent。
 - [x] **Task 与 Action Card**：实现 Cleaning / Delivery / Relocation Standby Task；POI 白名单；真实 backend Task ID 与 Fleet/Workbench/Agent 共享同一状态；Agent 不直接操作底盘坐标。
 - [x] **P1-F 共享 Agent / Session / 状态与真实语音边界（历史已实现事实）**：Workbench、Event Center、Analytics 共享 session / messages / audit / Page Context，语音链路为 Microphone → real ASR → transcript；只有已配置 ASR provider 才能启用麦克风，未配置时 disabled 或显示“语音服务未配置”，禁止预设文本、timer、mock transcript 或 fake animation。此前 UI Shell 的横向浮窗、仅 Header/Drag Handle 拖动和现有展开式 Tool Panel 已被 **AI-UI-01 SUPERSEDED**，不得继续视作当前目标。
-- [ ] **AI-UI-01｜Robot Operations Agent UI Shell（LOCKED TARGET；未 IMPLEMENTED）**：Workbench / Event Center 必须为默认左下、可在整个合法 viewport 内拖动且可持久化的小型圆形 AI 悬浮球，收起只留圆球，点击后弹出完整 Chat Window（身份/欢迎、历史、用户/AI 消息、明显输入、发送、状态、关闭回圆球），而非 Tool/Task Panel。Analytics 不用浮动球；固定统一右侧 AI Area 上半 Advice、下半完整 Chat，并以独立布局/滚动保证左侧长内容时进入页面的当前可视高度内仍可找到输入入口。三页继续共用同一 Agent / Session / Task / Audit / Backend State，禁止新建 Analytics / Optimization / 第二 Conversation Agent。未来报告须逐项交付 AI-UI-01.1–01.7 的代码、测试和用户验收；任一缺失不得标记 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#ai-ui-01ai-运营入口与聊天交互`。
+- [ ] **AI-UI-01｜Robot Operations Agent UI Shell（LOCKED TARGET；未 IMPLEMENTED）**：Workbench / Event Center 必须为默认左下、可在整个合法 viewport 内拖动且可持久化的小型圆形 AI 悬浮球，收起只留圆球，点击后弹出完整 Chat Window（身份/欢迎、历史、用户/AI 消息、明显输入、发送、状态、关闭回圆球），而非 Tool/Task Panel。Analytics 不用浮动球；固定右侧 AI Area **只保留**完整 Chat，左侧 KPI 后显示横向 Advice，旧右侧 Advice + Chat **SUPERSEDED BY ANALYTICS-DELTA-01**；独立布局/滚动必须保证左侧长内容时进入页面的当前可视高度内仍可找到输入入口。三页继续共用同一 Agent / Session / Task / Audit / Backend State，禁止新建 Analytics / Optimization / 第二 Conversation Agent。未来报告须逐项交付 AI-UI-01.1–01.7 的代码、测试和用户验收；任一缺失不得标记 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#ai-ui-01ai-运营入口与聊天交互`。
 - [x] **Analytics Advice**：成为 Robot Operations Agent 的只读能力，最多 3–4 Read Tool calls、3–4 条含数据依据的建议；默认 snapshot，用户点击才重新生成；不自动改变运营配置。
 - [x] **Delivery Adapter boundary**：FlashBot Max原生PoC Fleet / DeliveryTask state machine已实现；外部平台仅在合法授权后接入，未授权显示 `ADAPTER READY` / `AUTH REQUIRED`，不得伪造 webhook / callback。
 
@@ -116,6 +116,14 @@
 - [ ] **P1-H P2**：独立原生Delivery/Relocation Task Trace入口；生产级OTel/跨服务观测、身份权限、审计留存与持续安全审计。当前本地SQLite单worker，不冒称生产追踪系统。
 
 - [ ] **ADVANCED-01｜高级模式简化为技术图片讲解页（LOCKED TARGET；未 IMPLEMENTED）**：保留左侧“高级模式”、`/advanced` 和 Advanced 目录；保留 `backend/observability`、Advanced Trace API、Runtime Trace、Tool Audit、Reality Matrix、持久化/真实性审计和测试。正式面试前端删除/隐藏 Runtime Strip、Trace/Node/Tool/Reality/输入输出/证据、LIVE/Stable Replay 与动态技术数据，改为 1–2 张用户提供技术图片的大尺寸讲解页：一张居中占宽，两张上下排列，点击放大/全屏。图片当前为 PENDING USER ASSET；未提供时只做极简容器/占位，禁止自行生成/选择/用旧 Trace 截图替代。不得新增 Tabs、AI解释、摘要、动态联动、模型或 Agent。未来报告须交付 ADVANCED-01.1–01.11 的 Requirement→Code→Test→Screenshot/User Acceptance；缺一不得 IMPLEMENTED。
+
+## Interview Demo Batch 1（LOCKED TARGET；未 IMPLEMENTED）
+
+- [ ] **SHOW-BASE-01｜演示初始化与可重复运行**：双击 `start_demo.command` 自动建立 New Show Session、四 Demo 不被上次状态锁死；只重置本场，保留 Event Center/Analytics/正式 Runtime/Integration 历史；S5/Omnie/SC50/FlashBot Max 回 canonical 初始站位，同场不自动瞬移；无客户 Reset 按钮；所有终态/可终止失败释放其它 Demo。未来报告须逐项交付 `.1`–`.6` 的代码、测试和用户验收。
+- [ ] **DATA-BOUNDARY-01｜面试客户数据隔离**：全局客户读模型只含 Canonical 30-day `DEMO_HISTORY` + `INTERVIEW_RUNTIME`；TEST/ACCEPTANCE/DEV/DEBUG/LEGACY/INTEGRATION TEST 等不进入 Event Center、Analytics、Advice、Agent 客户问答或报告，且不删除工程记录、无客户数据源开关。未来报告须逐项交付 `.1`–`.5`。
+- [ ] **PRESENTATION-01｜全局客户命名与内部 ID 隔离**：全产品采用四台正式机器人、客户状态/空间语义，隐藏 internal IDs 与 PoC/Mock/Replay/Test 操作文案。未来报告须逐项交付 `.1`–`.6`。
+- [ ] **LAYOUT-01｜全局面试视口、局部滚动与信息密度**：按 `1440×900` / `1920×1080` 验收 Workbench 首屏、Event Center 双栏独立滚动、Analytics 一屏/固定 Chat 输入、正常字号、业务操作可发现与无横滚/遮挡。未来报告须逐项交付 `.1`–`.8`。
+- [ ] **DEMO-CONTRACT-01｜四大官方 Demo 合同与 E2E**：锁定 Demo01 标准闭环、Demo02 条件自主补证、Demo03 SC50 跨楼调度、Demo04 zero-candidate 人工兜底；推荐而不强制 1→2→3→4，逐项 LIVE E2E + 连续 New Show Session E2E，不能用万能动画替代真实分支。未来报告须逐项交付 `.1`–`.8`。
 
 ## 后续 Batch（不在 Unified Implementation Batch 的范围）
 

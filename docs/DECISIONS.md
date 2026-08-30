@@ -11,7 +11,7 @@
 - 最新用户确认的 AI-UI-01 优先于旧 P1-F UI Shell 表述。旧“Workbench / Event Center 共享横向长条 Floating Window、仅 Header / Drag Handle 拖动、现有展开式 Tool/Task Panel”是历史实现描述，**SUPERSEDED BY AI-UI-01**，且当前代码仍属 `IMPLEMENTATION_DIVERGENCE`；不得作为当前 LOCKED TARGET 或写成 AI-UI-01 已实现。
 - Workbench / Event Center 继续使用同一个 Robot Operations Agent，但默认入口必须是左下小型圆形/球形、可在整个浏览器可视区域合法范围内拖动并持久化的 AI 悬浮球；默认不遮挡核心内容，收起时只保留该圆球。
 - 点击圆球必须弹出完整 AI Assistant Chat Window，包含 Assistant 欢迎/身份、历史消息、用户消息、AI 回复、明显输入区、发送入口、必要状态和关闭/收起回圆球；不得把原横条 Tool/Task Panel 原地展开当作满足。
-- Analytics 不显示浮动球，右侧必须为同一个固定 AI Area：上半 AI 运营分析/运营建议，下半完整 Robot Operations Agent Chat。该右侧区域应独立布局/滚动；左侧长 Analytics 内容不得把 Chat 输入入口推到整页底部，进入页面的当前可视高度内必须能找到聊天入口。
+- Analytics 不显示浮动球。旧“右侧上半 AI运营建议、下半完整 Chat”的方案已被 **ANALYTICS-DELTA-01 SUPERSEDED**：AI运营建议在左侧 KPI 后以最多三列横向卡呈现，右侧固定 AI Area 只保留完整 Robot Operations Agent Chat。该右侧区域应独立布局/滚动；左侧长 Analytics 内容不得把 Chat 输入入口推到整页底部，进入页面的当前可视高度内必须能找到聊天入口。
 - 三页仍共享同一个 Agent、Agent Session、Task / Audit / Backend State，即“一个 Agent，两种 UI 投影”；禁止新增 Analytics Agent、Optimization Agent 或第二 Conversation Agent。完整的逐项目标、当前偏差和验收标准见 `INTERVIEW_DEMO_RECONCILIATION.md#ai-ui-01ai-运营入口与聊天交互`。
 
 ## WB-DETAIL-01｜面客事件处置详情与实时业务进度（LOCKED TARGET · 2026-08-30）
@@ -141,7 +141,7 @@
 
 ## D07｜Analytics
 
-**P1-E 历史实现 / ANALYTICS-01 当前 LOCKED TARGET**：旧 `AI Autonomous Cleaning Operations Analysis Center / AI 自主清洁运营分析中心` 大标题、三层纵向长页、客户数据来源说明、筛选栏和 Data Composition 卡 **SUPERSEDED BY ANALYTICS-01**。当前面客产品为一级“运营分析”，二级“运营洞察”（默认）与“数据统计”：运营洞察单屏以 5 KPI + 近30天 Heat Layer 为主，数据统计一屏 2×2；客户不必滚动长页才理解结果。所有 KPI 仍只能由后端 CleaningEvent / Transition 的确定性计算提供，前端和 Agent 不得 hardcode/编造。
+**P1-E 历史实现 / ANALYTICS-01 当前 LOCKED TARGET**：旧 `AI Autonomous Cleaning Operations Analysis Center / AI 自主清洁运营分析中心` 大标题、三层纵向长页、客户数据来源说明、筛选栏和 Data Composition 卡 **SUPERSEDED BY ANALYTICS-01**。当前面客产品为一级“运营分析”，二级“运营洞察”（默认）与“数据统计”：运营洞察单屏按 5 KPI → 最多三列横向 AI运营建议 → 近30天 Heat Layer 排列，右侧只保留固定共享 Chat；数据统计一屏 2×2；客户不必滚动长页才理解结果。此前右侧 Advice + Chat 布局 **SUPERSEDED BY ANALYTICS-DELTA-01**。所有 KPI 仍只能由后端 CleaningEvent / Transition 的确定性计算提供，前端和 Agent 不得 hardcode/编造。
 
 **LOCKED**：5 KPI 固定为自主闭环率、人工介入率、首次处置成功率、平均响应时间、平均闭环时间。客户卡仅名称、核心值、轻量图标；旧样本/统计口径/分子分母/责任边界文案 **SUPERSEDED BY ANALYTICS-01**，但其真实定义仍在 Backend、测试与 Advanced。自主闭环率是有效事件中“无人介入 + Robot 完成 + verification PASS + CLOSED”；人工介入率是 `HUMAN_REVIEW` 或 `HUMAN_FALLBACK` 的有效事件比例；首次处置成功率为第一次 verification PASS；平均响应为确认至实际开始；平均闭环为发现至 `CLOSED`。处理中/系统异常的 denominator 规则仍不可伪造。
 
@@ -159,7 +159,7 @@
 
 ## D09｜Agent 页面形态、Analytics Advice 与语音
 
-**P1-F 历史实现 / AI-UI-01 当前 LOCKED TARGET**：P1-F 已实现且保留的事实是唯一共享 Robot Operations Agent，以及跨页不丢失 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。其旧 UI Shell（Workbench / Event Center 横向 Floating Window、仅 Header / Drag Handle 拖动、现有展开式 Tool/Task Panel）**SUPERSEDED BY AI-UI-01**，当前实现记录为 `IMPLEMENTATION_DIVERGENCE`。AI-UI-01 要求 Workbench / Event Center 默认左下圆形可拖动 AI 悬浮球、点击后的完整 Chat Window；Analytics 不显示圆球，而是在统一固定右侧 AI Area 中展示上半 Advice 与下半完整 Chat，且聊天入口在当前可视高度内可发现。三页继续共享同一 Agent、Session、Task / Audit / Backend State，不得新建第二 Agent。
+**P1-F 历史实现 / AI-UI-01 当前 LOCKED TARGET**：P1-F 已实现且保留的事实是唯一共享 Robot Operations Agent，以及跨页不丢失 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。其旧 UI Shell（Workbench / Event Center 横向 Floating Window、仅 Header / Drag Handle 拖动、现有展开式 Tool/Task Panel）**SUPERSEDED BY AI-UI-01**，当前实现记录为 `IMPLEMENTATION_DIVERGENCE`。AI-UI-01 要求 Workbench / Event Center 默认左下圆形可拖动 AI 悬浮球、点击后的完整 Chat Window；Analytics 不显示圆球，右侧固定区只保留完整 Chat，而 AI建议位于左侧 KPI 后的横向卡。旧“右侧 Advice + Chat” **SUPERSEDED BY ANALYTICS-DELTA-01**；聊天入口在当前可视高度内可发现。三页继续共享同一 Agent、Session、Task / Audit / Backend State，不得新建第二 Agent。
 
 **P1-F runtime 基础 / ANALYTICS-01 当前 LOCKED TARGET**：Page Context 继续注入 Workbench event/fleet/map/robot/camera/stage、Event Center selected snapshot/filters、Analytics KPI/hotspot/chart；任务仍从真实后端 Task 返回。旧面客 Chat 显示 Tool Audit、request/completion/model turn/policy/raw result/Task ID，以及 disabled 麦克风/“语音服务未配置”文字，**SUPERSEDED BY ANALYTICS-01**。三页同一完整 Chat 只显示用户问题、AI回答和必要状态；任务仅显示简洁业务确认卡（正式机器人名、合法起终点、状态），技术审计在 Advanced。语音入口从当前面客 Chat 完全移除，不以 disabled 替代。
 
@@ -207,6 +207,16 @@
 
 **IMPLEMENTED backend capability retained**：Advanced API 仍只读投影 CleaningEvent transitions、Cloud requests、Agent Audit、spatial/capability/assignment/route/verification/provider/reality metadata；不得独立重跑模型、Scheduler 或 Route Planner，也不得伪造这些记录。Trace ID 关联与原生 Delivery/Relocation 的 P2 边界不变。正式 Advanced 面试页不再默认请求/展示这些数据，改为 ADVANCED-01 图片讲解容器。
 
+## D14｜Interview Demo Batch 1 全局合同（LOCKED TARGET）
+
+**SHOW-BASE-01**：双击 `start_demo.command` 的未来正式行为是建立新的 Show Session，使四个官方 Demo 可立即独立触发；只重建本场 current-event/Fleet/browser session，不删除 Event Center、Analytics、正式 Runtime 或 AI Integration 的历史。新 Session 的 S5、Omnie、SC50、FlashBot Max 分别回各自 canonical 待命点；同一 Session 内不得在 Demo 完成后自动瞬移。不得新增客户可见 Reset 按钮；任何终态或可终止失败必须释放其它 Demo 的触发能力。旧“启动仅复用持久 Fleet，只有人工 Reset 才恢复演示初态”的**启动语义**在正式 Show 场景 **SUPERSEDED BY SHOW-BASE-01**；底层显式 reset 能力和历史保留事实不删除。
+
+**DATA-BOUNDARY-01**：客户默认数据是 Canonical 30-day `DEMO_HISTORY` 与正式 `INTERVIEW_RUNTIME`；TEST、ACCEPTANCE、DEV、DEBUG、LEGACY、INTEGRATION TEST、自动化验收和开发实验均排除于 Event Center、Analytics、Advice、Agent 客户问答及客户报表，但保留在数据库/Advanced/Engineering。未来需由 Codex 建立可靠 runtime/dataset 标识；不得增加客户数据源开关。
+
+**PRESENTATION-01 / LAYOUT-01**：所有面客页统一正式机器人名、客户状态语义和客户空间名；内部 ID、PoC/Mock/Replay/Test 操作文案移至技术层。`1440×900` 与 `1920×1080` 是正式验收基准：Workbench 核心首屏可见，Event Center 列表/详情各自滚动，Analytics KPI→Advice→Heatmap 与右侧固定 Chat 均可发现，Chat 输入固定可见；普通正文主要 13–14px，禁止用大规模 9–10px 小字塞内容，也不得有异常横滚、固定层遮挡或裁剪。
+
+**DEMO-CONTRACT-01**：Demo01 是 S5 室外标准闭环；Demo02 是真实证据不足后由 Agent 自主补证（`primary-ambiguous-v2.png`，不可 demo 特判）；Demo03 是 SC50 从 B1F 经电梯/B2F/空中连廊到 A2F 的跨楼调度；Demo04 是 A2F 大件零清洁候选、FlashBot Max 不得清洁、正确 HUMAN_FALLBACK。推荐讲解顺序 1→2→3→4，但不得强制 UI 顺序。四者同一 Runtime、不同真实分支；未来逐项 LIVE E2E 与一次连续 New Show Session E2E 均为强制验收。完整逐项锁定目标见 `INTERVIEW_DEMO_RECONCILIATION.md`。
+
 ## SUPERSEDED 决策索引
 
 | 旧方案 | 新决策 |
@@ -214,13 +224,15 @@
 | YOLO low confidence → 立即 Multi-view → Cloud | Edge YOLO → Single-view Cloud VLM → Evidence Sufficiency → conditional Multi-view Agent → Multi-view Cloud |
 | 按 `demo_id == demo02` 或固定阈值进入 Multi-view | 真实模型以 `tool_choice=auto` 自主工具调用；不得泄漏测试答案 |
 | 初轮三张图同时给 Cloud 后假装主动取证 | 初轮只给主视角；补充图只能来自真实 tool call |
-| Command Bar + 独立语音入口 + Floating Assistant 三入口 | 一个 Robot Operations Agent；AI-UI-01 取代旧 Workbench/Event Center 长条浮窗：圆形可拖动入口 → 完整 Chat Window；Analytics 为统一固定右侧 Advice + Chat Area；语音只是输入模态 |
+| Command Bar + 独立语音入口 + Floating Assistant 三入口 | 一个 Robot Operations Agent；AI-UI-01 取代旧 Workbench/Event Center 长条浮窗：圆形可拖动入口 → 完整 Chat Window；Analytics 左侧 KPI 后为横向 Advice、右侧固定区只保留 Chat；语音只是输入模态 |
 | 独立 Analytics Agent | Robot Operations Agent 的运营分析能力；Analytics Engine 仍确定性 |
 | demo_id 直接给固定 location | Camera→SLAM 真实运行时定位（P1-A 代码与测试通过） |
 | demo_id 固定 navigation anchors | Scheduler current map + target map → Dijkstra global topology planner / `plan_route()`（P1-A 代码与测试通过） |
 | Demo04 cloud 阶段直接 Human Fallback | Cloud → Locate → Capability 零候选 → Human Fallback（P1-A 代码与测试通过） |
 | HUMAN_REVIEW 截断/重建时间轴 | 完整历史保留（P1-B 代码、测试与浏览器通过） |
 | CLOSED 自动复位机器人 | 终点保留，仅显式 baseline/reset 才复位（P1-A/B 代码、测试与浏览器通过） |
+| 正式演示启动仅复用上次 Fleet/current event，需客户手动重置 | **SHOW-BASE-01**：双击启动自动建立新 Show Session、复位本场演示状态但保留历史；无客户 Reset 按钮 |
+| 右侧 Advice + Chat 上下分区 | **ANALYTICS-DELTA-01**：左侧 KPI 后横向 Advice，右侧固定区只保留共享完整 Chat |
 | raw Qwen next_action 当客户系统建议 | 模型判断与系统业务决策分离 |
 | “地面纸巾”“大型纸箱”面客类目 | 其他小型垃圾 / 大件物品 |
 | 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（P1-A 代码与测试通过） |

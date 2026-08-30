@@ -5,8 +5,8 @@
 
 ## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
 
-- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01、ADVANCED-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
-- 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → affected code → implementation status）。
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01、ADVANCED-01、SHOW-BASE-01、DATA-BOUNDARY-01、PRESENTATION-01、LAYOUT-01、DEMO-CONTRACT-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement ID → Sub-item → Affected active code → Existing coverage → Implementation action → Tests → Visual acceptance → Cross-requirement regression → Status）。
 - 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
 
 ## AI-UI-01｜AI 运营入口与聊天交互
@@ -61,8 +61,8 @@
 #### AI-UI-01.3｜Analytics 固定 AI Area
 
 - Analytics 不使用 Workbench / Event Center 的悬浮球。
-- Analytics 页面右侧必须形成一个固定的统一 AI 区域：上半为“AI 运营分析 / 运营建议”，下半为完整 Robot Operations Agent 对话窗口；上下两部分属于同一个右侧 AI Area。
-- 下半部分必须是明显、完整的 AI Chat，具有清晰消息区、输入框与发送入口；Advice 与 Chat 不得有强烈割裂感。
+- 此处“右侧上半 Advice / 下半 Chat”的旧布局已被 **ANALYTICS-DELTA-01 SUPERSEDED**：AI 运营建议改为左侧 KPI 下方的横向三列主动洞察卡；右侧固定区域只保留完整 Robot Operations Agent Chat。
+- 右侧 Chat 必须是明显、完整的 AI Chat，具有清晰消息区、输入框与发送入口；建议卡与 Chat 通过同一 Agent/事实基础协作，但不得成为两套重复内容。
 - 左侧 Analytics 页面内容很长时，不得把聊天输入框推到整页底部。用户进入 Analytics 后，必须能在当前浏览器可视高度内找到 Chat 入口；右侧区域必须有自己的布局/滚动逻辑。
 
 #### AI-UI-01.4｜共享状态与禁止新增 Agent
@@ -86,7 +86,7 @@
 | AI-UI-01.2 | 悬浮球可拖至整个浏览器可视区域内的合法位置，刷新及在 Workbench / Event Center 之间切换后位置仍保留，且默认位置不遮挡核心内容。 |
 | AI-UI-01.3 | 点击悬浮球显示明显的完整 Chat Window，能看见 Assistant 身份/欢迎、历史消息、用户/AI 消息、输入框、发送按钮、状态提示和关闭/收起控制；关闭后恢复圆球。 |
 | AI-UI-01.4 | 展开窗口的视觉语义是 AI Chat，不是 Tool/Task Debug Panel、长条工具卡或系统日志；任务/Audit 投影不得取代聊天核心结构。 |
-| AI-UI-01.5 | Analytics 右侧同时包含上半 Advice 与下半完整 Chat，二者属于一个统一 AI Area；下半有清晰消息区、输入框和发送入口。 |
+| AI-UI-01.5 | 旧“右侧 Advice + Chat”已被 ANALYTICS-DELTA-01 覆盖：左侧 KPI 下为横向主动建议卡，右侧固定区只保留完整共享 Chat，输入框可见。 |
 | AI-UI-01.6 | 在左侧 Analytics 内容足够长的页面中，进入 Analytics 时右侧 Chat 入口仍在当前可视高度内；右侧自身滚动不依赖把整页滚到最底部。 |
 | AI-UI-01.7 | 三页使用同一个 Robot Operations Agent、Session、消息、Task、Audit 和后端状态；没有 Analytics / Optimization / 第二 Conversation Agent。 |
 
@@ -842,8 +842,8 @@ Event Center 是面向客户的“AI 清洁事件档案 / 工单中心”，不�
 
 #### ANALYTICS-01.9｜固定右侧 AI Area
 
-- **User Intent**：桌面面试尺寸右侧为约 `340–380px` 宽、占满当前可视高度的固定 AI 区域；上半 AI 运营建议约 35–40%，下半共享 AI Chat 约 60–65%，输入框始终可见且两部分是同一区域。
-- **Acceptance Criteria**：左侧内容再长也不会把右侧 Chat 推到页面底部；右侧有独立布局/滚动。
+- **User Intent**：此前“右侧上半 AI运营建议、下半共享 Chat”的布局已被 **ANALYTICS-DELTA-01 SUPERSEDED**。桌面面试尺寸右侧为约 `340–380px` 宽、占满当前可视高度的固定共享 AI Chat 区域；AI运营建议改在左侧 KPI 后、Heatmap 前，输入框始终可见。
+- **Acceptance Criteria**：左侧内容再长也不会把右侧 Chat 推到页面底部；右侧只保留完整共享 Chat 并有独立布局/滚动。
 
 #### ANALYTICS-01.10｜面客 AI 运营建议卡
 
@@ -946,7 +946,7 @@ Event Center 是面向客户的“AI 清洁事件档案 / 工单中心”，不�
 
 #### ANALYTICS-01.28｜用户验收与实施报告
 
-- **User Intent**：用户必须亲眼验收二级导航、运营洞察单屏 KPI+Heatmap、无大标题/筛选/技术灰字、极简 KPI、真实 Density Heat Layer、Top 呼吸、五区正确投影/不漂移、热点跳转、数据统计 2×2、唯一待研判、无 Data Composition、固定右 AI、三条简洁建议、可见 Chat 输入、统一 Chat、无语音/审计、同一 Agent/Session。
+- **User Intent**：用户必须亲眼验收二级导航、运营洞察单屏 KPI→横向三列建议→Heatmap、无大标题/筛选/技术灰字、极简 KPI、真实 Density Heat Layer、Top 呼吸、五区正确投影/不漂移、热点跳转、数据统计 2×2、唯一待研判、无 Data Composition、右侧仅固定 Chat、三条简洁建议、可见 Chat 输入、统一 Chat、无语音/审计、同一 Agent/Session。
 - **Locked Target**：用户未亲眼通过前，ANALYTICS-01 不得标记 `USER_ACCEPTED`。未来 Implementation Report 必须逐项列出 `.1`–`.28` 的 Requirement → Code → Test → Screenshot/User Acceptance；任一子项缺失不得标记 `IMPLEMENTED`。
 - **Acceptance Criteria**：报告提供全部 28 项可复核证据，并与此前/后续全部 LOCKED TARGET 一起回归。
 
@@ -1084,3 +1084,313 @@ Event Center 是面向客户的“AI 清洁事件档案 / 工单中心”，不�
 - `backend/observability/service.py`
 - `backend/observability/routes.py`
 - existing observability persistence/repository modules and Advanced Trace API tests (retain; do not remove)
+
+## SHOW-BASE-01｜演示初始化与可重复运行
+
+| Field | Value |
+| --- | --- |
+| ID | SHOW-BASE-01 |
+| Status | **LOCKED TARGET** |
+| Module | start_demo / Interview Show Session / Fleet and current-event lifecycle |
+
+### Previous Coverage and Current Implementation
+
+- 已覆盖：Fleet baseline 与显式 `/fleet/reset` 能力、终态机器人位置持久化、同一 Session 内不得自动复位，以及失败安全停止的 Runtime 基础。
+- 当前 `start_demo.command` 只验证/复用或启动 backend 与 Vite；它不创建新 Show Session、未清理前端 current event，也不把 Fleet 恢复到新的正式演示初始状态。数据库初始化还明确不会在每次启动覆盖终态 Fleet。
+- 这些历史“保留终态直到显式 reset”的启动行为与本条的新 Show Session 启动目标形成 `IMPLEMENTATION_DIVERGENCE`；保留历史档案的原则不被覆盖。
+
+### Locked Target
+
+#### SHOW-BASE-01.1｜双击启动即创建新 Show Session
+
+每次双击 `start_demo.command` 自动建立一场新的正式 Interview Demo Session。进入工作台后四个官方 Demo 都可触发，不得受上次未完成事件、current event ID、路线、事件目标、处理中状态或前端 current-event 状态占用/锁死。
+
+#### SHOW-BASE-01.2｜仅重置当前演示状态
+
+启动只清理/重建当前 Interview Show Session，**不是**删除业务历史；必须保留 Event Center 30天历史、正式 Interview Runtime 历史、Analytics 30天数据、数据库历史档案和 AI Integration Test 历史证据。
+
+#### SHOW-BASE-01.3｜机器人 Canonical 初始站位
+
+新 Session 开始时：赛特净界 S5 回园区室外标准待命点；高仙 Omnie 回 A栋标准室内待命点；蜗小白 SC50 回 B栋1F标准待命点；普渡 FlashBot Max 回既定配送待命点。精确坐标由未来实施依据现有空间事实源和路线需求决定。Demo03 每次新 Session 必须能从 B栋1F 完整经电梯、B栋2F、空中连廊到 A栋2F目标。
+
+#### SHOW-BASE-01.4｜同 Session 不自动瞬移
+
+只有新的 Show Session 开始时恢复初始站位；同一场 Session 内机器人必须跟随真实任务变化，任何单个 Demo 完成后不得把全部机器人自动瞬移回初始位。
+
+#### SHOW-BASE-01.5｜不增加手动 Reset 按钮
+
+前端不得新增“重新初始化演示 / Reset Demo / Reset Session”等客户可见备用按钮。正常流程唯一是双击 `start_demo.command` 自动初始化。
+
+#### SHOW-BASE-01.6｜终态失败释放其它 Demo
+
+任一 Demo CLOSED、HUMAN_REVIEW、FAILED、Cloud/Verification/Navigation Error 或其他可终止失败后，必须停止该事件推进、明确显示终态并释放官方 Demo 触发能力；不得因长期 NAVIGATING/PROCESSING 使四个 Demo 永久灰掉。
+
+### Acceptance Criteria
+
+未来须验证新 Show Session 的四 Demo 均可触发、四机器人初始位置正确、Demo03 由 B1F 出发；历史/Analytics 未被删除；同 Session 无自动瞬移；任一失败不锁死其它 Demo；客户页面无手动 Reset。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `start_demo.command`
+- `scripts/runtime_launcher_lib.sh`
+- `backend/database/connection.py`
+- `backend/demo_v1/service.py`
+- `backend/robot_operations/*`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/runtimeSession.ts`
+
+## DATA-BOUNDARY-01｜面试客户数据隔离
+
+| Field | Value |
+| --- | --- |
+| ID | DATA-BOUNDARY-01 |
+| Status | **LOCKED TARGET** |
+| Module | Global customer data read policy |
+
+### Previous Coverage and Current Implementation
+
+- 已覆盖：ANALYTICS-01 已要求 Analytics 只统计 Canonical 30-day DEMO_HISTORY + 合法 Interview Runtime；底层可保留历史、测试和审计数据。
+- 当前 Event Archive/Analytics read model 仍基于 archive 读取，Analytics 将非 `DEMO_HISTORY` 行概括为 Runtime；尚未以全局 policy 区分正式 Interview Runtime 与 TEST/ACCEPTANCE/DEV/DEBUG/LEGACY/Integration Test 等工程数据。这是 `SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+
+### Locked Target
+
+#### DATA-BOUNDARY-01.1｜客户可见数据范围
+
+客户默认只可见 Canonical 30-day `DEMO_HISTORY`（Analytics、Heatmap、Event Center 历史档案）和正式 `INTERVIEW_RUNTIME` 业务事件（Demo01–04 及正式 Robot Operations 合法客户事件）。
+
+#### DATA-BOUNDARY-01.2｜工程数据默认排除但保留
+
+TEST、ACCEPTANCE、DEV、DEBUG、LEGACY、INTEGRATION TEST、自动化验收、开发实验和旧异常/调试记录不得进入 Event Center 客户默认列表、Analytics KPI/Heatmap/类型统计、AI运营建议或客户趋势分析；它们可继续存在于数据库、Advanced/Engineering 能力中，禁止暴力删除历史。
+
+#### DATA-BOUNDARY-01.3｜全局 Customer Data Boundary
+
+此规则升级为全局客户数据边界，同时适用于 Event Center、Analytics、AI运营建议、Robot Operations Agent 客户数据问答和未来客户报表；不得 Analytics 已过滤而 Event Center 仍显示测试记录。
+
+#### DATA-BOUNDARY-01.4｜正式 Runtime 的可靠识别
+
+未来实施必须建立可靠的 `INTERVIEW_RUNTIME` 与测试/验收/开发 Runtime 区分方式；具体 source field、session type、runtime metadata 或 dataset policy 由 Codex 选择。
+
+#### DATA-BOUNDARY-01.5｜无客户数据源开关
+
+不得增加显示测试数据、隐藏 Legacy、数据源选择或 Debug Dataset 等客户前端开关；系统默认就必须正确隔离。
+
+### Acceptance Criteria
+
+在同库存在正式/工程数据时，所有客户页面和 Agent 数据回答只读取允许来源，Advanced/工程审计仍能保留工程数据；无客户数据源切换器。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/analytics/history_seed.py`
+- `backend/analytics/read_model.py`
+- `backend/event_archive/service.py`
+- `backend/database/connection.py`
+- `backend/robot_operations/*`
+- `frontend/src/components/prototype/EventArchiveView.tsx`
+- `frontend/src/components/prototype/AnalyticsView.tsx`
+
+## PRESENTATION-01｜全局面客语言、命名与内部 ID 隔离
+
+| Field | Value |
+| --- | --- |
+| ID | PRESENTATION-01 |
+| Status | **LOCKED TARGET** |
+| Module | Global Customer Presentation Contract |
+
+### Previous Coverage and Current Implementation
+
+- 已覆盖：部分组件已有 `customerTerm`、`eventTypeLabel`、`taskExecutorLabel` 和机器人正式名称；内部 ID 仍可在代码/数据库使用。
+- 当前客户页面/任务卡/地图/聊天仍可显示 Robot A–D、camera/event/map/task/session ID、英文状态、PoC/Mock/Replay 或技术运行文字，且不同组件自行翻译；这属于 `SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+
+### Locked Target
+
+#### PRESENTATION-01.1｜统一机器人客户名称
+
+客户统一显示 `robot-a → 赛特净界 S5`、`robot-b → 高仙 Omnie`、`robot-c → 蜗小白 SC50`、`robot-d → 普渡 FlashBot Max`；不得默认显示 Robot A/B/C/D，内部 ID 仍可保留。
+
+#### PRESENTATION-01.2｜统一客户状态语义
+
+建立 Canonical Customer State Semantics：EDGE_DETECTED→边缘识别完成；CLOUD_REVIEW→云端AI研判；HUMAN_FALLBACK→人工处置；HUMAN_REVIEW→待人工复核；CLOSED→已闭环/已完成；NAVIGATING 按语境为“机器人前往现场/行驶中”。不同页面可轻微业务化，但必须来自同一 Contract；禁止临时翻译或暴露未知内部英文状态。
+
+#### PRESENTATION-01.3｜空间名称客户化
+
+`OUTDOOR → 园区室外`、`A_1F → A栋1F`、`B_2F → B栋2F` 等；客户优先看业务位置、楼栋、楼层、区域，`map_id` 不得为主显示。
+
+#### PRESENTATION-01.4｜内部 ID 不抢占客户层
+
+普通客户首屏不突出 `robot_id`、`camera_id`、`event_id`、`zone_id`、`map_id`、`task_id`、`session_id`、`DEMO_HISTORY`、`INTERVIEW_RUNTIME` 等；它们只在 Advanced、Debug、Audit 或技术详情使用。
+
+#### PRESENTATION-01.5｜移除 PoC/Mock/Replay 操作文案
+
+普通客户业务按钮不得出现“推进 PoC 模拟”、Mock、Replay、Stable Replay、Test Action；底层机制可保留，客户动作用正常业务语义如“继续执行”。
+
+#### PRESENTATION-01.6｜全局适用范围
+
+同一 Presentation Contract 至少适用于 AI机器人调度大脑、Event Center、运营分析、Heatmap、Robot Operations Chat、任务卡、机器人资产卡、地图 Hover 和 Verification 结果；不得每个模块维护冲突翻译。
+
+### Acceptance Criteria
+
+全站客户文案/状态/空间/机器人名称一致，业务首屏不含内部 ID 或测试语义；Advanced/审计仍保留可追溯内部事实。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `frontend/src/components/prototype/eventViewModel.ts`
+- `frontend/src/components/prototype/eventArchiveModel.ts`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/SpatialDispatchView.tsx`
+- `frontend/src/components/prototype/CameraMonitorGrid.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsPanel.tsx`
+- shared robot/task/status presentation models
+
+## LAYOUT-01｜全局面试视口、局部滚动与信息密度规范
+
+| Field | Value |
+| --- | --- |
+| ID | LAYOUT-01 |
+| Status | **LOCKED TARGET** |
+| Module | Cross-page customer layout and typography |
+
+### Previous Coverage and Current Implementation
+
+- 已覆盖：部分 Workbench 72/28、Event Center history drawer、Analytics fixed-area目标及若干 responsive/browser QA；但它们不是统一面试视口/局部滚动/字体合同。
+- 当前 active components 大量采用 `text-[9px]`/`text-[10px]`，Analytics/Event Center/Chat 仍有整页流布局和潜在的输入区不可发现；这是 `SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+
+### Locked Target
+
+#### LAYOUT-01.1｜正式面试视口基准
+
+`1440×900` 与 `1920×1080` 是未来正式视觉验收基准，非唯一支持尺寸。
+
+#### LAYOUT-01.2｜AI机器人调度大脑首屏
+
+标准桌面必须快速看到三路固定摄像头、机器人/空间调度核心区域、右侧当前事件关键流程；不得由整页纵向布局把核心模块完全藏在下方。
+
+#### LAYOUT-01.3｜Event Center 局部滚动
+
+左侧 Event Work-order List 与右侧 Event Detail 各自独立滚动并同时可见；不得让右侧详情无限增长带动整页。
+
+#### LAYOUT-01.4｜Analytics 一屏故事
+
+运营洞察尽量一屏讲清，数据统计四图尽量一屏，右侧 Chat 始终处于当前可视高度；不得滚完整 Analytics 才找到输入框。
+
+#### LAYOUT-01.5｜Chat 独立滚动与固定输入
+
+消息区独立滚动，输入框固定在 Chat 底部可见，不得被历史消息、任务卡或 Agent 输出推离浏览器视口。
+
+#### LAYOUT-01.6｜禁止靠超小字塞内容
+
+面客普通正文主要 `13–14px`，核心辅助正文尽量不低于 `12px`；`10px` 以下只允许极少数低优先级标识且能不用则不用。先删信息、再布局、最后才合理适配字号，禁止大规模 `text-[9px]`/`text-[10px]`。
+
+#### LAYOUT-01.7｜业务操作可发现、技术操作退后
+
+Demo Trigger、AI 输入、Event 选择、Demo04 人工完成确认和必要 Task 操作必须在相应业务场景容易发现；Replay、Runtime Debug、Test Control、Engineering Switch 不得抢占首屏。
+
+#### LAYOUT-01.8｜无横向异常与遮挡
+
+在两个验收视口检查无异常横向 scrollbar、固定栏遮挡、AI浮窗遮挡关键按钮、右 Panel 挤压、切换跳动、图片变形或严重文字裁剪。
+
+### Acceptance Criteria
+
+未来截图/浏览器验收逐页覆盖 Workbench、Event Center、Analytics、Chat、Advanced 的上述规则；用户未亲眼验收前不得标 `USER_ACCEPTED`。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/EventArchiveView.tsx`
+- `frontend/src/components/prototype/EventDetailPanel.tsx`
+- `frontend/src/components/prototype/AnalyticsView.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsPanel.tsx`
+- `frontend/src/components/prototype/AdvancedView.tsx`
+
+## ANALYTICS-DELTA-01｜运营洞察信息架构纠偏
+
+| Field | Value |
+| --- | --- |
+| Parent | ANALYTICS-01 |
+| Status | **LOCKED TARGET · DELTA OVERRIDE** |
+
+### Delta Override
+
+此前 ANALYTICS-01 / AI-UI-01 中“右侧上半 AI运营建议、下半 Chat”的互斥布局，**SUPERSEDED BY ANALYTICS-DELTA-01**。右侧固定区只保留完整共享 Robot Operations Agent Chat；AI建议移至左侧主区域，位于 KPI 后、Heatmap 前。
+
+#### ANALYTICS-DELTA-01.1｜最终运营洞察布局
+
+左侧依次为：5 KPI → AI运营建议横向大卡 → 近30天园区垃圾/事件空间热力图；右侧固定区域为完整 AI Chat。
+
+#### ANALYTICS-DELTA-01.2｜横向 AI 建议卡
+
+默认最多三条、三列展示；每列为标题 + 一句业务发现 + 一句可执行建议。不得显示 zone_id、event_id、duration_seconds、raw evidence、related_events ID、internal resource 或 Tool JSON。
+
+#### ANALYTICS-DELTA-01.3｜主动洞察与主动提问分工
+
+横向建议卡是 AI 主动总结；右侧 Chat 是用户主动追问和机器人业务调度入口。二者不得重复成两套相同内容。
+
+#### ANALYTICS-DELTA-01.4｜右侧仅保留 Chat
+
+右侧不再显示独立 AI 建议区，只保留遵守 AI-UI-01 的同一个 Agent、同一个 Session、同一 Chat UI Contract 的 Robot Operations Agent Chat。
+
+### Acceptance Criteria
+
+运营洞察标准视口同时可见 KPI、横向三列建议与热力图主内容；右侧只有完整共享 Chat，输入框始终可见。
+
+## DEMO-CONTRACT-01｜四大官方 Demo 定位、差异化能力与端到端验收
+
+| Field | Value |
+| --- | --- |
+| ID | DEMO-CONTRACT-01 |
+| Status | **LOCKED TARGET** |
+| Module | Official Demo story, shared Runtime and acceptance |
+
+### Previous Coverage and Current Implementation
+
+- 已覆盖：四 Demo 共用 CleaningEvent、State Machine、Fleet、Spatial、AI Backend、Verification、Archive、Analytics；Demo02 的真实证据充分性 Agent、Demo03 Dijkstra 跨楼、Demo04 zero-candidate Human Fallback 的 Runtime 基础已存在。
+- 当前启动/持久化状态仍会影响后续 Demo，部分历史名/资产/任务投影保留 Robot A–D/PoC 语义；尚未把“每个 Demo 的面试卖点”“新 Show Session 连续序列验收”作为统一合同。这是 `SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。
+
+### Locked Target
+
+#### DEMO-CONTRACT-01.1｜Demo01：标准 AI 自主清洁闭环
+
+园区室外小型垃圾：固定摄像头发现 → 边缘识别 → 单视角云端确认 → Camera→SLAM/空间定位 → Capability + Scheduler → 赛特净界 S5 → 室外道路导航 → 清洁 → fixed-camera after → AI Verification → CLOSED。它是开场案例，应简单稳定、约30秒让面试官理解端到端系统；不得强制 Multi-view 或人为增加复杂能力。
+
+#### DEMO-CONTRACT-01.2｜Demo02：Multi-view Agent 自主补证
+
+A栋1F液体污渍/反光歧义：Primary Edge → Single-view Cloud VLM → evidence insufficient → Agent 自主找合法 supporting camera（最多两路）→ supporting evidence → Multi-view Cloud VLM → 确认需处置 → 高仙 Omnie → 清洁 → after → AI Verification → CLOSED。唯一卖点是单视角不足时自主找补证，不是 confidence threshold；继续用 `primary-ambiguous-v2.png`，LIVE 必须来自真实 Single-view VLM + Evidence Sufficiency Gate，禁止 demo_id 强制调用。
+
+#### DEMO-CONTRACT-01.3｜Demo03：跨楼空间调度
+
+A栋2F易拉罐；新 Show Session 的蜗小白 SC50 从 B栋1F起点出发，经 Camera→SLAM、Capability、Global Route、B栋电梯、B栋2F、空中连廊、A栋2F、目标点、清洁、Verification 到 CLOSED。卖点是复杂空间调度，地图是视觉重点；不得为 AI 感强制 Multi-view，路线必须符合 WB-MAP-01，禁止穿墙/穿楼/直线飞跃/道路漂移。
+
+#### DEMO-CONTRACT-01.4｜Demo04：能力边界与人工兜底
+
+A栋2F大件废弃纸箱：Camera Event → Cloud 需处置 → Spatial → Capability Engine → Cleaning Candidate Count=0 → HUMAN_FALLBACK → 人工搬运完成 → fixed-camera after → AI Verification → CLOSED/HUMAN_REVIEW。卖点是系统知道能力边界；普渡 FlashBot Max 虽属 Fleet 但为配送机器人，绝不可因“有机器人”被选去清理纸箱。
+
+#### DEMO-CONTRACT-01.5｜推荐讲解顺序而非强制流程
+
+推荐叙事为 Demo01（自动闭环）→ Demo02（看不清会找证据）→ Demo03（跨楼调度）→ Demo04（正确转人工）。这只是 Recommended Interview Narrative；四 Demo 仍必须允许用户独立触发，禁止前端强制 1→2→3→4。
+
+#### DEMO-CONTRACT-01.6｜共享系统、不共享万能动画
+
+四 Demo 共享同一系统事实，但业务分支必须真实不同；禁止只换图片/标题却播放同一万能前端动画。
+
+#### DEMO-CONTRACT-01.7｜单独 LIVE 端到端验收
+
+未来逐个运行 Demo01–04 LIVE，并核对 Backend State、Workbench、Camera Monitor、Event Detail、Spatial Map、Robot State、Event Center、Analytics Increment、Verification 是否来自同一个业务事实。
+
+#### DEMO-CONTRACT-01.8｜连续面试 Session 验收
+
+除单项外必须验收 `NEW SHOW SESSION → Demo01 → Demo02 → Demo03 → Demo04`；前一 Demo 的 robot position、current event、route、camera、Agent state、browser state 不得错误污染后一 Demo。这是 Mandatory Interview Sequence Acceptance。
+
+### Acceptance Criteria
+
+Implementation Report 对每个 Demo 分别证明独特卖点、真实分支、独立 LIVE 端到端事实及一次完整连续 Session；用户未视觉验收前不得 `USER_ACCEPTED`。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/demo_v1/service.py`
+- `backend/perception/multiview/autonomous.py`
+- `backend/scheduling/capability_engine.py`
+- `backend/spatial/*`
+- `backend/database/connection.py`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/EventDetailPanel.tsx`
+- `frontend/src/components/prototype/SpatialDispatchView.tsx`
+- `frontend/src/components/prototype/CameraMonitorGrid.tsx`

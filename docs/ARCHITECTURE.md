@@ -207,10 +207,10 @@ User text / future ASR transcript
 Shared AgentSession / Message / ActionAudit / Task context
   ├── Workbench: AI-UI-01 圆形拖动入口 → 完整弹出式 Chat + live context
   ├── Event Center: 同一圆形入口 → 完整弹出式 Chat + selected event context
-  └── Analytics: 固定统一右侧 Advice + 完整 Chat Area + KPI/hotspot/chart context
+  └── Analytics: 左侧 KPI → 横向 Advice → Heatmap；固定右侧完整 Chat + KPI/hotspot/chart context
 ```
 
-AI-UI-01 / ANALYTICS-01 锁定：Workbench / Event Center 的默认收起入口是左下小型圆形/球形 AI 悬浮球，可在整个浏览器可视区域的合法位置拖动并持久化，且默认不遮挡核心内容；点击后弹出完整 Chat Window，并可关闭/收起回圆球。旧“共享横向 Floating Window、仅 Header / Drag Handle 拖动、展开式 Tool/Task Panel”**SUPERSEDED BY AI-UI-01**，当前代码是 `IMPLEMENTATION_DIVERGENCE`。Analytics 仅显示约340–380px、占当前可视高度的固定统一右侧 AI Area：上半最多三条简洁事实建议、下半完整 Chat，独立布局/滚动必须保证输入入口始终可见。三页仍为一个 Agent、一个 Agent Session、同一 Task / Audit / Backend State；不得新建 Analytics / Optimization / 第二 Conversation Agent。正常面客 Chat 统一只显示用户/AI消息、状态与简洁业务任务卡；Audit/trace/Task ID 进 Advanced。旧 disabled 麦克风及“语音服务未配置”文字 **SUPERSEDED BY ANALYTICS-01**：当前面客 Chat 只保留文本输入与发送。
+AI-UI-01 / ANALYTICS-01 锁定：Workbench / Event Center 的默认收起入口是左下小型圆形/球形 AI 悬浮球，可在整个浏览器可视区域的合法位置拖动并持久化，且默认不遮挡核心内容；点击后弹出完整 Chat Window，并可关闭/收起回圆球。旧“共享横向 Floating Window、仅 Header / Drag Handle 拖动、展开式 Tool/Task Panel”**SUPERSEDED BY AI-UI-01**，当前代码是 `IMPLEMENTATION_DIVERGENCE`。Analytics 右侧仅显示约340–380px、占当前可视高度的固定完整 Chat；AI运营建议在左侧 KPI 后、Heatmap 前横向最多三列显示。此前右侧 Advice + Chat 布局 **SUPERSEDED BY ANALYTICS-DELTA-01**；右侧独立布局/滚动必须保证输入入口始终可见。三页仍为一个 Agent、一个 Agent Session、同一 Task / Audit / Backend State；不得新建 Analytics / Optimization / 第二 Conversation Agent。正常面客 Chat 统一只显示用户/AI消息、状态与简洁业务任务卡；Audit/trace/Task ID 进 Advanced。旧 disabled 麦克风及“语音服务未配置”文字 **SUPERSEDED BY ANALYTICS-01**：当前面客 Chat 只保留文本输入与发送。
 
 ## 9. External Delivery Adapter（registry IMPLEMENTED；真实授权/回调 TODO）
 
@@ -239,6 +239,16 @@ AI Trace 继续持久化/可审计 Edge Detection、Single-view Cloud VLM、Cond
 
 Reality Source Metadata、System Reality Matrix、Current PoC Boundaries、adapter replacement points 和独立 Trace ID 继续是可审计数据，绝不能由前端手改/伪造或泄露密钥、token、authorization header、环境变量。它们与 runtime/model/tool/node/evidence 数据均不在正式 Advanced 面试页默认显示。未来页面只保留用户确认的 1–2 张图片：一图居中占宽、两图上下、点击放大；图片尚为 PENDING USER ASSET，不得生成或擅自选用。
 
-## 11. 不进入本轮与不允许的实现
+## 11. Interview Demo Batch 1（LOCKED TARGET；未实施）
 
-Unified Implementation 已授权前后端、测试与文档变更，但仍禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 或 Advanced 改基础设施配置。Batch C / Part 3 由后续 P1-H 承载，不提前混入 P1-A/P1-B。
+**Show Session**：当前 `start_demo.command` 只启动/reuse 服务，SQLite Fleet 初始化保留终态；这与 SHOW-BASE-01 的未来“每次双击自动建立新 Show Session”不同，属 `IMPLEMENTATION_DIVERGENCE`。未来只重置本场 current-event/Fleet/browser state，保留历史档案、30天数据与集成证据；S5/Omnie/SC50/FlashBot Max 回 canonical 待命点，同场不自动瞬移，且不新增客户 Reset。终态/可终止错误必须释放其它官方 Demo。
+
+**Customer data and presentation**：DATA-BOUNDARY-01 要求所有客户读模型统一只读 Canonical 30-day `DEMO_HISTORY` 与正式 `INTERVIEW_RUNTIME`，排除 TEST/ACCEPTANCE/DEV/DEBUG/LEGACY/Integration Test，保留工程数据。PRESENTATION-01 要求统一正式机器人、状态与空间名称，隐藏内部 ID 与 PoC/Mock/Replay/Test 操作文案。当前 archive/read-model 的 Runtime 分类不足以保证该全局边界，属 `IMPLEMENTATION_DIVERGENCE`。
+
+**Viewport and Analytics Delta**：LAYOUT-01 以 `1440×900` / `1920×1080` 为验收视口，要求 Workbench 首屏、Event Center 局部滚动、Analytics 一屏故事、固定 Chat 输入、正常字号和无横滚/遮挡。Analytics 的当前右侧 Advice + Chat 结构 **SUPERSEDED BY ANALYTICS-DELTA-01**；目标为左侧 KPI → 最多三列横向 Advice → Heatmap，右侧仅完整共享 Chat。
+
+**Official Demo contract**：DEMO-CONTRACT-01 锁定四条真实差异化分支：Demo01 S5 室外闭环、Demo02 真实 Agent 条件补证、Demo03 SC50 B1F→电梯→B2F→连廊→A2F 跨楼调度、Demo04 zero-candidate HUMAN_FALLBACK 且 FlashBot Max 不清洁。每条和连续新 Show Session 均须做 LIVE E2E；不得用 demo 专用万能前端动画替代 Runtime。
+
+## 12. 不进入本轮与不允许的实现
+
+本轮仅完成 Docs-only reconciliation，不授权前后端、测试或 Runtime 变更。未来 `UNIFIED INTERVIEW DEMO RECOVERY` 在用户明确授权后才可实施；仍禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 或 Advanced 改基础设施配置。
