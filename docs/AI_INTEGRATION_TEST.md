@@ -3,6 +3,15 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO 验收计划 · 2026-08-30**
 > 本文区分已发生的真实调用、当前代码边界和未来必须达到的验收标准。固定 bbox 仍是 `CONTROLLED_EDGE_DEMO`，不是本地 REAL YOLO。
 
+## P1-D 档案验收（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+- Backend `tests.test_event_archive` 7/7：正常 Human Fallback、人工闭环非自主闭环、语义复核/系统错误区分、自主闭环要求 robot+verification、发现时间/分页/搜索/UTC/分类计数、非法筛选、历史不读当前 Fleet 且不写 event/transitions。
+- 完整后端 96 项：93 PASS + 3 paid opt-in skipped。本阶段不改变 P1-C 模型算法或重跑付费测试；保留之前真实 LIVE 证据。
+- 浏览器使用隔离 QA SQLite 中真实 P1-C LIVE `integrated-demo02-16d3080c0e` 与 Replay `integrated-demo02-dbe74999b0`：档案首访未选中、点击/刷新 URL 恢复同一事件、完整 history 时间线、无自动滚动/模型 POST、当前 Fleet 不覆盖历史。缺失 ID 明确报错；错误日期 API 返回 422；右详情固定44%并内部滚动。
+- 浏览器新增 `integrated-demo03-545dc25681`（仅 DETECTED）后出现“有1条新事件”，已选LIVE详情/URL不变，未运行新模型或调度。
+- 额外接口诊断事件 `integrated-demo01-3c39fda3b8` 显式 simulate_unavailable，验证系统异常分类，不宣称真实云端成功。待处理诊断 `integrated-demo04-6154b901d7` 仅创建 DETECTED，未冒充 Human Fallback 或 CLOSED。
+- A 的事件切换 ID 错配 P1 已用 identity guard 修复；列表 in-flight guard、UTC筛选、分页新条目计数、可访问标签纳入回归。前端档案7/7、全量24/24、production build与diff check PASS。Reviewer A/E 最终PASS，P0/P1=0；D审查P2类型/分页/可访问标签也已修复，不新增未解决D核心问题。
+
 ## P1-C 实跑与对抗验收（2026-08-30，IMPLEMENTED · Reviewer A/E PASS）
 
 - 自动化：`python -m unittest tests.test_autonomous_multiview tests.test_perception_records tests.test_p1c_pipeline -v`：22 PASS；严格 provider schema/内部 projection、低 confidence不足优先补证、最终不足/低 confidence失败、合法二审输入隔离、两camera/两round、坏tool、Replay重跑 Coverage/Fetch、安全失败均覆盖；修改 Agent system prompt、tool schema/description 或 budget 后，旧记录不可重用。
@@ -38,7 +47,7 @@ P1-A 已提交推送 `fcd01d4`。P1-B 本次仅前端与文档改动，不修改
 - Demo04 `integrated-demo04-6b02cb6896`：在真实 cloud-review 处理中刷新；服务访问日志证明该事件 cloud-review 只有 1 次 POST，刷新后 GET 读取 SQLite，再继续 locate/assign 至 zero-candidate HUMAN_FALLBACK。只验证同会话防重复，未声称跨新标签页幂等。
 - 浏览器发现并修复过 route Hook 等值数组引发的 maximum update depth、UTC 解析导致瞬间完成、已走路线拐点丢失；最终检查无新运行时错误。空间面板有独立错误边界，故障不清空工作台。
 
-Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。该段为 P1-B 当时的记录；P1-C 新 Agent 当前已完成（见本文最新记录），P1-D 完整事件列表、P1-E/F/H 与最终多次 LIVE 稳定性仍未实施/验收。
+Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。该段为 P1-B 当时的记录；P1-C 新 Agent 当前已完成（见本文最新记录），P1-D 完整事件列表已实现；P1-E/F/H 与最终多次 LIVE 稳定性仍未实施/验收。
 
 ### 2026-08-30 P1-A Closure 最新验收（IMPLEMENTED · Reviewer A/E PASS）
 
@@ -76,7 +85,7 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 | 同上 | Demo04 | cloud large_object 后人工完成、验收 `.98`，CLOSED；但 cloud 直接人工分支已被新的 LOCKED 目标替代 |
 | 同上 | cloud unavailable | `HUMAN_REVIEW`，无 assignment/verification |
 
-这些结果证明 transport、阶段边界和部分真实调用存在；不证明本地 YOLO、生产多机位同步、真实机器人遥测、MapCanvas、Camera→SLAM Runtime、Dijkstra Runtime、Demo03 ROI 验收、Stable Replay、Event Center/Analytics 目标产品或 Robot Operations Agent 已完成。
+**本段为 Unified 之前历史证据的范围说明，并非当前实现状态；A/B/C/D 的新增完成证据见本文页首。** 这些历史结果单独只证明 transport、阶段边界和部分真实调用存在；不证明本地 YOLO、生产多机位同步、真实机器人遥测、MapCanvas、Camera→SLAM Runtime、Dijkstra Runtime、Demo03 ROI 验收、Stable Replay、Event Center/Analytics 目标产品或 Robot Operations Agent 已完成。
 
 ## 3. LOCKED 模式与安全测试语义
 

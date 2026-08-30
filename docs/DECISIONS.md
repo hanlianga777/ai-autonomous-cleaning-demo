@@ -3,6 +3,12 @@
 > **状态：LOCKED · 2026-08-30**
 > 本文件只记录当前有效决策及明确替代关系。除标明 IMPLEMENTED 的事实外，其余产品/技术方案均为 LOCKED TARGET，不得被写成已实现。
 
+## P1-D 档案实现边界（IMPLEMENTED · A/E PASS · 2026-08-30）
+
+`GET /api/event-archive` 是 CleaningEvent + transition 的只读投影，不建立第二份事件数据库，也不读取当前 Fleet 覆盖历史。正常 Human Fallback 属于待人工处理；人工完成后的 CLOSED 仅在“全部”中标为人工处置后闭环，不混入“已自主闭环”或仍待人工。各分类计数先应用其它筛选，再按类别统计，不要求相加等于全部。发现时间排序不使用最后更新时间。
+
+`/events?event=` 只恢复历史选择。非 Workbench 页面不自动推进阶段或轮询当前任务；历史页只做 GET。右侧 44% 保留 shell，内容必须与 selected event ID 相同；更换/失败时不显示另一事件快照。无时区 SQLite 时间按 UTC，操作员本地时间筛选显式转换为 UTC。新记录轮询不抢详情，不由前端补造状态。
+
 ## P1-C 工程决策补充（IMPLEMENTED · A/E PASS）
 
 - 活跃 `cloud-review` 内先单视角，再依据 evidence sufficiency 执行可选自主补证；旧独立 `multi-view` stage 不能被调用方用来绕过单视角。
@@ -24,7 +30,7 @@
 
 **LOCKED**：Workbench 回答“现在正在发生什么”；Event Center 回答“一个 AI 事件发生了什么、系统为何这样处理、如何闭环”；Analytics 回答“历史事件整体说明什么、下一步如何优化”。三者必须使用同一套 `CleaningEvent` / SQLite / history snapshot，不能分别维护 Mock 数据。
 
-**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center、Analytics、Robot Operations Agent 和 Advanced 完整产品化属于Unified Implementation 的后续 P1-D/E/F/H；P1-A 不提前实现。本批只允许在现有 Advanced shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；不得借此重做完整 Advanced 页面。
+**LOCKED**：客户层使用业务中文；技术术语仅 Advanced/技术详情按需显示。一级导航保留“自主清洁工作台、事件中心、运营分析、高级模式”。Event Center 已按 P1-D 实现；Analytics、Robot Operations Agent 和 Advanced 完整产品化分别属于 P1-E/F/H。本批只允许在现有 Advanced shell 增加最小 AI Runtime 控制区：LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态、最近 latency；不得借此重做完整 Advanced 页面。
 
 ## D03｜机器人正式命名与能力边界
 

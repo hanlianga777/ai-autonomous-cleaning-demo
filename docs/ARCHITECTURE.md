@@ -3,6 +3,12 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
+## P1-D 当前实现补充（2026-08-30）
+
+`backend/event_archive/service.py` 在同一 SQLite read transaction 批量读取 events/transitions，投影发现时间、类别、处理方式、事件时执行对象与位置、duration。`/api/event-archive` 支持 category/q/event_type/handling_mode/since/until/map_id/offset/limit；非法筛选 422，不静默回退全部。无 write/model/workflow/Fleet 依赖。
+
+`EventArchiveView` + `eventArchiveModel` 负责只读分页/1.5 秒串行轮询、URL selected event、请求取消与 ID 防错配；复用 `EventDetailPanel(mode="history")`，不另建详情 renderer。`PrototypeWorkbench` 路径与 popstate 恢复导航，阶段 POST 与当前任务 polling 仅在 Workbench 执行。历史布局 56/44，详情内部独立滚动、首次未选中、缺记录明确报错。
+
 ## P1-C 当前实现补充（IMPLEMENTED · A/E PASS）
 
 `perception/qwen.py`：唯一 provider transport + 严格 canonical visual schema；`perception/multiview/autonomous.py`：只读 evidence policy / model tool loop；`demo_v1/perception_records.py`：LIVE structured response + model turns 持久化/校验；`demo_v1/service.py`：阶段组合，不拥有第二套 Scheduler/Spatial。
@@ -18,7 +24,7 @@ Semantic records 使用 `p1c.visual-pipeline.v1`，绑定图像字节、camera c
 ```text
 React / Vite customer shell (/ and /prototype)
   ├── Workbench：CameraMonitorGrid + SpatialDispatchView + EventDetailPanel
-  ├── Event Center：基础列表 + 共用只读 history EventDetailPanel（P1-D URL/列表产品化 TODO）
+  ├── Event Center：P1-D 只读档案列表/筛选/URL + 共用 history EventDetailPanel
   ├── Analytics：Demo history 聚合 + 基础热点 / KPI / 建议
   └── Advanced：状态与 trace shell
   ▼
@@ -32,7 +38,7 @@ FastAPI /api
   └── SQLite（CleaningEvent / transitions / decisions / human work orders）
 ```
 
-**实现边界**：当前 Event Center、Analytics、Optimization 的代码存在，但只代表上述现状；它们不代表 D06–D09 的 LOCKED 目标已经完成；D10 新 Multi-view 已按 P1-C 完成。
+**实现边界**：D06 Event Center 已按 P1-D 完成；Analytics、Optimization 基础代码不代表 D07–D09 的 LOCKED 目标已完成；D10 新 Multi-view 已按 P1-C 完成。
 
 ## 2. 已实现的阶段边界（IMPLEMENTED / LOCKED）
 
@@ -116,7 +122,7 @@ P1-B 前端模块边界：`spatialProjection.ts` 提供纯坐标/路径/插值�
 
 `eventViewModel.ts` 只投影存档 transitions/asset_manifest；`EventStageEvidence.tsx` 展示可审计的 AI、能力、空间、路线与终态快照；`EventDetailPanel.tsx` 的 live/history 共用卡片，history 不执行 action、不自动滚动。`runtimeSession.ts` 保存 ID/请求防重键、GET-only 恢复、拒绝倒退/外来快照；`PanelBoundary.tsx` 隔离空间显示异常。图像缺失显示不可用，不用预设成功图片替换。
 
-## 6. Event Model、Event Center 与历史快照（P1-B 详情 IMPLEMENTED；P1-D 列表/URL TODO）
+## 6. Event Model、Event Center 与历史快照（P1-B 详情与 P1-D 列表/URL 已实现）
 
 ```text
 CleaningEvent
@@ -129,7 +135,7 @@ CleaningEvent
        └── Event Center EventDetailPanel(mode="history")
 ```
 
-**LOCKED / P1-D TODO**：Event Center 的列表产品化要求事件创建即进入列表、默认倒序；全部、处理中、已自主闭环、待人工处理、异常五类状态分离。`HUMAN_FALLBACK` 是业务兜底，不是异常。URL `?event=` 恢复选择但首次不自动打开。**P1-B IMPLEMENTED**：历史详情只读事件发生当时 robot / route / AI / verification / terminal Fleet snapshot，不用当前状态覆盖；列表实时提示与 URL 尚未完成。
+**P1-D 已实现**：Event Center 的列表产品化要求事件创建即进入列表、默认倒序；全部、处理中、已自主闭环、待人工处理、异常五类状态分离。`HUMAN_FALLBACK` 是业务兜底，不是异常。URL `?event=` 恢复选择但首次不自动打开。**P1-B IMPLEMENTED**：历史详情只读事件发生当时 robot / route / AI / verification / terminal Fleet snapshot，不用当前状态覆盖；列表实时提示与 URL 已在 P1-D 实现。
 
 ## 7. Analytics Engine（LOCKED / TODO）
 

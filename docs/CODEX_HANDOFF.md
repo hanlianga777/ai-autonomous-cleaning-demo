@@ -3,20 +3,24 @@
 > **状态：LOCKED · 2026-08-30**
 > 新 Session 必须依次完整阅读：`PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、本文件、`AI_INTEGRATION_TEST.md`；随后检查代码、`git status`、`git log`。不要用聊天记忆补全事实。
 
-### 最新交接：P1-C IMPLEMENTED · A/E PASS
+### 最新交接：P1-D IMPLEMENTED · A/E PASS
 
-P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P1-C 完成，独立提交后 **下一步 P1-D**，无需重新向用户询问授权；仍不得提前合并 main。22 项定向、86 后端 PASS + 3 opt-in skipped、前端17/build、真实 Demo02 LIVE→Replay 与浏览器均通过。后续最终五次稳定性等仍 P1-G TODO，不把本轮两次真实成功等同全部终验。
+已推送 P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`。本轮 D 代码、后端档案7/7、前端档案7/7（全量24/24）、full backend93 PASS+3skip、build、浏览器、A/E均PASS，独立提交并继续 **P1-E**。不得合并 main；E/F/H/G 仍 TODO。事件中心现在是 SQLite 只读档案，不重新运行 Cloud/调度，不使用当前 Fleet 覆盖历史。
+
+### P1-C 已完成交接： IMPLEMENTED · A/E PASS
+
+P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P1-C 完成，独立提交 `c9cf220` 后已进入 P1-D，无需重新向用户询问授权；仍不得提前合并 main。22 项定向、86 后端 PASS + 3 opt-in skipped、前端17/build、真实 Demo02 LIVE→Replay 与浏览器均通过。后续最终五次稳定性等仍 P1-G TODO，不把本轮两次真实成功等同全部终验。
 
 关键实现：`autonomous.py` 真实 tool_choice=auto；`perception_records.py` 只回放 provider response，工具/policy仍真实跑；first single-view不足即使 confidence<0.50 也先合法补证；最终不足不能自动派发。Demo02 原图清晰未触发补证是正确行为，因此新增透明的受控模糊 variant（原图保留），不是 fixed confidence 或假 trace。model configurable，原用户 .env 未改。
 
-请先读测试事实源 P1-C 记录、检查 git log/status，再开始 D；不要回到旧 demo02 先固定多图后 Cloud 路径。P2：6 model turns 不是6取证轮次；旧技术AI Lab兼容路径/生产同步/跨标签页幂等未因本轮自动升级。影像版本与完整编辑提示记录在测试事实源。
+请先读测试事实源最新 P1-D 记录、检查 git log/status，再继续 E；不要回到旧 demo02 先固定多图后 Cloud 路径。P2：6 model turns 不是6取证轮次；旧技术AI Lab兼容路径/生产同步/跨标签页幂等未因本轮自动升级。影像版本与完整编辑提示记录在测试事实源。
 
 ## 当前基线与授权状态
 
 - 仓库：`ai-autonomous-cleaning-demo`；实施分支：`codex/unified-implementation`；已验收文档基线：`00bd982982c81450e41f1755a3ba95be94c25b23`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`；它不能回退为一次性 `/runs` + 前端播放。
-- 当前 Event Center 产品化、Analytics、Robot Operations Agent、外部配送边界、Advanced Technical Observability 仍为 **LOCKED/TODO**；新 Multi-view 已按 P1-C **IMPLEMENTED**，不得与其它未实现目标混写。
-- **Unified Implementation 已明确授权。P1-A `fcd01d4`、P1-B `b2a1899` 已提交推送，P1-C 工程验收 PASS，独立提交后进入 P1-D。** P1-C 最新测试见页首；P1-D/E/F/H/G 仍 LOCKED/TODO，最终产品验收未完成。
+- 当前 Analytics、Robot Operations Agent、外部配送边界、Advanced Technical Observability 仍为 **LOCKED/TODO**；新 Multi-view 已按 P1-C **IMPLEMENTED**，不得与其它未实现目标混写。
+- **Unified Implementation 已明确授权。P1-A `fcd01d4`、P1-B `b2a1899` 已提交推送，P1-C `c9cf220` 与 P1-D 工程验收 PASS，D独立提交后进入 P1-E。** P1-C 最新测试见页首；P1-E/F/H/G 仍 LOCKED/TODO，最终产品验收未完成。
 
 ### 最新交接：P1-B MapCanvas / 统一详情工程完成
 
@@ -32,7 +36,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 
 ## 先理解的实现事实与文档冲突
 
-1. P1-B 已将 Event Center 详情改为复用 history `EventDetailPanel`；列表/URL/完整分类仍待 P1-D。Analytics 含演示 baseline / 固定聚合；Optimization 是确定性 mock recommendation；均不可称为最终产品。
+1. P1-B 已将 Event Center 详情改为复用 history `EventDetailPanel`；列表/URL/完整分类已在 P1-D 实现。Analytics 含演示 baseline / 固定聚合；Optimization 是确定性 mock recommendation；均不可称为最终产品。
 2. 主 Runtime 已完成 P1-C single-view→evidence gate→真实 model auto-tool 自主补证；旧受控 LangGraph 仅遗留技术路径，不再从主 Demo 路径进入，不可混淆两者。
 3. 旧基线的模板 locate / 演示锚点路线已由 P1-A 改为 bbox→共享 `map_pixel_to_slam()` + Fleet current map→`plan_route()`；P1-B 唯一 MapCanvas 已接入这些事实并通过浏览器验收；不再使用旧外层独立路线投影。
 4. P1-A 的共享 Fleet 已有正式名称及 product_capability / demo_configuration，主工作台外仍有旧静态 mock 文案待清理；保持内部 ID `robot-a` / `robot-b` / `robot-c` / `robot-d`。
@@ -47,7 +51,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 4. 新 Multi-view：主视角 Single-view VLM 先判断 `evidence_sufficient` / `ambiguity_type`；真实模型 `tool_choice=auto` 自主选择是否调用 evidence tools、哪 1–2 路、最多 2 rounds。禁止 `demo_id`、固定 confidence threshold、强制 tool choice、初轮三图和前端假 Trace。
 5. 新路线必须来自 Camera→SLAM + Dijkstra global topology planner / `plan_route()`，不得以 demo_id 固定；Demo03 固定 B1F→elevator→B2F→Skybridge→A2F carpet can；Demo04 必经 zero-candidate Human Fallback。
 6. MapCanvas 是 white model、anchor、route、marker、robot 的唯一坐标系；终态机器人不自动回出生点；历史详情以 event-time snapshot 为准，不能由当前 Fleet 覆盖。
-7. Event Center 是 read-only archive：正常 `HUMAN_FALLBACK` 绝不是异常。P1-B 已复用 `EventDetailPanel(mode="history")`；正确五类过滤、URL selected event、新记录不抢用户焦点仍为 **LOCKED / P1-D TODO**，不能宣称已实现。
+7. Event Center 是 read-only archive：正常 `HUMAN_FALLBACK` 绝不是异常。P1-B 已复用 `EventDetailPanel(mode="history")`；正确五类过滤、URL selected event、新记录不抢用户焦点已在 P1-D 实现；不能宣称最终产品验收已完成。
 8. 系统仅有 Multi-view Perception Agent 与 Robot Operations Agent 两个 Agent。后者可以在低风险白名单内做 task-level action / observe / replan，但绝不拥有地图、能力、Coverage、标定、Scheduler、阈值、速度、门禁、电梯等基础设施 Write Tool。
 9. 一个 Robot Operations Agent：Workbench/Event Center 共享浮窗，无 localStorage 保存位置时默认左下角，保存位置优先；只可从 Header/Drag Handle 拖动、不能出 viewport，展开/收起/跨页/刷新保持。Analytics 固定 Panel，Session/Audit/Task context 共享。语音只是 Microphone → real ASR → transcript 输入，不是主演示路径；ASR 未配置时麦克风 disabled 或显示“语音服务未配置”，不得伪造 transcript。Analytics Advice 不是第三个 Agent，也不能自动改运营配置。
 10. 不引入第二 UI System、Three.js、ROS/RMF、Docker/K8s、真实设备 runtime 或大型本地模型。

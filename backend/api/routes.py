@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from database.connection import get_fleet_state, get_transitions_after, list_events, read_snapshot, reset_fleet_state
+from event_archive.service import archive_index
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
 from optimization.agent import generate_recommendations
 from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
@@ -356,6 +357,18 @@ def post_multiview_scenario_02() -> dict:
 @router.get("/events", tags=["Workflow + Scheduler"])
 def get_events(limit: int = Query(20, ge=1, le=100)) -> list[dict]:
     return list_events(limit)
+
+
+@router.get("/event-archive", tags=["Read-only Event Archive"])
+def get_event_archive(category: str = "all", q: str = Query("", max_length=200),
+                      event_type: str | None = None, handling_mode: str | None = None,
+                      since: str | None = None, until: str | None = None, map_id: str | None = None,
+                      offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100)) -> dict:
+    try:
+        return archive_index(category=category, q=q, event_type=event_type, handling_mode=handling_mode,
+                             since=since, until=until, map_id=map_id, offset=offset, limit=limit)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.get("/events/templates", tags=["Workflow + Scheduler"])

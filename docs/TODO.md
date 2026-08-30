@@ -1,7 +1,7 @@
 # AI 自主清洁 Demo｜真实任务清单
 
 > **状态：LOCKED · 2026-08-30**
-> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A 工程验收通过；独立提交推送后进入 P1-B，后续阶段仍逐阶段验收提交。
+> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D 工程验收通过；D独立提交推送后进入 P1-E，后续阶段仍逐阶段验收提交。
 
 ## 已实现基线（IMPLEMENTED，禁止回退）
 
@@ -47,12 +47,14 @@
 
 验收：22 targeted PASS、backend 86 PASS + 3 paid opt-in skipped、frontend 17/build PASS、真实 LIVE→Replay 与浏览器闭环 PASS。影像版本、真实模型返回与完整编辑提示见测试事实源；新 `primary-ambiguous-v2.png` 为公开受控成像模糊 variant，原图保留。2 camera/2 acquisition rounds 外另设 6 model turns 保护限，不增加取证轮次。P1-G 五次稳定性仍未代替。
 
-## P1-D｜Event Center（AI 事件处置档案中心）
+## P1-D｜Event Center（IMPLEMENTED · A/E PASS）
 
-- [ ] **统一事件索引与状态映射**：同一 CleaningEvent / SQLite；全部、处理中、已自主闭环、待人工处理、异常五类状态；正常 `HUMAN_FALLBACK` 不得归为异常。
-- [ ] **搜索、筛选与两级 List**：支持 Event Type、Camera ID、Building/Floor、Robot Name、Event ID、时间范围、事件类型、处置方式；默认倒序、新事件不抢占当前历史详情。
-- [ ] **History Detail Drawer 与 URL State**：右侧 42–46% `EventDetailPanel(mode="history")`；`/events?event=...` 可恢复选择；首次进入不自动选中；切换内容不闪烁。
-- [ ] **read-only trace 边界**：不做删除、批量状态修改、批量派发、CSV/Excel 导出或其他批量运营动作。
+- [x] **统一事件索引与状态映射**：同一 CleaningEvent / SQLite；全部、处理中、已自主闭环、待人工处理、异常五类状态；正常 `HUMAN_FALLBACK` 不得归为异常。
+- [x] **搜索、筛选与两级 List**：支持 Event Type、Camera ID、Building/Floor、Robot Name、Event ID、时间范围、事件类型、处置方式；默认倒序、新事件不抢占当前历史详情。
+- [x] **History Detail Drawer 与 URL State**：右侧 42–46% `EventDetailPanel(mode="history")`；`/events?event=...` 可恢复选择；首次进入不自动选中；切换内容不闪烁。
+- [x] **read-only trace 边界**：不做删除、批量状态修改、批量派发、CSV/Excel 导出或其他批量运营动作。
+
+验收：archive backend7/7、frontend archive7/7（全量24/24）、full backend93 PASS+3paid opt-in skipped、build/diff check与浏览器PASS，Reviewer A/E PASS。修复历史ID错配、轮询重叠、新提示闭包/分页、UTC筛选和分类类型；D无未解决核心P0/P1。更大数据量的服务端SQL索引/聚合优化可后续扩展，不宣称生产规模验收。
 
 ## P1-E｜Analytics（AI 自主清洁运营分析中心）
 
