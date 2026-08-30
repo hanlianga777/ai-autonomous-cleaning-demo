@@ -257,6 +257,14 @@ Reality Source Metadata、System Reality Matrix、Current PoC Boundaries、adapt
 
 **权限与可靠性**：已有工具/Task guard 是必须保留的基础：LLM 不选清洁机器人，FlashBot Max 不进清洁候选，待命必须明确点名，Demo04 人工完成需 explicit action，POI/Route/Fleet/Capability Guard 不可绕过。当前 Cloud/Verification provider 故障会直接诚实转 HUMAN_REVIEW 且 LIVE 不 silent Replay；AI-RESILIENCE-01 的新增目标仅为已分类瞬时技术故障的一次自动重试，不得重试业务结论或伪造成功。
 
-## 13. 不进入本轮与不允许的实现
+## 13. Interview Demo Batch 3 Evidence / Runtime Integrity（LOCKED TARGET；未实施）
+
+**Evidence availability**：当前创建事件即持久化完整 asset manifest，Agent `request_camera_evidence` 可返回完整列表；这与 EVIDENCE-INTEGRITY-01 的阶段化可见性不符，属于 `EVIDENCE LEAK RISK` / `IMPLEMENTATION_DIVERGENCE`。未来需把“资源存在”与“当前业务可消费”分离：Before/Edge、actual fetched Supporting、post-cleaning After、Demo04 explicit-human After、terminal historical full chain 都有明确 temporal gate；Cloud、Frontend、Event Center、Agent 和 Replay 使用同一 gate。
+
+**Single mutation path**：`demo_v1` 已是 active Prototype 的主 stage Runtime，且 Ops cleaning task 委托它；但 `backend/api/routes.py` 仍保留 Workbench/Operations/AI Lab/Mock/Multi-view 等历史可执行入口。RUNTIME-SINGLE-PATH-01 要求 Unified Implementation 前完成 Runtime Mutation Path Audit，将所有可 create/mutate/dispatch/advance/complete/verify 的 API/service/helper 划为 authoritative、engineering/test-only 或 retired；正式 Frontend/Agent 只可控/读唯一 CleaningEvent Runtime，Stable Replay 只替换模型 response 并复用后续 stages。
+
+**Freeze**：Interview Demo Reconciliation 已进入 `REQUIREMENT FREEZE`。本轮不实施，也不得自行扩展产品；只有用户明确授权 `UNIFIED INTERVIEW DEMO RECOVERY` 后才能修改代码。
+
+## 14. 不进入本轮与不允许的实现
 
 本轮仅完成 Docs-only reconciliation，不授权前后端、测试或 Runtime 变更。未来 `UNIFIED INTERVIEW DEMO RECOVERY` 在用户明确授权后才可实施；仍禁止第二 UI System、Three.js、ROS/RMF、Docker/K8s、大型本地模型，以及让 Agent 或 Advanced 改基础设施配置。

@@ -5,8 +5,8 @@
 
 ## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
 
-- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01、ADVANCED-01、SHOW-BASE-01、DATA-BOUNDARY-01、PRESENTATION-01、LAYOUT-01、DEMO-CONTRACT-01、OPS-AUTO-01、AGENT-SESSION-01、AGENT-AUTHORITY-01、OPS-CONTINUITY-01、AI-RESILIENCE-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
-- 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → Sub-item → Affected active code → Current status → Implementation action → Backend tests → Frontend tests → Visual acceptance → Cross-regression → Final status）。
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01、ADVANCED-01、SHOW-BASE-01、DATA-BOUNDARY-01、PRESENTATION-01、LAYOUT-01、DEMO-CONTRACT-01、OPS-AUTO-01、AGENT-SESSION-01、AGENT-AUTHORITY-01、OPS-CONTINUITY-01、AI-RESILIENCE-01、EVIDENCE-INTEGRITY-01、RUNTIME-SINGLE-PATH-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement ID → Sub-item → Active code → Existing implementation → Implementation divergence → Required action → Backend tests → Frontend tests → Visual acceptance → Cross-requirement regression → Final status），并显式包含 `Evidence Availability / Temporal Gate` 检查及 `Runtime Mutation Path Audit`。
 - 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
 
 ## AI-UI-01｜AI 运营入口与聊天交互
@@ -763,6 +763,111 @@ Event Center 是面向客户的“AI 清洁事件档案 / 工单中心”，不�
 - `backend/perception/multiview/autonomous.py`
 - `backend/perception/multiview/tools.py`
 - `sample_data/camera_events/CAM-A1-01/event-beverage-spill-002/metadata.json` and the canonical asset manifest/evidence paths (read-only in this round)
+
+## RUNTIME-SINGLE-PATH-01｜正式 Interview Demo 单一权威业务执行链路
+
+| Field | Value |
+| --- | --- |
+| ID | RUNTIME-SINGLE-PATH-01 |
+| Status | **LOCKED TARGET** |
+| Module | Authoritative CleaningEvent mutation authority and legacy-path isolation |
+
+### User Intent
+
+一个事件只能有一个事实生成器。正式 Interview Runtime 可以有多个页面、展示入口、控制入口和测试工具，但只能有一套权威 Mutation Path 产生 CleaningEvent 的业务事实。
+
+### GitHub Previous Coverage and Current Implementation
+
+- 已覆盖：正式 `demo_v1` 以同一 CleaningEvent/SQLite stage Runtime 串联 Perception、Spatial、Capability、Scheduler、Navigation、Execution、Verification 和 Archive；Robot Operations cleaning task 委托该 workflow，`/demo-v1/runs/*` 已 410，manual multi-view entry 已拒绝。现有 lease/transaction 基础也已避免部分并发 mutation。
+- 当前正式 active Prototype 主要调用 `/demo-v1/events/*`，但 API 仍暴露可执行的 `/workbench/scenario02/run`、`/workbench/events/*/run`、`/workbench/upload`、`/operations/runs/*`、`/operations/upload`、`/multiview/scenario02/run`、`/events/mock/*`、`/events/*/run`、AI Lab 等 legacy/helper 路径。它们或能创建/运行/变更 workflow，或会返回独立 Workbench/Operations snapshot；未完成权威/工程/退役分类前构成 `LEGACY EXECUTION PATH` 与 `IMPLEMENTATION_DIVERGENCE`。
+- 当前 Analytics/Event Center/Agent 已大量读取同一 SQLite 事实，但 DATA-BOUNDARY-01 和统一 mutation ownership 尚未实施；不得因当前共库即宣称本条已完成。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`：历史阶段为开发、验收和兼容留下多个 helper/endpoint；虽已有主 `demo_v1` Runtime，却未为正式客户链路建立全量 Mutation Path Audit、唯一 owner 和 front-end legacy 禁用合同。
+
+### Locked Target
+
+#### RUNTIME-SINGLE-PATH-01.1｜唯一正式 Cleaning Runtime
+
+正式 Demo01–04 必须共享唯一 CleaningEvent、State Machine、Perception Runtime、Spatial Location、Capability Engine、Scheduler、Navigation、Robot Execution、Verification 和 Archive。所有正式业务状态变化只能经同一权威 Runtime 产生；禁止 Workbench、Robot Operations 或 Legacy Operations 各跑平行 Cleaning workflow。
+
+#### RUNTIME-SINGLE-PATH-01.2｜Workbench 是 Projection / Control Surface
+
+AI机器人调度大脑不是第二个业务 Runtime，只能触发正式 CleaningEvent、读取正式 Event 状态、显示摄像头/地图/业务阶段/Verification，并通过受控入口请求权威 Runtime mutation；不得创建第二套平行 Cleaning facts。
+
+#### RUNTIME-SINGLE-PATH-01.3｜Event Center 只读同一事实
+
+Event Center 当前/历史详情必须来自同一个 CleaningEvent truth source；不得重新计算机器人选择、重新生成 Multi-view 结论、重跑 Workflow，或重建一套简化 History。
+
+#### RUNTIME-SINGLE-PATH-01.4｜Robot Operations Agent 必须调用同一 Runtime
+
+Agent 处理清洁事件时，必须找到已有正式 CleaningEvent 并调用统一 Runtime 允许的 Tool/API；不得创建 synthetic Cleaning workflow。清洁机器人仍由 Capability Engine + Scheduler 决定，并继续遵守 AGENT-AUTHORITY-01。
+
+#### RUNTIME-SINGLE-PATH-01.5｜Analytics 只消费权威业务事实
+
+Analytics KPI、Heatmap、Robot Utilization、Event Structure 和 AI运营建议只能从统一正式业务事实及 DATA-BOUNDARY-01 允许数据集产生；不得从 Legacy Workflow/Test Runtime 生成第二套统计事实。
+
+#### RUNTIME-SINGLE-PATH-01.6｜Legacy Executable Paths 必须审计
+
+未来 Unified Implementation 必须枚举所有可 Create Event、Mutate Event State、Dispatch Robot、Advance Workflow、Complete Cleaning 或 Perform Verification 的 API/Service/Helper，并逐项分类为：A. `AUTHORITATIVE INTERVIEW RUNTIME`、B. `ENGINEERING / TEST ONLY`、C. `RETIRED / REMOVE / 410`。不得保留“不是正式路径但客户前端理论上可调用”的模糊状态。
+
+#### RUNTIME-SINGLE-PATH-01.7｜工程测试能力可以保留
+
+AI Lab、Mock Cases、Stable Replay、Isolated Multi-view Tests、Acceptance Helpers、Historical Workbench Helpers 可保留，但必须与正式客户 Runtime 隔离：不得写入正式 Interview Event 链、污染 Customer Data Boundary、被正式 Frontend 调用或被正式 Agent Tool 当作替代业务路径。
+
+#### RUNTIME-SINGLE-PATH-01.8｜Stable Replay 不是第二套业务系统
+
+Stable Replay 仅可替换外部不稳定 Model Response；其后的 Evidence Gate、Capability Engine、Scheduler、Route、Fleet Guard、State Transition 与 Verification 必须尽量复用 LIVE 同一业务代码。禁止复制一整套 Replay Workflow Engine。
+
+#### RUNTIME-SINGLE-PATH-01.9｜一个业务事实只有一个 Mutation Owner
+
+未来实施必须明确 CleaningEvent 业务状态的 Mutation Authority。同一时刻不能多个 service 拥有独立写权限；Mutation Ownership、Lease、Transaction、Runtime Guard 等技术机制由 Codex 设计，不需用户决定。
+
+#### RUNTIME-SINGLE-PATH-01.10｜前端不得依赖 Legacy 路径
+
+统一实现完成后，正式客户 Frontend 不得继续调用 Legacy Workbench Run、Old Operations Run、Standalone Scenario02 Run、Standalone Multi-view Run 或其他非权威 Mutation Endpoint。仅供历史测试的接口必须标记 Engineering Only；无用途接口正式退役。
+
+### Must Not Do
+
+- 不得以“共享 SQLite”或多个相似 snapshot 声称已经单路径；不得为 Agent、Workbench 或 Event Center 复制 workflow。
+- 不得删除有价值的测试/Replay/Observability capability，却允许其继续被正式 Frontend/Agent 当作客户 Runtime。
+- 不得为整合而绕过 Multi-view Evidence Gate、Capability/Scheduler/Route/Fleet Guard、人工完成或 Fixed-camera Verification。
+- 不得把任何 Legacy path 在未审计前静默保留为客户可调用备用入口。
+
+### Acceptance Criteria
+
+Future Runtime Mutation Path Audit 对每个可写 API/service/helper 都有 A/B/C 分类、caller 和数据边界证据。正式 Workbench、Event Center、Analytics 和 Agent 对同一 event 只能读/控同一 authoritative Runtime；无 Frontend legacy mutation calls、无第二 statistics truth、无重复 workflow 或并发 owner。Stable Replay 的模型替换后继续使用相同业务 stages。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/api/routes.py`
+- `backend/demo_v1/service.py`
+- `backend/demo_v1/replay.py`
+- `backend/robot_operations/tasks.py`
+- `backend/robot_operations/tools.py`
+- `backend/robot_operations/routes.py`
+- `backend/robot_operations/coordination.py`
+- `backend/workbench/service.py`
+- `backend/workflow/*`
+- `backend/perception/multiview/*`
+- `backend/analytics/read_model.py`
+- `backend/event_archive/service.py`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/EventArchiveView.tsx`
+- `frontend/src/components/prototype/AnalyticsView.tsx`
+- `frontend/src/components/robot-operations/*`
+- `frontend/src/api/operations.ts`
+
+## BATCH 3 CROSS-REQUIREMENT CONTRACT
+
+- EVIDENCE-INTEGRITY-01 必须同时回归 WB-CAMERA-01、EVENT-01、Demo02 Multi-view、Demo04 Human Fallback、AI Verification、Robot Operations Agent 与 Stable Replay。
+- RUNTIME-SINGLE-PATH-01 必须同时回归 DEMO-CONTRACT-01、OPS-CONTINUITY-01、AGENT-AUTHORITY-01、DATA-BOUNDARY-01、WB-DETAIL-01、EVENT-01、ANALYTICS-01 与 AI-RESILIENCE-01。
+- 不得误删已正确的技术原则：Multi-view 只由 Evidence Sufficiency Gate 触发且无 Demo ID 强制；LLM 不选 Cleaning Robot；FlashBot Max 不进 Cleaning Scheduler；Capability/Scheduler/Route/Fleet Guard 确定性执行；Human Completion 是明确事实；Robot Completion 不直接关闭 Event；Fixed-camera Verification 是闭环必要条件；Stable Replay 不冒充 LIVE；Backend Observability/Audit 保留。
+
+## BATCH 3 IMPLEMENTATION CONSTRAINTS
+
+以上约束适用于后续所有 Requirement；最终 `REQUIREMENT FREEZE` 记录在本文件末尾。
 
 ## ANALYTICS-01｜运营分析信息架构、AI运营洞察、数据统计、热力图与共享AI Chat
 
@@ -1749,3 +1854,90 @@ AI 最终失败时，当前事件必须进入明确 terminal/人工复核状态�
 - AI-RESILIENCE-01 必须同时回归 Demo02 Evidence Sufficiency Gate、Cloud Review、Verification、SHOW-BASE-01 与 DEMO-CONTRACT-01；保留 Engineering Trace / Stable Replay 能力，但不进入正式客户 Presentation。
 
 未来 Unified Interview Demo Recovery 的 Implementation Report 必须为五条 Requirement 的每个子项建立 `Requirement → Sub-item → Affected active code → Current status → Implementation action → Backend tests → Frontend tests → Visual acceptance → Cross-regression → Final status` 映射。用户视觉验收前，五条均不得标记 `IMPLEMENTED` 或 `USER_ACCEPTED`。
+
+## EVIDENCE-INTEGRITY-01｜事件证据时间完整性与阶段化可见性
+
+| Field | Value |
+| --- | --- |
+| ID | EVIDENCE-INTEGRITY-01 |
+| Status | **LOCKED TARGET** |
+| Module | CleaningEvent evidence availability, Multi-view, Verification, Agent and Replay |
+
+### User Intent
+
+素材文件可以预置于本地/GitHub，但文件存在不等于业务证据已经发生。Before、Supporting 与 After Verification Evidence 必须只在真实 Workflow 到达相应阶段后，逐步成为正式 Runtime、页面、Agent 和模型可消费的证据。
+
+### GitHub Previous Coverage and Current Implementation
+
+- 已覆盖：`cloud_review()` 的首轮只向 Cloud 传主视角，Supporting 图只有在自主 Agent 实际 fetch 后才进入后续 Cloud images；`verify_event()` 只允许 `CLEANING_COMPLETED`，Demo04 manual completion 只允许 `HUMAN_FALLBACK`；`CLOSED` 仍依赖 Fixed-camera after + AI Verification，Replay 会重新执行 Evidence Gate 与后续 Runtime。
+- 当前 `create_demo_event()` 已把完整 asset manifest（包括 `after` 和 Demo02 的全部 `evidence`）写入新事件并随 snapshot/API 提供。`request_camera_evidence()` 又直接返回完整 manifest asset 列表；因此 Frontend、Agent 或正式业务 API 可在前置阶段看见未来 After 或未实际选择的 Supporting 资源，属于 `EVIDENCE LEAK RISK` / `IMPLEMENTATION_DIVERGENCE`。
+- `workbench/service.py` 的历史 Workbench helpers 也返回完整 manifest；它们不是 active Prototype 正式链路，但在未完成 Runtime Mutation Path Audit 前属于 `LEGACY EXECUTION PATH` 风险，不能被误认为满足本条。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`：既有 Runtime 正确地在 Cloud/Verification 调用层使用部分 stage gate，却没有把 asset file、manifest metadata 和客户/Agent/API 可消费证据之间的 Availability / Temporal Gate 固化为统一合同。
+
+### Locked Target
+
+#### EVIDENCE-INTEGRITY-01.1｜事件创建阶段
+
+创建 CleaningEvent 时，业务层只可获得 Primary Before Image、当前合法 Event Metadata 与当前阶段已发生的 Edge Evidence。After Verification Image 不得作为当前可消费业务证据暴露给 Frontend、Robot Operations Agent、Cloud VLM、Event Detail、Camera Monitor、业务 API 或其他正式 Runtime consumer。底层 manifest 可知道资源存在，但必须以 Evidence Availability / Stage Gate 阻止未来证据被读取。
+
+#### EVIDENCE-INTEGRITY-01.2｜Multi-view Supporting Evidence 必须实际获取后才成立
+
+Demo02 的 Supporting Camera 图片即使存在 Repo，也不得自动成为正式事件证据。只有 Single-view Evidence Sufficiency 不足 → Multi-view Perception Agent 启动 → 合法 Coverage 查询 → Agent 实际选择 Supporting Camera → Evidence Fetch 成功之后，该 Supporting Evidence 才可成为正式证据。未被实际选择/获取的补图不得伪装成已获取证据。
+
+#### EVIDENCE-INTEGRITY-01.3｜After Evidence 只能在处置完成后产生
+
+机器人清洁事件只有在实际 Cleaning 完成后才能触发 Fixed Camera After Evidence 并进入 AI Verification。在 `DETECTED`、`EDGE_DETECTED`、`CLOUD_REVIEW`、`LOCATED`、`ASSIGNED`、`NAVIGATING`、`ARRIVED`、`CLEANING` 等前置状态不得访问 After Evidence。
+
+#### EVIDENCE-INTEGRITY-01.4｜Demo04 人工处置更加严格
+
+Demo04 进入 `HUMAN_FALLBACK` 后不得自动释放 After Image。必须先由 Operator/User 明确确认人工处置已完成，之后才能 Fixed Camera After Evidence → Cloud Verification；Agent 不得通过预置 After Image 推断或伪造人工搬运已完成。
+
+#### EVIDENCE-INTEGRITY-01.5｜Verification 必须使用新阶段证据
+
+AI Verification 只能消费处置完成后正式释放的 After Evidence；不得复用 Before 假装 After、提前读取 After、因 Demo 已知结果写 Verification Success，或仅依据 robot reported completed 关闭事件。继续保持 Robot Completion ≠ Event Closed；只有 Fixed Camera After Evidence + AI Verification 才能正常 `CLOSED`。
+
+#### EVIDENCE-INTEGRITY-01.6｜Stable Replay 同样遵守时间因果
+
+Stable Replay 即使内部拥有完整 Before、Supporting、After 和历史 Model Responses，也必须按原 Workflow 阶段逐步释放；不得在 `DETECTED` 读 After 或在 Agent 未取证时暴露所有 Supporting Cameras。Replay 只复用已保存的非确定性模型响应/证据记录，不得破坏业务时间因果。
+
+#### EVIDENCE-INTEGRITY-01.7｜已闭环历史事件可以展示完整证据链
+
+`CLOSED`、`HUMAN_REVIEW` 及其他历史 Terminal event 的 Event Center 可根据实际已发生历史展示 Before、Multi-view Evidence、After 和 Verification Result。本条限制进行中事件访问未来证据，不删除历史可审计性。
+
+#### EVIDENCE-INTEGRITY-01.8｜Agent Evidence Tool 同样受 Gate 约束
+
+Robot Operations Agent 的 `request_camera_evidence`、`read event` 和其他 Evidence Read Tool 必须依据当前 event state 及实际 acquired Evidence Set 返回；不得因底层 asset_manifest 保存完整资源列表就返回未来 After 或尚未实际 fetch 的 Supporting Evidence。
+
+### Must Not Do
+
+- 不得因素材文件预置而将 After/Supporting 当成当前已发生业务事实，或让页面/API/Agent/Cloud 通过 manifest 绕过 Gate。
+- 不得强制 Demo02 camera 或 `demo_id` 来把补图预置为 acquired；不得将 operator-free Demo04 After 暴露为人工完成证明。
+- 不得以 Robot completion、Replay 或历史预期结果替代 Fixed-camera After + AI Verification。
+- 不得删除 CLOSED/HUMAN_REVIEW 历史的可审计完整证据链。
+
+### Acceptance Criteria
+
+在每个非终态阶段检查 API、Agent tool、Workbench/Event Detail/Camera Monitor 和 Cloud input：只见当时已合法发生的 Evidence。Demo02 只显示实际 selected+fetched supporting set；Demo04 人工确认前无 After；Replay 的每一阶段与 LIVE 同样不可见未来证据；Terminal History 可准确回看完整实际链。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `backend/demo_v1/service.py`
+- `backend/demo_v1/replay.py`
+- `backend/demo_v1/perception_records.py`
+- `backend/perception/multiview/autonomous.py`
+- `backend/perception/verification_evidence.py`
+- `backend/robot_operations/tools.py`
+- `backend/robot_operations/agent.py`
+- `backend/event_archive/service.py`
+- `backend/workbench/service.py`
+- `frontend/src/components/prototype/eventViewModel.ts`
+- `frontend/src/components/prototype/CameraMonitorGrid.tsx`
+- `frontend/src/components/prototype/EventStageEvidence.tsx`
+- `frontend/src/components/prototype/EventDetailPanel.tsx`
+
+## FINAL RECONCILIATION FREEZE｜REQUIREMENT FREEZE
+
+本批完成后，Interview Demo Reconciliation 进入 **REQUIREMENT FREEZE**。除用户在实施或视觉验收中明确提出新的业务/UI问题外，Codex 不得主动扩张产品范围、增加 Agent/业务模块/Demo，重构产品定位，或补充“看起来更先进”的功能。后续代码工作只能在用户明确授权 `UNIFIED INTERVIEW DEMO RECOVERY` 后，围绕所有既有 LOCKED TARGET 逐子项实施、自动化测试、代码检查和用户视觉验收；用户未视觉验收前不得标记 `USER_ACCEPTED`。

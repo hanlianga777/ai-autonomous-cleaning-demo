@@ -26,6 +26,12 @@
 
 完整子项、当前偏差、Affected Active Code 与未来 Matrix 合同仅以 `INTERVIEW_DEMO_RECONCILIATION.md` 为准。本轮仍为 Docs-only；必须等待用户明确授权 `UNIFIED INTERVIEW DEMO RECOVERY` 才可修改代码。
 
+## Batch 3 Final LOCKED TARGET / REQUIREMENT FREEZE（未实施）
+
+- EVIDENCE-INTEGRITY-01：asset file 存在不等于当前事件证据可用。After、未实际获取的 Demo02 Supporting 和 Demo04 人工完成前 After 不得泄漏给客户页面、Agent、业务 API、Cloud 或 Replay；Terminal history 保留完整实际证据链。
+- RUNTIME-SINGLE-PATH-01：正式客户 Runtime 仅有一个 CleaningEvent mutation authority。所有 legacy/helper API/service 必须在未来实施前审计为 authoritative、engineering/test-only 或 retired；正式 Frontend/Agent 不得使用替代 mutation path。
+- **REQUIREMENT FREEZE**：除用户明确提出新的业务/UI问题外，不扩张需求。下一项可授权工作只有 `UNIFIED INTERVIEW DEMO RECOVERY`；开始前先建立全量逐子项 Matrix，且必须包含 Evidence Availability / Temporal Gate 和 Runtime Mutation Path Audit。
+
 ## 当前模型与真实边界
 
 - 云端语义/验单：`qwen-vl-max`；多视角工具调用：`qwen3-vl-plus`。

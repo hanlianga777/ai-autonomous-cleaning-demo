@@ -133,6 +133,12 @@
 - [ ] **OPS-CONTINUITY-01｜后端任务连续性与唯一事实**：任务和 Demo01–04 运行不依赖组件、页面、Chat 或前端 timer；各页统一投影成功/失败状态，新 Show 不恢复旧 active task。未来报告须交付 `.1`–`.6`。
 - [ ] **AI-RESILIENCE-01｜有限自动重试与诚实 LIVE 失败**：仅瞬时 provider 故障一次自动重试；业务结论零重试；二次失败安全终态/释放 Demo；LIVE 不 silent Replay；客户不见 HTTP/attempt 细节。未来报告须交付 `.1`–`.6`。
 
+## Interview Demo Batch 3 Integrity（LOCKED TARGET；未 IMPLEMENTED）
+
+- [ ] **EVIDENCE-INTEGRITY-01｜证据时间完整性与阶段化可见性**：预置资产不能提前成为业务证据。Before/Edge、Agent 实际 fetch 的 Supporting、处置完成后的 After、Demo04 明确人工完成后的 After、Verification 与 terminal history 必须按阶段 gate；Agent/API/Frontend/Cloud/Replay 同样受限。未来报告须交付 `.1`–`.8`，含 Evidence Availability / Temporal Gate 测试。
+- [ ] **RUNTIME-SINGLE-PATH-01｜唯一权威正式 Mutation Runtime**：Demo01–04、Workbench、Event Center、Agent、Analytics 共享同一 CleaningEvent Runtime/事实。先对全部可 Create/Mutate/Dispatch/Advance/Complete/Verify 的 API/service/helper 做 A authoritative / B engineering-test / C retired 分类；正式 Frontend 禁用 legacy mutation path，Replay 仅替换模型 response。未来报告须交付 `.1`–`.10`，含 Runtime Mutation Path Audit。
+- [ ] **REQUIREMENT FREEZE**：除用户在实施或视觉验收明确提出新的业务/UI问题外，不再扩张产品范围；后续仅在显式 `UNIFIED INTERVIEW DEMO RECOVERY` 授权后实施全部锁定 Requirement。
+
 ## 后续 Batch（不在 Unified Implementation Batch 的范围）
 
 - [ ] Advanced 的后续非必要工程增强须保留 observability capability，但不得恢复已被 **ADVANCED-01 SUPERSEDED** 的正式面试 Trace Inspector 前端范围。

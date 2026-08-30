@@ -227,6 +227,14 @@
 
 **AI-RESILIENCE-01**：仅 provider timeout、临时网络/5xx/rate limit 等明确瞬时技术故障允许一次自动短暂重试；evidence/confidence、Multi-view、Camera→SLAM、Capability zero candidate、route 与其他业务硬约束绝不靠重试刷答案。二次技术失败安全转 HUMAN_REVIEW/终态并释放其它 Demo；LIVE 绝不 silent fallback 到 Stable Replay。客户只见“云端AI研判中”或最终可理解的安全结论，attempt/HTTP 细节留 Advanced/Logs。
 
+## D16｜Interview Demo Batch 3 Evidence / Runtime Integrity（LOCKED TARGET）
+
+**EVIDENCE-INTEGRITY-01**：预置素材文件不等于已发生业务证据。新 CleaningEvent 只可消费 Primary Before、当前 metadata 和已发生 Edge Evidence；After 只在实际 Cleaning 完成后，Demo04 只在明确人工完成后才释放给 fixed-camera Verification。Demo02 Supporting asset 仅在 Single-view insufficiency、Agent 合法选择与成功 fetch 后成立。Event/Agent evidence reads、页面、业务 API、Cloud input 与 Stable Replay 都遵守同一 temporal gate；terminal history 仍可展示已实际发生的完整证据链。旧“完整 asset manifest 可被任意业务 consumer 直接读取”的当前实现是 `EVIDENCE LEAK RISK` / `IMPLEMENTATION_DIVERGENCE`，**SUPERSEDED BY EVIDENCE-INTEGRITY-01**。
+
+**RUNTIME-SINGLE-PATH-01**：Demo01–04 的唯一正式 Mutation Path 是同一 CleaningEvent → Perception → Spatial → Capability/Scheduler → Navigation/Execution → Verification → Archive Runtime。Workbench 只是 projection/control surface，Event Center 只读同一事实，Agent 只能委托同一清洁 Runtime，Analytics 只读同一且符合 DATA-BOUNDARY-01 的事实。现有 Workbench/Operations/AI Lab/Mock/Multi-view/legacy workflow 可执行入口必须在 Unified Implementation 的 Runtime Mutation Path Audit 中逐项分类为 `AUTHORITATIVE INTERVIEW RUNTIME`、`ENGINEERING / TEST ONLY` 或 `RETIRED / REMOVE / 410`；正式 Frontend/Agent 不得使用非权威 mutation path。Stable Replay 仅替换模型响应，继续复用 LIVE 后续业务 stages。
+
+**REQUIREMENT FREEZE**：本次为 Interview Demo Reconciliation 最后一批补充需求。除用户在实施/视觉验收中明确提出新的业务或 UI 问题外，不得主动增加 Agent、业务模块、Demo 或产品定位。下一阶段只有用户明确授权 `UNIFIED INTERVIEW DEMO RECOVERY` 后才可开始，并须先建立逐子项 Matrix，包含 Evidence Availability / Temporal Gate 与 Runtime Mutation Path Audit。
+
 ## SUPERSEDED 决策索引
 
 | 旧方案 | 新决策 |
@@ -244,6 +252,8 @@
 | 正式演示启动仅复用上次 Fleet/current event，需客户手动重置 | **SHOW-BASE-01**：双击启动自动建立新 Show Session、复位本场演示状态但保留历史；无客户 Reset 按钮 |
 | 右侧 Advice + Chat 上下分区 | **ANALYTICS-DELTA-01**：左侧 KPI 后横向 Advice，右侧固定区只保留共享完整 Chat |
 | 配送/待命必须由客户反复点击 Advance / 推进 PoC 才能走完整状态机 | **OPS-AUTO-01**：明确合法指令自动进入后端 Show Runtime 演示执行；业务状态仍真实持久化、Guard 不变 |
+| 预置完整 asset manifest 即可被当前业务页面、Agent/API 或 Replay 任意读取 | **EVIDENCE-INTEGRITY-01**：证据按阶段可用，未来 After/未获取 Supporting 不得泄漏 |
+| 多个 legacy/helper workflow 仍可作为正式客户 Runtime 的备用执行入口 | **RUNTIME-SINGLE-PATH-01**：唯一 authoritative Mutation Path；其余必须审计为 Engineering/Test Only 或 Retired |
 | raw Qwen next_action 当客户系统建议 | 模型判断与系统业务决策分离 |
 | “地面纸巾”“大型纸箱”面客类目 | 其他小型垃圾 / 大件物品 |
 | 前端 startedAt + 固定 offset 假时间 | SQLite transition timestamp（P1-A 代码与测试通过） |
