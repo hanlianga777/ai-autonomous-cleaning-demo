@@ -12,7 +12,7 @@ from pathlib import Path
 
 from database.connection import get_event, list_model_records, save_model_record
 from perception.yolo import RealInferenceError
-from perception.qwen import EVENT_PROMPT, TARGETED_REVIEW_PROMPT, VERIFICATION_PROMPT
+from perception.qwen import EVENT_PROMPT, TARGETED_REVIEW_PROMPT, VERIFICATION_PROMPT, validate_verification_response
 
 SCHEMA = "p1a.ai-response.v1"
 
@@ -26,6 +26,9 @@ def evidence_key(images: list[Path], context: dict, model: str) -> str:
 
 
 def validate_response(response: dict, phase: str) -> None:
+    if phase == "verification":
+        validate_verification_response(response)
+        return
     if not isinstance(response, dict):
         raise RealInferenceError("Structured AI response is not an object.")
     key = "decision_confidence" if phase == "event_review" else "confidence"
@@ -36,14 +39,14 @@ def validate_response(response: dict, phase: str) -> None:
     if type(response.get(flag)) is not bool:
         raise RealInferenceError(f"Structured AI {flag} is invalid.")
     if phase == "event_review":
-        if response.get("event_type") not in {"small_litter", "liquid", "can", "large_object", "unknown"}:
+        if not isinstance(response.get("event_type"), str) or response["event_type"] not in {"small_litter", "liquid", "can", "large_object", "unknown"}:
             raise RealInferenceError("Structured AI event type is invalid.")
-        if response.get("severity") not in {"low", "medium", "high"} or not isinstance(response.get("surface_type"), str):
+        if not isinstance(response.get("severity"), str) or response["severity"] not in {"low", "medium", "high"} or not isinstance(response.get("surface_type"), str):
             raise RealInferenceError("Structured AI TaskProfile fields are invalid.")
         actions = {"dispatch_robot", "human_review", "ignore"}
     else:
         actions = {"close", "retry", "human_review"}
-    if response.get("next_action") not in actions:
+    if not isinstance(response.get("next_action"), str) or response["next_action"] not in actions:
         raise RealInferenceError("Structured AI next action is invalid.")
 
 

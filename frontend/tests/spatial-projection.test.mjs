@@ -121,3 +121,20 @@ test("missing route is safe: no position, no animation and completed state", () 
   assert.equal(sample.complete, true);
   assert.equal(sample.isElevatorPause, false);
 });
+
+test("persisted navigation pause freezes across refresh and resume excludes every paused interval", () => {
+  const start = Date.parse("2026-08-30T01:00:00Z");
+  const plan = projection.buildMotionPlan([{ x: 10, y: 10 }, { x: 90, y: 80 }]);
+  const pausedAt = start + 2000;
+  const pausedElapsed = projection.navigationElapsedMs(start, start + 5000, true, pausedAt, 0);
+  const restoredElapsed = projection.navigationElapsedMs(start, start + 12000, true, pausedAt, 0);
+  assert.equal(pausedElapsed, 2000);
+  assert.equal(restoredElapsed, pausedElapsed);
+  assert.deepEqual(projection.sampleRouteMotion(plan, pausedElapsed), projection.sampleRouteMotion(plan, restoredElapsed));
+  const resumedElapsed = projection.navigationElapsedMs(start, start + 12000, false, NaN, 10000);
+  assert.equal(resumedElapsed, pausedElapsed);
+  assert.equal(projection.navigationElapsedMs(start, start + 13000, false, NaN, 10000), 3000);
+  assert.equal(projection.navigationElapsedMs(start, start + 16000, true, start + 14000, 10000), 4000);
+  assert.equal(projection.navigationElapsedMs(start, start + 17000, false, NaN, 13000), 4000);
+  assert.equal(projection.navigationElapsedMs(start, start + 17000, true, NaN, 0), 0, "missing pause clock fails stationary");
+});

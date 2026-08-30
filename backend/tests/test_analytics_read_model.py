@@ -95,6 +95,22 @@ class AnalyticsReadModelTests(unittest.TestCase):
         retry["verification"]["verification_pass"] = True
         self.assertIs(record(retry, NOW)["verification_first_pass"], False)
 
+    def test_independent_roi_pass_does_not_rewrite_first_primary_verification_failure(self):
+        event = fixture("roi-remediated", closed=True)
+        event["verification"] = {
+            "verification_pass": True,
+            "confidence": .96,
+            "next_action": "close",
+            "independent_roi_review": True,
+            "first_review": {"verification_pass": False, "confidence": .95, "next_action": "human_review"},
+        }
+        event["transitions"][-1]["detail"] = {"verification": event["verification"]}
+        self.store(event)
+        overview = analytics_overview(now=NOW)
+        self.assertIs(record(event, NOW)["verification_first_pass"], False)
+        self.assertEqual(overview["kpis"]["denominators"]["first_pass_success_rate"], 1)
+        self.assertEqual(overview["kpis"]["first_pass_success_rate"], 0.0)
+
     def test_empty_and_unobserved_metrics_are_null_not_fake_success(self):
         overview = analytics_overview(now=NOW)
         self.assertEqual(overview["kpis"]["total_events"], 0)

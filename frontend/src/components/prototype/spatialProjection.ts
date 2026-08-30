@@ -42,6 +42,14 @@ export type MotionSample = {
 
 export type ContainedFrame = { left: number; top: number; width: number; height: number };
 
+/** Persisted pause clocks make refresh and repeated pause/resume deterministic. */
+export function navigationElapsedMs(startedAt: number, now: number, paused: boolean, pauseStartedAt: number, pausedMs: number): number {
+  if (!Number.isFinite(startedAt)) return 0;
+  const end = paused ? (Number.isFinite(pauseStartedAt) ? pauseStartedAt : startedAt) : now;
+  const excluded = Number.isFinite(pausedMs) ? Math.max(0, pausedMs) : 0;
+  return Math.max(0, end - startedAt - excluded);
+}
+
 // These anchors are the campus white-model's visual references. Their values
 // are percentages *inside the image plane*, never percentages of a parent UI
 // card. Backend map/node data selects which anchor is used.

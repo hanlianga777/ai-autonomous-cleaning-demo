@@ -30,9 +30,11 @@ test("task action cards expose only state-appropriate backend actions", () => {
   assert.deepEqual(model.taskActions({ ...created, status: "CLOUD_REVIEW" }), ["pause", "cancel", "advance"]);
   assert.deepEqual(model.taskActions({ ...created, kind: "delivery", status: "PICKED_UP" }), ["pause", "cancel", "advance"]);
   assert.deepEqual(model.taskActions({ ...created, kind: "relocation", status: "NAVIGATING" }), ["pause", "cancel", "advance"]);
-  assert.deepEqual(model.taskActions({ ...created, status: "HUMAN_FALLBACK" }), []);
+  assert.deepEqual(model.taskActions({ ...created, status: "HUMAN_FALLBACK" }), ["manual_complete"]);
+  assert.deepEqual(model.taskActions({ ...created, kind: "delivery", status: "HUMAN_FALLBACK" }), []);
   assert.deepEqual(model.taskActions({ ...created, status: "CLOSED" }), []);
   assert.equal(model.actionLabel("advance"), "推进 PoC 模拟");
+  assert.equal(model.actionLabel("manual_complete"), "确认人工完成并验收");
 });
 
 test("newest-first task records keep the newest three visible", () => {

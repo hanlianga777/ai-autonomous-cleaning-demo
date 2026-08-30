@@ -1,15 +1,23 @@
 # AI 自主清洁 Demo｜项目事实源
 
-> **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
+> **状态：IMPLEMENTED 基线 + P1-G 工程/自动化/浏览器验收 IMPLEMENTED + LOCKED/P2 · 2026-08-30**
 > 本文件与 `DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 是后续 Session 的唯一外部事实源。必须先读完六份文件，再读代码、`git status`、`git log`；聊天记录和旧 Prompt 不可替代事实源。
 
-## 最新工程状态：P1-H IMPLEMENTED · A/E PASS（2026-08-30）
+## P1-G 当前验收进度（IMPLEMENTED；用户主观展示验收仍待）
 
-P1-A/B/C/D/E/F 已独立推送（F `06ef575`）；H 完成只读 Advanced Trace Inspector、独立 Event/Request/Task trace 关联、真实 request/stage/tool timing、错误分类与后端脱敏。14项定向、完整135项（132 PASS/3 opt-in skipped）、前端42项/build和A/E通过。只查看旧记录不会补造Trace或重跑Runtime；最终连续LIVE/Replay稳定性仍P1-G TODO，不合并main。
+隔离 SQLite `/tmp/cleaning-p1g-acceptance.lf8Dla/acceptance.sqlite` 的 `acceptance_runs.payload` 保存了本轮 P1G 批次；不含原始提示、图片或完整原始模型回答，仅保存结构化数值摘要。正式 qualifying LIVE batch 为 Demo01 `acceptance-b0af62b416cc4c03be6c304ddb569a40` 5/5、Demo02 `acceptance-20c748edbaa44c9d86f1257412d92198` 5/5、Demo03 `acceptance-cfee4992075a42839a463253fa0f53dd` 5/5、Demo04 `acceptance-da76bfb5b67e4acaad62a5541d2acdd7` 3/3。对应四个 Stable Replay batch 均为 3/3，且记录显示没有新的 Cloud request；Replay 仍重跑非 AI Runtime。早期 `b84edc` 的 per-run reset 不属于正式批次，`d3729` 仅为 diagnostic。
+
+本轮已接入通用 target ROI 验收：primary verifier 固定接收 before/after 全图加同源 before/after ROI 四图；primary 失败时最多作一次独立 ROI 二审，二审只读两个 ROI、没有先前答案。bbox/ROI、严格 JSON schema、有限 raw float 与 Replay 合约均 fail closed；Analytics 的首次成功率保留 primary 首判，ROI 二审通过不得回写首判。Demo03 qualifying LIVE 的两次 second review 是事件语义灰区二审，五次 verification 均由 primary `.99` 直接通过；独立 ROI 失败分支只在 fixture 测试。task-owned `HUMAN_FALLBACK` 人工完成已完成唯一 owner/session+lease、old manual HTTP 409、Agent 无人工确认工具、Workbench 隐藏入口的代码/测试/浏览器验收。P1-G 工程、自动化及浏览器验收已 IMPLEMENTED；用户主观展示验收仍待；提交和合并状态以 git log 与 remote 为准。
+
+P2 面客文案仍保留：人工 task 闭环卡在 `robot_id=null` 时仍显示“机器人：待系统分配”，目的地 `East Corridor` 未中文化；右侧事件详情与后端 assignment 正确。这是标签投影问题，不改变本轮冻结的 Task/assignment 语义。
+
+## P1-H 历史工程验收：IMPLEMENTED · A/E PASS（2026-08-30）
+
+P1-A/B/C/D/E/F 已独立推送（F `06ef575`）；H 完成只读 Advanced Trace Inspector、独立 Event/Request/Task trace 关联、真实 request/stage/tool timing、错误分类与后端脱敏。14项定向、完整135项（132 PASS/3 opt-in skipped）、前端42项/build和A/E通过。只查看旧记录不会补造Trace或重跑Runtime；P1-G 后续工程/自动化/浏览器验收已 IMPLEMENTED，用户主观展示验收仍独立，提交和合并状态以 git log 与 remote 为准。
 
 ## P1-F 当时工程状态（IMPLEMENTED）
 
-P1-A/B/C/D/E 已独立提交推送（最新 E `4c6a8a8`）；P1-F 完成共享 Robot Operations Agent、代码级工具白名单、持久化 Task/Fleet/Audit，以及原生 PoC 配送与待命。实际云端工具调用已创建/派发待命与配送任务，操作员推进后 CLOSED；不是预设自然语言回复。P1-H/G 尚未完成，不提前合并 main。
+P1-A/B/C/D/E 已独立提交推送（最新 E `4c6a8a8`）；P1-F 完成共享 Robot Operations Agent、代码级工具白名单、持久化 Task/Fleet/Audit，以及原生 PoC 配送与待命。实际云端工具调用已创建/派发待命与配送任务，操作员推进后 CLOSED；不是预设自然语言回复。**这是 P1-F 当时状态**：当时 H/G 尚未完成；当前 H/G 工程验收均已 IMPLEMENTED，实际提交/合并状态读 git。
 
 清洁任务只关联现有合法集成事件，复用 Cloud → Camera→SLAM → Capability/Scheduler → Verification；Agent 不选清洁机器人、不生成坐标。配送仅 robot-d 原生 POC SIMULATION：显式室内/电梯/连廊模拟权限不等于生产授权；四个平台 Adapter 仍 AUTH REQUIRED。ASR 未配置，麦克风 disabled。
 
@@ -17,13 +25,13 @@ Session、Task、Action Audit 与建议缓存位于同一 SQLite。Workbench/Eve
 
 ## P1-E 已完成记录： IMPLEMENTED · A/E PASS（2026-08-30）
 
-P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`、P1-D `a350ad5` 已推送实施分支。P1-E 已接入同一 SQLite 的结构化 DEMO_HISTORY 与 Runtime 增量，5 KPI 明确分母；热图与档案共用坐标/筛选，利用率由任务区间取并集计算。代码/测试/浏览器与 A/E 工程审查通过；提交状态见交接。P1-H/G 仍 TODO，不提前合并 main。
+P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`、P1-D `a350ad5` 已推送实施分支。P1-E 已接入同一 SQLite 的结构化 DEMO_HISTORY 与 Runtime 增量，5 KPI 明确分母；热图与档案共用坐标/筛选，利用率由任务区间取并集计算。代码/测试/浏览器与 A/E 工程审查通过；提交状态见交接。**这是 P1-E 当时状态**：当时 H/G 尚未开始；当前 H/G 工程验收均已 IMPLEMENTED，实际提交/合并状态读 git。
 
 演示历史由应用启动时幂等写入，显式 `DEMO_HISTORY`，不生成模型调用/真实置信度，不改变 Fleet，不可冒充 LIVE。缺失实际人工开始观察时响应时间为空。可用时长目前为“PoC 假定连续24小时可用”的分析归一化假设，不是观测到的生产 uptime；后续实际availability provider可替换，不改 Scheduler。
 
 ## P1-C 已完成记录：IMPLEMENTED（2026-08-30）
 
-P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成代码、22 项定向测试、完整后端 86 PASS + 3 opt-in skipped、前端 17/17 与 build、实际浏览器 LIVE/Replay、Reviewer A/E PASS。已独立提交 `c9cf220`；P1-H/G 仍 TODO，最终用户产品验收未完成。
+P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成代码、22 项定向测试、完整后端 86 PASS + 3 opt-in skipped、前端 17/17 与 build、实际浏览器 LIVE/Replay、Reviewer A/E PASS。已独立提交 `c9cf220`；**这是 P1-C 当时状态**：当时 H/G 尚未开始；当前 H/G 工程验收均已 IMPLEMENTED，用户主观展示验收仍独立。
 
 主 Runtime 已移除按 Demo02/固定 confidence 强制 Multi-view：单图云端返回 evidence_sufficient/ambiguity，再由真实 `qwen3-vl-plus`（`DASHSCOPE_AGENT_MODEL` 可配置）以 `tool_choice=auto` 选择合法补图。单图/独立二审仍使用 `DASHSCOPE_VL_MODEL`，未改现有用户 .env。原 Demo02 图过于清晰，真实模型不触发补证；按 Unified §71 允许的 evidence 优化，新增保留原图的 `primary-ambiguous-v2.png`，仅模拟主相机局部成像模糊，明确 CONTROLLED EVIDENCE。不预设模型 confidence、need_action 或工具选择。具体实跑数值仅在测试事实源记录。
 
@@ -38,7 +46,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已分别推送实施分支；P1-C 本轮完成�
 - **AI 自主清洁运营分析中心（Analytics）**：回答“历史事件整体说明什么、下一步应如何优化”。
 - **Advanced Technical Observability / 高级模式**：回答“系统如何运行、哪些记录与能力是真实、确定性、受控证据或 PoC 模拟”。
 
-用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。A/B/C/D/E/F/H已工程PASS，提交链读git log。P1-G仍为下一阶段，最终用户产品验收未被工程PASS替代；早期各阶段当时状态仅是历史记录。
+用户已授予 **Unified Implementation** 权限，工作分支为 `codex/unified-implementation`，已验收文档基线为 `00bd982982c81450e41f1755a3ba95be94c25b23`。A/B/C/D/E/F/H/G 工程验收均 PASS，提交链读git log；用户主观展示验收仍未被工程/批次证据替代。早期各阶段当时状态仅是历史记录。
 
 本轮已补齐版本化 AI response Replay、空间失败保护、共享 Fleet 与重启测试。用户已确认 Demo04 两纸箱是废弃待清运物品；该事实作为 event-scoped Scenario / Camera / Zone Context 传给云端，不写死输出。真实 Demo01 与 Demo04 均完成 LIVE→持久化→Replay 闭环；Demo04 人工兜底只由 Capability zero candidate 产生。旧失败保留为历史，测试证据见 `AI_INTEGRATION_TEST.md`。
 
@@ -111,9 +119,9 @@ Advanced 是 **Technical Observability & Execution Trace Inspector**，面向售
 |---|---|---|
 | 定位 | P1-A bbox→共享四点映射，非法输入停止派单；P1-B 同一 MapCanvas 显示落点 | 不宣称真实生产 SLAM |
 | 路径 | P1-A Dijkstra `plan_route()` 保存 node_path/segments；P1-B 连续插值、电梯入口停留与终态路线保留 | 不宣称 A* Runtime 或真实机器人遥测 |
-| Multi-view | P1-C 已实现 Single-view → evidence gate → model auto-tool，仅在成功 fetch 后追加模型选定的合法补图 | 核心顺序已完成；P1-G 连续多次 LIVE 稳定性与完整最终验收仍待执行 |
+| Multi-view | P1-C 已实现 Single-view → evidence gate → model auto-tool，仅在成功 fetch 后追加模型选定的合法补图 | 核心顺序、连续批次、跨页/主审工程验收已完成；用户主观展示验收仍待 |
 | Demo04 | 活跃阶段 API 已删除 cloud 大件直接人工分支；确定性回归通过，最新真实 LIVE→Replay 人工闭环通过，P1-A 工程验收通过 | Cloud → Locate → Capability Engine 零候选 → `HUMAN_FALLBACK` →人工完成→验收 |
-| Event Center | P1-D 紧凑 archive list、URL state、过滤/五类状态与同一 history 快照详情 | 最终跨页面/全流程回归仍属 P1-G |
+| Event Center | P1-D 紧凑 archive list、URL state、过滤/五类状态与同一 history 快照详情 | P1-G 跨页面/全流程工程回归已通过；用户展示验收独立 |
 | Analytics | P1-E同库历史与Runtime增量、可追溯5KPI、热图/时段/精确档案跳转、任务区间利用率 | P1-F真实Agent建议已接入；可用时长仍是PoC假设，非生产uptime |
 | Optimization / Agent | P1-F真实model工具调用、代码白名单、Task/Fleet/Action Audit、共享会话与只读缓存建议 | ASR/真实设备/生产权限未配置；不声称生产自治系统 |
 | Advanced | P1-H只读Trace Inspector、独立Trace ID、结构化Node/Tool/Request/Error与Reality Matrix | 生产身份权限、分布式追踪/留存、独立原生Task Trace入口未实现 |

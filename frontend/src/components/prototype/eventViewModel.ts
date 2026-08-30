@@ -1,6 +1,6 @@
 /** Read-only projection of durable backend events. Never runs business logic. */
 import { cameras, scenarios } from "./data";
-import type { ActiveEvent, Camera, PrototypeState } from "./types";
+import type { ActiveEvent, Camera, Overlay, PrototypeState } from "./types";
 
 export type RecordValue = Record<string, any>;
 export type TimelineEntry = { state: string; label: string; timestamp?: string; detail: RecordValue; pending?: boolean };
@@ -12,6 +12,7 @@ export const stateLabels: Record<string, string> = {
   NAVIGATING: "机器人前往现场", ARRIVED: "机器人到达现场", CLEANING_COMPLETED: "清洁动作完成",
   VERIFYING: "固定摄像头验收", CLOSED: "事件已闭环", HUMAN_FALLBACK: "零候选 · 人工兜底",
   HUMAN_REVIEW: "待人工复核",
+  CANCELLED: "事件已取消",
   HUMAN_STARTED: "人工开始处置", HUMAN_WORK_STARTED: "人工开始处置", HUMAN_COMPLETED: "人工完成处置",
 };
 export const displayStates: Record<string, PrototypeState> = {
@@ -20,6 +21,7 @@ export const displayStates: Record<string, PrototypeState> = {
   CLOUD_REVIEW: "CLOUD_REVIEW", LOCATED: "LOCATING", ASSIGNED: "ROBOT_ASSIGNED",
   NAVIGATING: "NAVIGATING", ARRIVED: "NAVIGATING", CLEANING_COMPLETED: "CLEANING",
   VERIFYING: "VERIFYING", CLOSED: "CLOSED", HUMAN_FALLBACK: "HUMAN_FALLBACK", HUMAN_REVIEW: "HUMAN_REVIEW",
+  CANCELLED: "CANCELLED",
 };
 const inflightStates: Record<string, string> = { EDGE_DETECTED: "EDGE_DETECTED", MULTI_VIEW: "MULTI_VIEW", CLOUD_REVIEW: "CLOUD_REVIEW", LOCATING: "LOCATED", ROBOT_ASSIGNED: "ASSIGNED", NAVIGATING: "NAVIGATING", CLEANING: "CLEANING_COMPLETED", VERIFYING: "VERIFYING" };
 
@@ -41,13 +43,38 @@ export function fromStoredEvent(stored: RecordValue): ActiveEvent {
   return { scenario: { ...base, steps }, stageIndex: Math.max(0, steps.length - 1), startedAt: stored.created_at ?? "", backendState: stored.state, liveResult: runtime };
 }
 
+function validOverlay(value: RecordValue): Overlay | null {
+  const bbox = value.bbox as RecordValue | undefined;
+  const numbers = bbox && [bbox.x1, bbox.y1, bbox.x2, bbox.y2].map(Number);
+  const confidence = Number(value.confidence);
+  if (!numbers || numbers.length !== 4 || !numbers.every(Number.isFinite) || !Number.isFinite(confidence)) return null;
+  const [x1, y1, x2, y2] = numbers;
+  if (!(0 <= x1 && x1 < x2 && x2 <= 1 && 0 <= y1 && y1 < y2 && y2 <= 1 && 0 <= confidence && confidence <= 1)) return null;
+  return { label: customerTerm(value.class_name ?? value.label), confidence, bbox: [x1, y1, x2, y2] };
+}
+
+/**
+ * Once EDGE_DETECTED is durable, the Workbench draws exactly that persisted
+ * controlled edge record. Asset overlay metadata is only a legacy fallback
+ * for records that predate the integrated edge stage.
+ */
+export function persistedDetectionOverlays(event: ActiveEvent, cameraId: string, fallback: Overlay[]): Overlay[] {
+  const controlled = event.liveResult?.controlled_yolo;
+  if (!Array.isArray(controlled)) return fallback;
+  return controlled
+    .filter((item: RecordValue) => item?.camera_id === cameraId)
+    .map((item: RecordValue) => validOverlay(item))
+    .filter((item): item is Overlay => Boolean(item));
+}
+
 export function eventCamera(event: ActiveEvent, role: "before" | "after" = "before", cameraId = event.scenario.cameraId): Camera | null {
   const assets = (event.liveResult?.asset_manifest as RecordValue | undefined)?.assets;
   if (!Array.isArray(assets)) return null; // Do not invent evidence for old archives.
   const asset = assets.find((a: RecordValue) => a.camera_id === cameraId && (role === "after" ? a.role === "after" : ["before", "evidence"].includes(a.role)));
   if (!asset?.available || !asset.url) return null;
+  const fallback = (asset.detection_overlays ?? []).map((overlay: RecordValue) => validOverlay(overlay)).filter((overlay: Overlay | null): overlay is Overlay => Boolean(overlay));
   return { id: cameraId, location: cameras[cameraId]?.location ?? "事件存档画面", image: asset.url,
-    overlay: (asset.detection_overlays ?? []).map((o: RecordValue) => ({ label: customerTerm(o.label), confidence: o.confidence, bbox: [o.bbox.x1, o.bbox.y1, o.bbox.x2, o.bbox.y2] })) };
+    overlay: role === "after" ? [] : persistedDetectionOverlays(event, cameraId, fallback) };
 }
 
 /** Primary event slot + clean idle slot. Supporting cameras never enter this grid. */

@@ -36,3 +36,26 @@ test("terminal restoration retains exact persisted fleet and route and rejects s
   assert.equal(session.canApplySnapshot(event, { ...record, event_id: "another-event" }), false);
   assert.equal(session.canApplySnapshot(event, record), true);
 });
+
+test("cancelled cleaning restores as terminal and releases subsequent demo controls", async () => {
+  const event = await session.loadEventSnapshot("saved-id", undefined, async () => ({ ok: true, json: async () => stored("CANCELLED") }));
+  assert.equal(event.backendState, "CANCELLED");
+  assert.equal(event.scenario.steps.at(-1), "CANCELLED");
+  assert.equal(session.isTerminalEvent(event), true);
+  assert.equal(session.canStartDemo(event), true);
+  assert.equal(session.canAutoAdvance(event), false);
+  assert.equal(session.canStartDemo({ ...event, processing: true }), false);
+  assert.equal(session.canStartDemo({ ...event, backendState: "NAVIGATING" }), false);
+});
+
+test("Operations-owned cleaning never claims workbench stages, including after pause and resume", () => {
+  for (const state of ["DETECTED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATED", "ASSIGNED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED"]) {
+    const regular = { backendState: state, liveResult: { event_id: "saved-id" } };
+    assert.equal(session.canAutoAdvance(regular), true, state);
+    const owned = { ...regular, liveResult: { ...regular.liveResult, operations_task_id: "task-owned" } };
+    assert.equal(session.canAutoAdvance(owned), false, state);
+    assert.equal(session.canAutoAdvance({ ...owned, liveResult: { ...owned.liveResult, operations_control: "PAUSED" } }), false);
+    assert.equal(session.canAutoAdvance({ ...owned, liveResult: { ...owned.liveResult, operations_control: null } }), false);
+  }
+  assert.equal(session.canAutoAdvance({ backendState: "NAVIGATING", liveResult: { operations_control: "PAUSED" } }), false);
+});

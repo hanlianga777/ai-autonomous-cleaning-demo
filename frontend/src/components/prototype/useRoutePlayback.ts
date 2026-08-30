@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { timestampMs } from "./eventViewModel";
-import { buildMotionPlan, sampleRouteMotion, type CanvasPoint, type RouteSegment } from "./spatialProjection";
+import { buildMotionPlan, navigationElapsedMs, sampleRouteMotion, type CanvasPoint, type RouteSegment } from "./spatialProjection";
 
 type RoutePlaybackOptions = {
   active: boolean;
+  paused?: boolean;
+  pauseStartedAt?: string;
+  pausedMs?: number;
   navigationStartedAt?: string;
   points: CanvasPoint[];
   segments?: RouteSegment[];
@@ -23,7 +26,7 @@ type RoutePlayback = {
  * This is explicitly not fleet telemetry: its start is the persisted
  * NAVIGATING transition timestamp, so a refresh reconstructs visual progress.
  */
-export function useRoutePlayback({ active, navigationStartedAt, points, segments, onComplete }: RoutePlaybackOptions): RoutePlayback {
+export function useRoutePlayback({ active, paused = false, pauseStartedAt, pausedMs = 0, navigationStartedAt, points, segments, onComplete }: RoutePlaybackOptions): RoutePlayback {
   // Upstream event decoding may reconstruct equivalent arrays while a view is
   // rendering. Key the motion plan by its actual route values instead of array
   // identity so a local playback setState cannot restart the layout effect.
@@ -50,9 +53,14 @@ export function useRoutePlayback({ active, navigationStartedAt, points, segments
     // eight-hour-old-looking route immediately in an Asia/Shanghai browser.
     const parsedStart = timestampMs(navigationStartedAt);
     const startedAt = Number.isFinite(parsedStart) ? parsedStart : Date.now();
+    const elapsed = () => navigationElapsedMs(startedAt, Date.now(), paused, timestampMs(pauseStartedAt), pausedMs);
+    if (paused) {
+      setSample(sampleRouteMotion(plan, elapsed()));
+      return; // A paused task neither animates nor dispatches completion.
+    }
     let frameId = 0;
     const render = () => {
-      const next = sampleRouteMotion(plan, Date.now() - startedAt);
+      const next = sampleRouteMotion(plan, elapsed());
       setSample(next);
       if (next.complete) {
         if (completeKey.current !== routeKey) {
@@ -65,7 +73,7 @@ export function useRoutePlayback({ active, navigationStartedAt, points, segments
     };
     frameId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(frameId);
-  }, [active, navigationStartedAt, plan, routeKey]);
+  }, [active, paused, pauseStartedAt, pausedMs, navigationStartedAt, plan, routeKey]);
 
   return {
     point: sample.position,

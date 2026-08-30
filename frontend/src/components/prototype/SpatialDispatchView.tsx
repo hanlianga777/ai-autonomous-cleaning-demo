@@ -13,6 +13,7 @@ import {
 } from "./spatialProjection";
 import type { ActiveEvent, PrototypeState } from "./types";
 import { useRoutePlayback } from "./useRoutePlayback";
+import { isEventPaused, operationsOwnsEvent } from "./runtimeSession";
 
 type FleetRobot = {
   id: string;
@@ -47,7 +48,7 @@ type SpatialDispatchViewProps = {
 
 const statusCopy: Record<string, string> = {
   idle: "待命", assigned: "已分配", navigating: "行驶中", arrived: "已到达",
-  cleaning: "清洁中", verifying: "验收中", charging: "充电中",
+  cleaning: "清洁中", verifying: "验收中", charging: "充电中", paused: "已暂停",
 };
 const EMPTY_ROUTE_SEGMENTS: RouteSegment[] = [];
 
@@ -157,7 +158,8 @@ export function SpatialDispatchView({ event, onNavigationComplete }: SpatialDisp
     [plan],
   );
   const isNavigating = event?.backendState === "NAVIGATING";
-  const playback = useRoutePlayback({ active: Boolean(isNavigating && selectedRobot && routePoints.length > 1), navigationStartedAt: navigationStartedAt(event), points: routePoints, segments: routeSegments, onComplete: onNavigationComplete });
+  const paused = isEventPaused(event);
+  const playback = useRoutePlayback({ active: Boolean(isNavigating && selectedRobot && routePoints.length > 1), paused, pauseStartedAt: typeof event?.liveResult?.operations_pause_started_at === "string" ? event.liveResult.operations_pause_started_at : undefined, pausedMs: typeof event?.liveResult?.operations_paused_ms === "number" ? event.liveResult.operations_paused_ms : 0, navigationStartedAt: navigationStartedAt(event), points: routePoints, segments: routeSegments, onComplete: operationsOwnsEvent(event) ? undefined : onNavigationComplete });
   const routeReady = routePoints.length > 1;
   const displayedTravel = isNavigating ? playback.travelledDistance : playback.totalDistance;
   const activePosition = isNavigating ? playback.point : null;
@@ -169,9 +171,9 @@ export function SpatialDispatchView({ event, onNavigationComplete }: SpatialDisp
         <RouteLayer points={routePoints} travelledDistance={displayedTravel} totalDistance={playback.totalDistance} terminal={!isNavigating && routeReady} />
         {target && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: `${projectMapCoordinate(target.map_id, target.x, target.y).x}%`, top: `${projectMapCoordinate(target.map_id, target.x, target.y).y}%` }} aria-label="已定位事件位置"><span className="block h-4 w-4 rounded-full border-2 border-rose-500 bg-rose-100/95 shadow-sm" /><span className="absolute left-1/2 top-5 -translate-x-1/2 whitespace-nowrap text-[8px] font-medium text-rose-700">事件位置</span></div>}
         {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId && activePosition ? activePosition : projectMapCoordinate(robot.map_id, robot.coordinates.x, robot.coordinates.y); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
-        {isNavigating && playback.isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white px-2 py-1 text-[10px] font-medium text-slate-700 shadow-sm" style={{ left: `${playback.point?.x ?? 50}%`, top: `${playback.point?.y ?? 50}%` }}>乘梯中</div>}
+        {isNavigating && !paused && playback.isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white px-2 py-1 text-[10px] font-medium text-slate-700 shadow-sm" style={{ left: `${playback.point?.x ?? 50}%`, top: `${playback.point?.y ?? 50}%` }}>乘梯中</div>}
         <div className="absolute bottom-[3%] left-[3%] z-40 flex max-w-[72%] items-center gap-1.5 border border-slate-200 bg-white/95 px-2 py-1 text-[9px] text-slate-600 shadow-sm"><Route size={11} strokeWidth={1.7} className="shrink-0 text-[#4f7798]" />{routeReady ? <span>后端 Dijkstra 园区拓扑路线 · {isNavigating ? "PoC 视觉插值（非实时遥测）" : "终态路线已保留"}</span> : <span>定位完成后显示后端空间路线</span>}</div>
-        {selectedRobot && isNavigating && <div className="absolute right-[3%] top-[3%] z-40 flex items-center gap-1 border border-slate-200 bg-white/95 px-2 py-1 text-[9px] text-slate-600 shadow-sm"><Navigation size={11} className="text-[#4f7798]" />{selectedRobot.name} · 行驶中</div>}
+        {selectedRobot && isNavigating && <div className="absolute right-[3%] top-[3%] z-40 flex items-center gap-1 border border-slate-200 bg-white/95 px-2 py-1 text-[9px] text-slate-600 shadow-sm"><Navigation size={11} className="text-[#4f7798]" />{selectedRobot.name} · {paused ? "已暂停" : "行驶中"}</div>}
         {!event && <div className="absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 border border-slate-200 bg-white/95 px-3 py-1.5 text-[10px] text-slate-500 shadow-sm"><Sparkles size={12} />等待固定摄像头发现事件</div>}
       </>
     </MapCanvas>

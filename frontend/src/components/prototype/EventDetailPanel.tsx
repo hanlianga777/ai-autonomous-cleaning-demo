@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { EventStageEvidence } from "./EventStageEvidence";
 import { clockLabel, customerTerm, timelineFor, timestampMs } from "./eventViewModel";
 import type { ActiveEvent } from "./types";
+import { isEventPaused, isTerminalEvent, operationsOwnsEvent } from "./runtimeSession";
 
 /** One durable-event renderer: history is read-only, live adds follow + actions. */
 export function EventDetailPanel({ event, mode = "live", onCompleteManual }: {
@@ -13,7 +14,7 @@ export function EventDetailPanel({ event, mode = "live", onCompleteManual }: {
   const bodyRef = useRef<HTMLDivElement>(null);
   const timeline = event ? timelineFor(event, mode) : [];
   const currentKey = timeline.map((entry) => `${entry.state}:${entry.pending ? "pending" : "saved"}`).join("|");
-  const terminal = ["CLOSED", "HUMAN_REVIEW"].includes(event?.backendState ?? "");
+  const terminal = isTerminalEvent(event);
   const scrollToCurrent = () => {
     const panel = bodyRef.current;
     const current = panel?.querySelector<HTMLElement>("[data-current-stage=true]");
@@ -38,6 +39,7 @@ export function EventDetailPanel({ event, mode = "live", onCompleteManual }: {
     {!event ? <div className="flex flex-1 flex-col items-center justify-center px-8 text-center"><p className="text-sm font-medium text-slate-700">当前没有事件</p><p className="mt-2 text-xs leading-5 text-slate-500">从监控区的摄像头设置中触发演示，即可查看识别、空间定位、派单、执行及验收全过程。</p></div> : <>
       <div className="shrink-0 border-b border-slate-100 px-4 py-3">
         <p className="text-sm font-semibold">{event.scenario.eventTitle}</p>
+        {operationsOwnsEvent(event) && !terminal && <p className="mt-1 text-[10px] text-slate-500">{isEventPaused(event) ? "任务已暂停" : "共享 Operations 任务"} · 请通过任务卡推进、继续或取消；工作台仅同步状态。</p>}
         <p className="mt-1 text-[10px] text-slate-500">{event.scenario.cameraId} · {clockLabel(event.liveResult?.created_at)} · 耗时 {elapsed}</p>
         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{event.liveResult?.mode === "DEMO_HISTORY" ? "演示历史 · 非 LIVE" : event.liveResult?.mode === "STABLE_REPLAY" ? "历史 AI 记录回放" : "LIVE 云端研判"}</span></div>
       </div>

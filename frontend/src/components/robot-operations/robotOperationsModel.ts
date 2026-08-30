@@ -51,11 +51,20 @@ export function taskKindLabel(kind: string): string {
   return ({ cleaning: "清洁任务", delivery: "配送任务", relocation: "待命调度" } as Record<string, string>)[kind] ?? kind;
 }
 
-export function actionLabel(action: "dispatch" | "pause" | "resume" | "cancel" | "advance"): string {
-  return ({ dispatch: "派发", pause: "暂停", resume: "继续", cancel: "取消", advance: "推进 PoC 模拟" })[action];
+/** Customer-name projection only; selection remains the backend Task's robot_id. */
+export function taskRobotLabel(robotId?: string | null): string {
+  if (!robotId) return "待系统分配";
+  return ({ "robot-a": "赛特净界 S5", "robot-b": "高仙 Omnie", "robot-c": "蜗小白 SC50", "robot-d": "普渡 FlashBot Max" } as Record<string, string>)[robotId] ?? robotId;
 }
 
-export function taskActions(task: OperationsTask): Array<"dispatch" | "pause" | "resume" | "cancel" | "advance"> {
+export type OperationsTaskAction = "dispatch" | "pause" | "resume" | "cancel" | "advance" | "manual_complete";
+
+export function actionLabel(action: OperationsTaskAction): string {
+  return ({ dispatch: "派发", pause: "暂停", resume: "继续", cancel: "取消", advance: "推进 PoC 模拟", manual_complete: "确认人工完成并验收" })[action];
+}
+
+export function taskActions(task: OperationsTask): OperationsTaskAction[] {
+  if (task.kind === "cleaning" && task.status === "HUMAN_FALLBACK") return ["manual_complete"];
   if (["CLOSED", "CANCELLED", "FAILED", "HUMAN_REVIEW", "HUMAN_FALLBACK"].includes(task.status)) return [];
   if (task.status === "CREATED") return ["dispatch", "cancel"];
   if (task.status === "PAUSED") return ["resume", "cancel"];

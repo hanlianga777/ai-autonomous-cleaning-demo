@@ -2,7 +2,7 @@
 
 export type ArchiveCategory = "all" | "in_progress" | "autonomous_closed" | "human_pending" | "exception";
 /** Backend items may retain terminal subclasses; tabs intentionally remain the five categories above. */
-export type ArchiveItemCategory = ArchiveCategory | "human_closed" | "other_closed";
+export type ArchiveItemCategory = ArchiveCategory | "human_closed" | "other_closed" | "cancelled";
 export type HandlingMode = "" | "robot" | "human_fallback" | "human_review" | "system_error";
 
 export type ArchiveItem = {

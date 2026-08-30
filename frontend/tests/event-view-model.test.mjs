@@ -58,3 +58,14 @@ test("structured demo history retains its source/camera without inventing real A
   assert.equal(view.eventCamera(event), null);
   assert.equal(view.timelineFor(event, "history")[0].label, "人工开始处置");
 });
+test("Workbench detection boxes use the same persisted controlled edge facts as Advanced", () => {
+  const record = stored("CAM-A2-11", ["DETECTED", "EDGE_DETECTED"]);
+  record.demo_v1.asset_manifest.assets[0].detection_overlays = [{ label: "大型纸箱", confidence: 0.94, bbox: { x1: .349, y1: .525, x2: .433, y2: .65 } }];
+  record.demo_v1.controlled_yolo = [
+    { camera_id: "CAM-A2-11", class_name: "大型纸箱", confidence: .82, bbox: { x1: .349, y1: .525, x2: .433, y2: .65 }, source: "CONTROLLED_EDGE_DEMO" },
+    { camera_id: "CAM-A2-11", class_name: "大型纸箱", confidence: .82, bbox: { x1: .417, y1: .562, x2: .499, y2: .671 }, source: "CONTROLLED_EDGE_DEMO" },
+  ];
+  const camera = view.eventCamera(view.fromStoredEvent(record), "before", "CAM-A2-11");
+  assert.deepEqual(camera.overlay.map((overlay) => overlay.confidence), [.82, .82]);
+  assert.deepEqual(camera.overlay.map((overlay) => overlay.bbox), [[.349, .525, .433, .65], [.417, .562, .499, .671]]);
+});

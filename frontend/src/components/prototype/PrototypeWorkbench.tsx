@@ -9,7 +9,7 @@ import { scenarios, stageCopy } from "./data";
 import { SpatialDispatchView } from "./SpatialDispatchView";
 import { PanelBoundary } from "./PanelBoundary";
 import { displayStates, fromStoredEvent } from "./eventViewModel";
-import { canApplySnapshot, claimStage, loadEventSnapshot, readRequestKeys } from "./runtimeSession";
+import { canApplySnapshot, canAutoAdvance, canStartDemo, claimStage, isEventPaused, isTerminalEvent, loadEventSnapshot, operationsOwnsEvent, readRequestKeys } from "./runtimeSession";
 import { FloatingRobotOperationsAgent } from "@/components/robot-operations/RobotOperationsPanel";
 import { RobotOperationsProvider } from "@/components/robot-operations/RobotOperationsProvider";
 import { archivePageContext } from "@/components/robot-operations/robotOperationsModel";
@@ -52,32 +52,50 @@ export function PrototypeWorkbench() {
   const [view, setView] = useState<WorkbenchView>(viewFromPath);
   const [runtimeMode, setRuntimeMode] = useState<"live" | "replay">("live");
   const [restoring, setRestoring] = useState(true);
+  const [runtimeReady, setRuntimeReady] = useState(false);
+  const [workbenchEntry, setWorkbenchEntry] = useState(0);
   const [syncNotice, setSyncNotice] = useState("");
   const [archiveAgentContext, setArchiveAgentContext] = useState<Record<string, unknown>>(() => archivePageContext(null, null, {}));
   const submittedStages = useRef(new Set<string>(readStageRequests()));
 
   const navigate = (next: WorkbenchView) => {
+    setRuntimeReady(false);
+    if (next === "workbench") { setRestoring(true); setWorkbenchEntry((entry) => entry + 1); }
     window.history.pushState({}, "", next === "workbench" ? "/prototype" : `/${next}`);
     setView(next);
   };
   useEffect(() => {
-    const restoreRoute = () => setView(viewFromPath());
+    const restoreRoute = () => {
+      const next = viewFromPath();
+      setRuntimeReady(false);
+      if (next === "workbench") { setRestoring(true); setWorkbenchEntry((entry) => entry + 1); }
+      setView(next);
+    };
     window.addEventListener("popstate", restoreRoute);
     window.addEventListener("cleanops:navigate", restoreRoute);
     return () => { window.removeEventListener("popstate", restoreRoute); window.removeEventListener("cleanops:navigate", restoreRoute); };
   }, []);
 
-  // Store only the event identifier, never a second copy of runtime facts.
+  // Re-entering Workbench must refresh ownership/control before any stage can
+  // run: the shared Agent may have changed the event while this page was hidden.
   useEffect(() => {
+    if (view !== "workbench") return;
     const controller = new AbortController();
     const eventId = readUiStorage("cleanops.current-event");
-    if (!eventId) { setRestoring(false); return; }
+    setRestoring(true);
+    setRuntimeReady(false);
+    if (!eventId) { setRestoring(false); setRuntimeReady(true); return; }
     loadEventSnapshot(eventId, controller.signal)
-      .then(setEvent)
-      .catch((error) => { if (error.name !== "AbortError") setSyncNotice(error.message); })
-      .finally(() => setRestoring(false));
+      .then((saved) => {
+        if (controller.signal.aborted) return;
+        setEvent(saved);
+        setSyncNotice("");
+        setRuntimeReady(true);
+      })
+      .catch((error) => { if (!controller.signal.aborted) setSyncNotice(`${error.message} 自动推进已停止，请同步已保存状态。`); })
+      .finally(() => { if (!controller.signal.aborted) setRestoring(false); });
     return () => controller.abort();
-  }, []);
+  }, [view, workbenchEntry]);
 
   const applyStageResponse = (result: Record<string, unknown>) => {
     setEvent((current) => {
@@ -91,7 +109,7 @@ export function PrototypeWorkbench() {
 
   const callStage = async (action: string, inFlightState?: ActiveEvent["inFlightState"]) => {
     const eventId = String(event?.liveResult?.event_id ?? "");
-    if (view !== "workbench" || !eventId || !event || event.processing) return;
+    if (view !== "workbench" || restoring || !runtimeReady || !eventId || !canAutoAdvance(event)) return;
     // One request per durable stage. A transport failure must not cause an
     // effect-driven retry storm or repeat an already completed cloud call.
     if (!claimStage(submittedStages.current, eventId, action)) return;
@@ -110,7 +128,7 @@ export function PrototypeWorkbench() {
   };
 
   useEffect(() => {
-    if (view !== "workbench" || !event || event.processing) return;
+    if (view !== "workbench" || restoring || !runtimeReady || !event || !canAutoAdvance(event)) return;
     const state = event.backendState;
     const next = state === "DETECTED" ? ["edge-review", "EDGE_DETECTED"] as const
       : state === "EDGE_DETECTED" ? ["cloud-review", "CLOUD_REVIEW"] as const
@@ -127,12 +145,12 @@ export function PrototypeWorkbench() {
     let cancelled = false;
     queueMicrotask(() => { if (!cancelled) void callStage(next[0], next[1]); });
     return () => { cancelled = true; };
-  }, [view, event?.backendState, event?.processing, event?.scenario.id]);
+  }, [view, restoring, runtimeReady, event?.backendState, event?.processing, event?.scenario.id, event?.liveResult?.operations_task_id, event?.liveResult?.operations_control]);
 
   // A reload during a cloud call observes SQLite instead of sending it again.
   useEffect(() => {
     const eventId = String(event?.liveResult?.event_id ?? "");
-    if (view !== "workbench" || !eventId || ["CLOSED", "HUMAN_REVIEW", "HUMAN_FALLBACK"].includes(event?.backendState ?? "")) return;
+    if (view !== "workbench" || restoring || !runtimeReady || !eventId || isTerminalEvent(event)) return;
     const controller = new AbortController();
     const timer = window.setInterval(() => {
       fetch(`/api/events/${encodeURIComponent(eventId)}`, { signal: controller.signal })
@@ -141,11 +159,11 @@ export function PrototypeWorkbench() {
         .catch(() => { /* The stage request owns the visible transport error. */ });
     }, 1200);
     return () => { window.clearInterval(timer); controller.abort(); };
-  }, [view, event?.liveResult?.event_id, event?.backendState]);
+  }, [view, restoring, runtimeReady, event?.liveResult?.event_id, event?.backendState]);
 
   const trigger = async (id: typeof scenarios[number]["id"]) => {
-    if (restoring) return;
-    if (event && (event.processing || !["CLOSED", "HUMAN_REVIEW"].includes(event.backendState ?? ""))) return;
+    if (restoring || !runtimeReady) return;
+    if (!canStartDemo(event)) return;
     const scenario = scenarios.find((item) => item.id === id);
     if (!scenario) return;
     setSyncNotice("");
@@ -161,7 +179,9 @@ export function PrototypeWorkbench() {
   };
   const completeManual = async () => {
     const eventId = String(event?.liveResult?.event_id ?? "");
-    if (!eventId || !event || event.processing || event.backendState !== "HUMAN_FALLBACK") return;
+    // Task-owned events have one mutation owner: the shared Operations task
+    // card. Workbench is only a synchronised read model in that case.
+    if (restoring || !runtimeReady || !eventId || !event || operationsOwnsEvent(event) || event.processing || event.backendState !== "HUMAN_FALLBACK") return;
     setEvent((current) => current && ({ ...current, inFlightState: "VERIFYING", processing: true, stageIndex: stageIndexFor(current.scenario.steps, "VERIFYING") }));
     try {
       const response = await fetch(`/api/demo-v1/manual-work-orders/${encodeURIComponent(eventId)}/complete`, { method: "POST" });
@@ -177,16 +197,18 @@ export function PrototypeWorkbench() {
     try {
       const saved = await loadEventSnapshot(id);
       if (event) applyStageResponse(saved.liveResult ?? {}); else setEvent(saved);
+      setRuntimeReady(true);
       setSyncNotice("已读取最新保存状态；未重发之前的阶段请求。若状态未变化，请保留事件并在高级模式排查。");
     } catch (error) { setSyncNotice(error instanceof Error ? error.message : "同步服务暂不可用。"); }
   };
   const agentPageContext = view === "events"
     ? archiveAgentContext
     : workbenchAgentPageContext(event, runtimeMode);
+  const spatialEvent = runtimeReady ? event : null;
   return <RobotOperationsProvider><div className="min-h-screen bg-[#f6f7f8] text-slate-900">
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-[9px] font-bold text-white">CO</div><div><p className="text-sm font-semibold">CleanOps</p><p className="text-[9px] tracking-[0.12em] text-slate-400">自主清洁</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="自主清洁工作台" active={view === "workbench"} onClick={() => navigate("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => navigate("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => navigate("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => navigate("advanced")} /></nav></aside>
 <div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "自主清洁工作台" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p>{view === "workbench" && <span className={`hidden items-center gap-1.5 text-[11px] md:flex ${event ? "text-slate-700" : "text-slate-500"}`}><CircleDot size={12} className={event?.processing ? "animate-pulse text-rose-500" : "text-emerald-500"} />{stageCopy[state].title}</span>}</div><span className="border border-slate-200 px-2 py-1 text-[10px] font-medium tracking-wide text-slate-600">{view !== "workbench" && view !== "advanced" ? "只读运营视图" : event?.liveResult?.mode === "STABLE_REPLAY" ? "STABLE REPLAY" : event?.liveResult?.mode === "LIVE" ? "LIVE" : runtimeMode === "live" ? "LIVE · 下次运行" : "STABLE REPLAY · 下次运行"}</span></header>
-      {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={event} onNavigationComplete={() => void callStage("complete-navigation")} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={completeManual} /></div></div></main>}
+      {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={spatialEvent} onNavigationComplete={() => void callStage("complete-navigation")} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={operationsOwnsEvent(event) ? undefined : completeManual} /></div></div></main>}
       {view === "events" && <EventArchiveView onAgentContextChange={setArchiveAgentContext} />}{view === "analytics" && <AnalyticsView />}{view === "advanced" && <AdvancedView event={event} runtimeMode={runtimeMode} onRuntimeModeChange={setRuntimeMode} />}
     </div>
     {(view === "workbench" || view === "events") && <FloatingRobotOperationsAgent pageContext={agentPageContext} />}
@@ -209,7 +231,7 @@ function stageIndexFor(steps: ActiveEvent["scenario"]["steps"], state: string): 
   return index >= 0 ? index : Math.min(stateIndex(state), steps.length - 1);
 }
 
-function currentDisplayState(event: ActiveEvent) { return event.inFlightState ?? displayStates[event.backendState ?? ""] ?? "DISCOVERED"; }
+function currentDisplayState(event: ActiveEvent) { return isEventPaused(event) ? "PAUSED" : event.inFlightState ?? displayStates[event.backendState ?? ""] ?? "DISCOVERED"; }
 
 function NavItem({ icon: Icon, label, active = false, onClick }: { icon: typeof LayoutDashboard; label: string; active?: boolean; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors ${active ? "bg-slate-900 font-medium text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={16} strokeWidth={1.7} />{label}</button>;

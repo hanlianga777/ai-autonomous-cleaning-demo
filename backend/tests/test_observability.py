@@ -149,6 +149,25 @@ class ObservabilityTests(TestCase):
             self.assertEqual(safe({"evidence_summary": "opaque-credential"})["evidence_summary"], "[REDACTED]")
         self.assertEqual(safe({"raw": {"confidence": .9}, "confidence": float("nan")}), {"confidence": None})
 
+    def test_verification_projection_shows_independent_roi_provenance_without_raw_payload(self):
+        event_id = self.event()
+        event = db.get_event(event_id)
+        event["demo_v1"]["verification"] = {
+            "provider": "DashScope Qwen-VL", "source": "LIVE_MODEL", "verification_pass": True,
+            "issue_remaining": False, "confidence": .96, "next_action": "close",
+            "independent_roi_review": True,
+            "first_review": {
+                "verification_pass": False, "confidence": .95, "next_action": "human_review",
+                "raw": {"reasoning": "PRIVATE_CHAIN", "credential": "PRIVATE_RAW"},
+            },
+            "raw": {"reasoning": "PRIVATE_FINAL"},
+        }
+        db.save_event(event)
+        verification = next(node for node in trace_view(event_id)["nodes"] if node["id"] == "verification")["output_summary"]
+        self.assertEqual(verification["independent_roi_review"], True)
+        self.assertEqual(verification["first_review"], {"verification_pass": False, "confidence": .95, "next_action": "human_review"})
+        self.assertNotIn("PRIVATE", json.dumps(verification))
+
     def test_taxonomy_and_normal_human_fallback(self):
         for kind in ERROR_TYPES:
             self.assertEqual(classify({"type": kind})["type"], kind)

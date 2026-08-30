@@ -57,6 +57,23 @@ def _evidence(snapshot, roles, cameras=None):
             and ".." not in asset["url"] and "?" not in asset["url"]]
 
 
+def _verification_projection(verification):
+    """Expose verdict provenance, never raw model payloads or reasoning."""
+    if not isinstance(verification, dict):
+        return {}
+    output = pick(
+        verification,
+        "provider", "model", "source", "verification_pass", "issue_remaining", "confidence", "next_action",
+        "elapsed_ms", "roi", "roi_source", "independent_roi_review",
+    )
+    first = verification.get("first_review")
+    if isinstance(first, dict):
+        # Deliberately project only adjudicable fields; ``raw`` and any provider
+        # reasoning/prompt fields cannot reach Advanced through this structure.
+        output["first_review"] = pick(first, "verification_pass", "confidence", "next_action")
+    return output
+
+
 def trace_view(event_id=None):
     events = _events()
     if event_id is None and events:
@@ -116,7 +133,7 @@ def trace_view(event_id=None):
         node("business", "Business Decision / Fusion", "AI", {"evidence_fusion": snapshot.get("evidence_fusion"), "task_profile": event.get("task_profile"),
              "independent_second_review": pick(second, *JUDGMENT_FIELDS) if second else None} if snapshot.get("evidence_fusion") else {},
              states=("CLOUD_REVIEW", "HUMAN_REVIEW"), input=pick(review, *JUDGMENT_FIELDS)),
-        node("verification", "固定摄像头 Verification", "AI", pick(verification, "provider", "model", "source", "verification_pass", "issue_remaining", "confidence", "next_action", "elapsed_ms", "roi", "roi_source"),
+        node("verification", "固定摄像头 Verification", "AI", _verification_projection(verification),
              source=ai_source, states=("VERIFYING",), duration=None if replay else (verification or {}).get("elapsed_ms"), evidence=_evidence(snapshot, {"after"}),
              node_error=error if error and error["type"] == "VERIFICATION_ERROR" else None),
         node("spatial", "Camera → SLAM 四点映射", "SPATIAL", spatial, states=("LOCATED",), node_error=error if error and error["type"] == "SPATIAL_ERROR" else None),

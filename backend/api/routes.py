@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from database.connection import get_fleet_state, get_transitions_after, list_events, read_snapshot, reset_fleet_state
+from database.connection import get_event, get_fleet_state, get_transitions_after, list_events, read_snapshot, reset_fleet_state
 from event_archive.service import archive_index
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
 from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
@@ -111,6 +111,11 @@ def post_demo_v1_unavailable(demo_id: str) -> dict:
 
 @router.post("/demo-v1/manual-work-orders/{event_id}/complete", tags=["Integrated Customer Demo"])
 def post_demo_v1_manual_completion(event_id: str) -> dict:
+    # A cleaning event delegated to Robot Operations has one mutation owner.
+    # Its task-card action supplies the session boundary and durable lease; do
+    # not leave this legacy endpoint as a bypass merely because it is hidden.
+    if (get_event(event_id) or {}).get("operations_task_id"):
+        raise HTTPException(status_code=409, detail="Task-owned manual completion must use the Robot Operations task action.")
     try:
         return complete_demo04_manual(event_id)
     except (ValueError, RealInferenceError) as error:

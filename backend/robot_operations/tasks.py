@@ -4,6 +4,7 @@ No hardware/third-party completion is fabricated: an operator explicitly advance
 the PoC driver. Cleaning delegates exclusively to the integrated event workflow.
 """
 from uuid import uuid4
+from datetime import datetime
 
 from database.connection import get_event, get_fleet_state, get_transitions, record_transition, runtime_transaction, save_event, update_fleet_robot
 from spatial.route_planner import plan_route
@@ -144,6 +145,8 @@ def control(task_id, action):
         if task["kind"] == "cleaning":
             event = get_event(task["event_id"])
             event["operations_control"] = "PAUSED"
+            if event["state"] == "NAVIGATING":
+                event["operations_pause_started_at"] = repo.now()
             save_event(event)
             if task["robot_id"]:
                 current = robot(task["robot_id"])
@@ -160,6 +163,10 @@ def control(task_id, action):
         if task["kind"] == "cleaning":
             event = get_event(task["event_id"])
             event["operations_control"] = None
+            paused_at = event.pop("operations_pause_started_at", None)
+            if paused_at:
+                elapsed = (datetime.fromisoformat(repo.now()) - datetime.fromisoformat(paused_at)).total_seconds() * 1000
+                event["operations_paused_ms"] = event.get("operations_paused_ms", 0) + max(0, round(elapsed))
             save_event(event)
             if task["robot_id"] and task.get("resume_fleet_status"):
                 current = robot(task["robot_id"])
@@ -230,3 +237,24 @@ def advance(task_id):
         task.update(robot_id=(result.get("assignment_decision") or {}).get("selected_robot_id"),
                     destination={"label": result["location"]["zone"], **result["location"]})
         return _transition(task, result["state"], {"delegated_to": handler.__name__})
+
+
+def complete_manual(task_id):
+    """Run an operator-confirmed human clean-up for a task-owned event.
+
+    It is intentionally separate from ``advance``: an Agent may progress the
+    deterministic workflow, but cannot manufacture a human completion.
+    """
+    from demo_v1 import service as workflow
+
+    with task_lease(task_id):
+        task = get_task(task_id)
+        if task["kind"] != "cleaning" or task["status"] != "HUMAN_FALLBACK":
+            raise ValueError("Manual completion requires a task-owned cleaning HUMAN_FALLBACK.")
+        # The legacy-named service keeps its existing zero-candidate guard and
+        # follows the normal after-evidence verification path.
+        result = workflow.complete_demo04_manual(task["event_id"])
+        return _transition(task, result["state"], {
+            "delegated_to": "complete_demo04_manual",
+            "source": "EXPLICIT_OPERATOR_MANUAL_COMPLETION",
+        })

@@ -1,14 +1,14 @@
 # AI 自主清洁 Demo｜真实任务清单
 
 > **状态：LOCKED · 2026-08-30**
-> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E/F/H 工程验收通过；H独立提交推送后进入P1-G最终回归，全部PASS前不合并main。
+> `[x]` 仅代表满足对应验收条件；`[ ]` 包含尚未实现或尚未验收的 LOCKED TARGET。Unified Implementation 已授权，P1-A/B/C/D/E/F/H/G 工程验收通过；提交与合并状态以 git log 和 remote 为准，用户展示验收仍独立。
 
 ## 已实现基线（IMPLEMENTED，禁止回退）
 
 - 阶段 REST Runtime、SQLite transition audit、Cloud/assign/verify 边界、旧 `/runs/*` 410。
 - 受控 bbox、真实 Qwen transport、独立二审/Fusion、Phase 2 空间基础、Phase 3 Capability/Scheduler、Dijkstra global topology planner / `plan_route()`。
-- 基础 Multi-view LangGraph、基础 Event Center、Analytics 聚合、确定性 Optimization recommendation 与 Advanced shell 已存在；它们均不等于本文件其余 LOCKED 产品目标。
-- Demo01、Demo02、Demo04 的既有真实运行记录；Demo03 当前为 `HUMAN_REVIEW`，不能视为闭环成功。
+- **历史基线**曾有基础 Multi-view LangGraph、基础 Event Center、Analytics 聚合、确定性 Optimization recommendation 与 Advanced shell；它们不替代后续 P1-C/D/E/F/H 的已实现产品能力，旧 Optimization endpoint 已退役410。
+- Demo01、Demo02、Demo04 的既有真实运行记录；Demo03 在 P1-B 历史测试曾为 `HUMAN_REVIEW`，该失败保留；P1-G 正式五次 LIVE 均 CLOSED，见最新验收记录。
 
 ## P1-A｜真实清洁 Runtime 与产品名称（先完成）
 
@@ -23,7 +23,7 @@
 - [x] **Dijkstra global topology planner / `plan_route()` Runtime 接入**：`start-navigation` 读取共享 Fleet 当前 map 与已定位 target map，调用 `plan_route()`，将 connector graph 转为可视 anchor path；删除 demo_id 固定路径。
 - [x] **Demo04 正确能力边界**：移除 cloud 阶段大件直接人工特判；完整运行 Cloud → Locate → Capability Engine → zero candidate → `HUMAN_FALLBACK` → 人工完成 → verify。
 - [x] **共享 Fleet 状态与真实时间**：机器人位置、电量、状态使用同一读模型；任务终点保留，new demo/reset 才复位；前端读取 SQLite transition timestamp、真实 duration、真实 cloud latency。
-- [x] **Stable Replay 重定义**：只保存/选择既有真实 AI structured evidence 回放，其他 Runtime 阶段仍真实执行；在现有 Advanced shell 加最小 AI Runtime 控制区，提供 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和 latency；不得重做完整 Advanced 页面。
+- [x] **Stable Replay 重定义**：只保存/选择既有真实 AI structured evidence 回放，其他 Runtime 阶段仍真实执行；P1-A 当时在 Advanced 的最小 AI Runtime 控制区提供 LIVE / Stable Replay 主动选择、云端模型可用状态、最近请求状态和 latency；P1-H 已将其纳入完整只读 Trace Inspector。
 
 ## P1-B｜Workbench、MapCanvas 与 EventDetailPanel（工程 IMPLEMENTED · A/E PASS）
 
@@ -36,7 +36,7 @@
 验收：前端 17/17、backend 64 PASS + 2 opt-in skipped、build 与 diff check PASS；主代理实际浏览器验证 Demo04 人工闭环、Demo03 跨楼导航/验收失败保留、同会话云端处理中刷新不重复请求、终态刷新、history 只读、1024/1440/1920 桌面布局。详情见测试事实源。最终产品/用户验收仍未代替。
 
 - [ ] **P1-B/P1-H P2**：同会话 request keys 的终态清理、跨标签页/后端全局幂等、网络结果不确定时的审计恢复流程；当前只读 GET 同步，绝不自动重发模型。未知模型 enum 统一中文待复核，不把未识别语义编造成肯定结论。
-- [ ] **P1-G Demo03 ROI 验收**：本轮真实模型返回“地面上仍有红色罐体未清理”，verification_pass=false 并转 HUMAN_REVIEW；具体误判/证据根因尚未核实。P1-B 如实呈现，未篡改输出。ROI/ontology/证据检查优化与重复 LIVE 稳定性仍待后续。
+- [x] **P1-G Demo03 ROI 工程收口**：P1-B 当时的真实模型曾返回“地面上仍有红色罐体未清理”，verification_pass=false 并转 HUMAN_REVIEW；该历史事实保留。当前通用 ROI/独立二审、5/5 qualifying LIVE、浏览器跨页与 A/E 工程结论均已完成；Demo03 两次 second review 是语义灰区二审，非真实独立 ROI verification。用户主观展示验收仍独立。
 
 ## P1-C｜新 Multi-view Perception Agent（IMPLEMENTED · A/E PASS）
 
@@ -45,7 +45,7 @@
 - [x] **PoC Evidence Adapter、二审与审计**：明确 controlled evidence assets，不伪称真实 RTSP 同步；持久化 Agent Start、single-view result、sufficiency、ambiguity、tool call、candidates、selected cameras、fetch、multi-view result、final decision、latency。最终 `0.50 <= confidence < 0.85` 的 independent second review 可读取合法 evidence set，但不读取上一轮模型答案或 reasoning。
 - [x] **Demo02 真实演示**：CAM-A1-01 单视角的液体/反光歧义必须由模型自己发起 Tool Call；补充图来自 tool audit，客户只显示 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision，不显示 Chain-of-Thought。
 
-验收：22 targeted PASS、backend 86 PASS + 3 paid opt-in skipped、frontend 17/build PASS、真实 LIVE→Replay 与浏览器闭环 PASS。影像版本、真实模型返回与完整编辑提示见测试事实源；新 `primary-ambiguous-v2.png` 为公开受控成像模糊 variant，原图保留。2 camera/2 acquisition rounds 外另设 6 model turns 保护限，不增加取证轮次。P1-G 五次稳定性仍未代替。
+验收：22 targeted PASS、backend 86 PASS + 3 paid opt-in skipped、frontend 17/build PASS、真实 LIVE→Replay 与浏览器闭环 PASS。影像版本、真实模型返回与完整编辑提示见测试事实源；新 `primary-ambiguous-v2.png` 为公开受控成像模糊 variant，原图保留。2 camera/2 acquisition rounds 外另设 6 model turns 保护限，不增加取证轮次。这是 P1-C 当时的验收；P1-G 后续五次稳定性证据见最新记录。
 
 ## P1-D｜Event Center（IMPLEMENTED · A/E PASS）
 
@@ -79,12 +79,18 @@
 
 - [ ] **P1-F P2**：真实身份权限、分布式任务/硬件幂等、生产设备与外部平台授权、ASR provider、审计保留/检索仍待后续；当前单worker启动恢复只标Interrupted不重发。共享Task接口中的workflow_transitions来自原CleaningEvent，不另存第二份清洁trace。
 
-## P1-G｜验收、回归与文档纪律
+## P1-G｜验收、回归与文档纪律（IMPLEMENTED；用户主观展示验收仍待）
 
-- [ ] **Demo01/03/04 LIVE + Replay 回归**：按 `AI_INTEGRATION_TEST.md` 的次数与字段记录 raw confidence、二审、Fusion、system decision、robot、route、verification、final、latency。
-- [ ] **Demo02 LIVE Agent 回归**：连续 5 次中至少 4 次由模型真实触发 Multi-view Tool Calling，经 search → fetch → multi-view Cloud → 高仙 Omnie → verification → CLOSED；严禁 demo_id、固定阈值或前端动画作弊。
-- [ ] **Event / Analytics / Agent 回归**：历史 snapshot 不被当前 Fleet 覆盖；状态分类与 URL 恢复正确；Analytics 无硬编码 KPI；Action Card / Policy Guard / Audit 与 Delivery Adapter 授权状态可验证。
-- [ ] **实现后文档更新**：仅在代码、测试、浏览器证据和用户验收都存在时，将对应 TODO 转为 IMPLEMENTED，并更新六份事实源。
+已完成且可只读复核的隔离 acceptance 证据：正式 LIVE batches Demo01 `acceptance-b0af62b416cc4c03be6c304ddb569a40` 5/5、Demo02 `acceptance-20c748edbaa44c9d86f1257412d92198` 5/5、Demo03 `acceptance-cfee4992075a42839a463253fa0f53dd` 5/5、Demo04 `acceptance-da76bfb5b67e4acaad62a5541d2acdd7` 3/3；post-review Replay 四 Demo 各 3/3、无新 Cloud request。结果位于 `/tmp/cleaning-p1g-acceptance.lf8Dla/acceptance.sqlite` 的 append-only `acceptance_runs.payload`，18条 LIVE 的安全字段表在 `AI_INTEGRATION_TEST.md`。A/B/C/D/E 最终 PASS、backend164/frontend46/build/bash-n/diff通过，以下工程项已勾选；用户主观展示验收仍独立，提交和合并状态以 git log 与 remote 为准。
+
+- [x] **Demo01/03/04 LIVE + Replay 回归**：按 `AI_INTEGRATION_TEST.md` 的次数与字段记录 structured 数值摘要、二审、Fusion、system decision、robot、route、verification、final、latency。
+- [x] **Demo02 LIVE Agent 回归**：五次均由模型真实触发 Multi-view Tool Calling，经 search → fetch → multi-view Cloud → 高仙 Omnie → verification → CLOSED；无 demo_id、固定阈值或前端动画作弊。
+- [x] **Event / Analytics / Agent 回归**：历史 snapshot/Fleet、状态分类/URL、Analytics 真实指标、Action Card/Policy Guard/Audit 与 Delivery Adapter 授权状态已复核；task-owned HF 人工完成唯一 owner、暂停时钟、取消与跨页恢复均有测试/浏览器证据。
+- [x] **实现后文档更新**：代码、测试、浏览器和 A/B/C/D/E 工程审查证据已写入六份事实源。
+
+- [ ] **用户展示验收**：全部工程门槛 PASS；提交与合并状态单独以 `git log` 和 remote 核对。用户主观展示验收仍待，不能由本工程验收替代。
+- [ ] **P2 面客任务卡投影**：人工 task 已闭环时 `robot_id=null` 仍显示“机器人：待系统分配”，目的地 `East Corridor` 未中文化；右侧事件详情和后端 assignment 目前正确。仅修正任务卡标签投影，不改变本轮冻结的 Task/assignment 语义。
+- [ ] **P2 模型拒绝措辞**：越权请求已拒绝且无写入，但模型可能泛称“联系管理员编辑”；后续收敛措辞，不能暗示当前产品存在可编辑基础设施的管理入口。约 785KB 构建包拆分延续 P1-E P2。
 
 ## P1-H｜Advanced Technical Observability（IMPLEMENTED · A/E PASS）
 
@@ -95,7 +101,7 @@
 - [x] **空间/能力/调度/路线**：只读已保存共享Camera→SLAM、TaskProfile、Capability候选/排除、Scheduler权重得分、Dijkstra节点/代价。
 - [x] **Runtime/Model/Error**：真实request metadata及8类taxonomy，API白名单/敏感信息过滤，LIVE失败不Replay；GET不运行模型/调度/路线。
 - [x] **Trace关联**：Event/每消息Request/Task独立关联，sharedSession多任务不串Trace；legacy无回填。Replay模型payload不变，真实Runtime新Trace。
-- [x] **H工程验收**：14定向、135完整后端（132PASS+3skip）、前端42/build、浏览器、Reviewer A/E PASS。四Demo连续LIVE/Replay终验仍P1-G，不据H提前宣称全稳定。
+- [x] **H工程验收**：14定向、135完整后端（132PASS+3skip）、前端42/build、浏览器、Reviewer A/E PASS。该条保留 H 当时证据；四 Demo 连续 LIVE/Replay 已在后续 P1-G 完成。
 - [ ] **P1-H P2**：独立原生Delivery/Relocation Task Trace入口；生产级OTel/跨服务观测、身份权限、审计留存与持续安全审计。当前本地SQLite单worker，不冒称生产追踪系统。
 
 ## 后续 Batch（不在 Unified Implementation Batch 的范围）

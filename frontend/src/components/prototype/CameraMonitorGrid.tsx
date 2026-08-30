@@ -3,13 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { CameraViewport } from "./CameraViewport";
 import { scenarios } from "./data";
 import { monitorViews } from "./eventViewModel";
+import { canStartDemo } from "./runtimeSession";
 import type { ActiveEvent } from "./types";
 
 /** Two primary camera slots, not a multi-view Agent evidence gallery. */
 export function CameraMonitorGrid({ event, onTrigger }: { event: ActiveEvent | null; onTrigger: (id: typeof scenarios[number]["id"]) => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const busy = Boolean(event && (event.processing || !["CLOSED", "HUMAN_REVIEW"].includes(event.backendState ?? "")));
+  const busy = !canStartDemo(event);
   useEffect(() => {
     const close = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
     document.addEventListener("mousedown", close);

@@ -28,7 +28,7 @@ def _review(event_type, confidence=.91):
 
 
 def _verification(*args, **kwargs):
-    return {"provider": "test transport", "verification_pass": True, "confidence": .95,
+    return {"provider": "test transport", "verification_pass": True, "issue_remaining": False, "confidence": .95,
             "next_action": "close", "elapsed_ms": 130}
 
 
@@ -217,14 +217,21 @@ class ClosureTests(unittest.TestCase):
 
     def test_raw_provider_bool_and_confidence_types_are_strict(self):
         for adapter in (qwen.run_event_qwen_vl, qwen.run_targeted_event_qwen_vl):
-            for change in ({"need_action": "false"}, {"confidence": True}, {"confidence": float("nan")}):
+            for change in ({"need_action": "false"}, {"confidence": True}, {"confidence": float("nan")}, {"severity": []}, {"severity": {}}):
                 with self.subTest(adapter=adapter.__name__, change=change), patch.object(qwen, "_request_qwen", return_value=({**_raw_review("small_litter"), **change}, 1)):
                     with self.assertRaises(RealInferenceError):
                         adapter([], [], [], "model")
-        for change in ({"verification_pass": "false"}, {"confidence": True}, {"confidence": float("inf")}):
-            with self.subTest(change=change), patch.object(qwen, "_request_qwen", return_value=({**_verification(), **change}, 1)), patch.object(qwen, "_image_data_url", return_value="test-image"):
+        for change in ({"verification_pass": "false"}, {"confidence": True}, {"confidence": float("inf")}, {"next_action": []}, {"next_action": {}}, {"issue_remaining": True}):
+            with self.subTest(change=change), patch.object(qwen, "_request_qwen", return_value=({**_verification(), **change}, 1)) as request, patch.object(qwen, "_image_data_url", return_value="test-image"):
                 with self.assertRaises(RealInferenceError):
-                    qwen.run_verification_qwen_vl(Path("before"), Path("after"), {}, "model")
+                    qwen.run_verification_qwen_vl(Path("before"), Path("after"), {}, "model", before_roi=b"before", after_roi=b"after")
+                request.assert_called_once()
+
+    def test_replay_verification_rejects_same_contradictions_as_live(self):
+        from demo_v1.replay import validate_response
+        for change in ({"issue_remaining": True}, {"issue_remaining": "false"}, {"next_action": []}, {"verification_pass": False}):
+            with self.subTest(change=change), self.assertRaises(RealInferenceError):
+                validate_response({**_verification(), **change}, "verification")
 
     def test_raw_provider_invalid_boolean_cannot_close_runtime(self):
         event_id = self.reviewed()

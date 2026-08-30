@@ -1,7 +1,44 @@
 # Integrated Demo｜AI 集成与回归事实记录
 
-> **状态：IMPLEMENTED 基线 + LOCKED/TODO 验收计划 · 2026-08-30**
+> **状态：IMPLEMENTED 基线 + P1-G 工程/自动化/浏览器验收 IMPLEMENTED · 2026-08-30**
 > 本文区分已发生的真实调用、当前代码边界和未来必须达到的验收标准。固定 bbox 仍是 `CONTROLLED_EDGE_DEMO`，不是本地 REAL YOLO。
+
+## P1-G 连续验收批次（IMPLEMENTED；用户主观展示验收仍待）
+
+专用 SQLite `/tmp/cleaning-p1g-acceptance.lf8Dla/acceptance.sqlite` 的 append-only `acceptance_runs.payload` 保存了安全摘要、阶段、route、source、latency 与失败标签；本文不复制 Prompt、原始模型回答、图片或任何 secret。合格 LIVE batch：Demo01 `acceptance-b0af62b416cc4c03be6c304ddb569a40` 5/5，Demo02 `acceptance-20c748edbaa44c9d86f1257412d92198` 5/5，Demo03 `acceptance-cfee4992075a42839a463253fa0f53dd` 5/5，Demo04 `acceptance-da76bfb5b67e4acaad62a5541d2acdd7` 3/3。各自后续 Stable Replay 为 3/3，且 replay rows 记录为 `REPLAY`、无新 model request；非 AI Runtime 和工具/阶段照常执行。`b84edc` 因 per-run reset 不计正式，`d3729` 仅 diagnostic。
+
+本批次每次均记录 target ROI。Demo02 五次 LIVE 都有真实 `MODEL_TOOL_CALL` 的 search/fetch；Demo03 五次均经 robot-c、跨楼 Dijkstra 路径与 target ROI。Demo03 的第3/5次 `second_confidence=.95` 是**事件语义灰区的 independent targeted second review**，不是 verification 的独立 ROI 二审；五次 verification 均为 primary `.99` 直接通过。独立 ROI verifier 的失败分支仅由 fixture/契约测试覆盖，不能声称已在此真实批次触发。Demo04 三次均 zero candidate、无伪造路线并经人工完成后验证。Qwen 运行模型为 `qwen-vl-max` / `qwen3-vl-plus`；本文保留仓库可读的安全数值与 timing 摘要，隔离 SQLite 保留完整审计，均不能视为未来固定输出。
+
+下表将 18 条 qualifying LIVE 的安全字段固化在版本库文档中。`first/final/second/verify` 是模型 structured JSON 中已验证的数值字段（不复制模型原文、Prompt、图片或 CoT）；`requests ms` 是真实 request duration 摘要；Fusion 是确定性系统分数，不是 raw 模型置信度。
+
+| Demo | Run | Event ID | first | final | second | Fusion | verify | requests ms |
+|---|---:|---|---:|---:|---:|---:|---:|---|
+| 01 | 1 | `integrated-demo01-b6eb09e191` | .95 | .95 | — | .89 | .99 | 6704; 4150 |
+| 01 | 2 | `integrated-demo01-5366cc8033` | .95 | .95 | — | .89 | .99 | 5716; 4036 |
+| 01 | 3 | `integrated-demo01-a217a51a99` | .95 | .95 | — | .89 | .99 | 6179; 3889 |
+| 01 | 4 | `integrated-demo01-9cac41b92d` | .95 | .95 | — | .89 | .99 | 5209; 5113 |
+| 01 | 5 | `integrated-demo01-c9efe79dff` | .95 | .95 | — | .89 | .99 | 6687; 4055 |
+| 02 | 1 | `integrated-demo02-4b2f4272aa` | .30 | .85 | — | .91 | .95 | 13215; 1877; 2450; 6621; 6347 |
+| 02 | 2 | `integrated-demo02-a5410f8c28` | .30 | .85 | — | .91 | .95 | 4757; 1796; 2394; 5654; 3839 |
+| 02 | 3 | `integrated-demo02-ea902d6005` | .30 | .92 | — | .952 | .98 | 4858; 1708; 1933; 5207; 4921 |
+| 02 | 4 | `integrated-demo02-1c523b9aed` | .30 | .85 | — | .91 | .98 | 5771; 1779; 2047; 5969; 4172 |
+| 02 | 5 | `integrated-demo02-3e55e9cb27` | .30 | .85 | — | .91 | .95 | 5436; 1724; 2297; 5696; 4513 |
+| 03 | 1 | `integrated-demo03-c7e0e1c45f` | .95 | .95 | — | .89 | .99 | 4529; 4281 |
+| 03 | 2 | `integrated-demo03-00361b376c` | .95 | .95 | — | .89 | .99 | 4747; 3722 |
+| 03 | 3 | `integrated-demo03-c85abdc206` | .84 | .95 | .95 | .89 | .99 | 5162; 4419; 4045 |
+| 03 | 4 | `integrated-demo03-3028758d68` | .95 | .95 | — | .89 | .99 | 4582; 3415 |
+| 03 | 5 | `integrated-demo03-cecc717d43` | .84 | .95 | .95 | .89 | .99 | 4879; 6020; 3467 |
+| 04 | 1 | `integrated-demo04-4e3d1d9680` | .95 | .95 | — | .89 | .99 | 4937; 3790 |
+| 04 | 2 | `integrated-demo04-b5e6b6e1b3` | .95 | .95 | — | .89 | .99 | 4835; 3656 |
+| 04 | 3 | `integrated-demo04-c5cf39584a` | .95 | .95 | — | .89 | .99 | 4737; 4384 |
+
+主完整回归为 backend 164 项（161 PASS + 3 paid opt-in skipped，41.795s）、frontend 46 项/build、bash-n 与 diff check 均 PASS；A Architecture、B Agent/AI、C Safety/Reality、D、E 最终复核均 PASS（P0/P1=0）。post-review Replay 使用同一 fingerprint `581e77be0dad8874cf118fee5decc5c40f5f5f7772b8c3224807b37ef9bd63a4`：Demo01 `acceptance-d18f7b75d20740c591523be670ade94f` 3/3、Demo02 `acceptance-e4c8ea3f203a41b1a47da45b64de1b78` 3/3、Demo03 `acceptance-7ed34b4df7cc4cb5b6421f9ac5874c7c` 3/3、Demo04 `acceptance-d38e6d929bef4f0d8260530f717023ca` 3/3。工程/自动化/浏览器验收据此完成；用户主观展示验收仍独立，提交和合并状态以 git log 与 remote 为准。
+
+补充浏览器 QA 使用隔离 `/tmp/cleaning-p1c-qa.T92Xr8/qa.sqlite`：Demo03 `integrated-demo03-91ce8e62d8` 在 NAVIGATING 暂停、刷新后位置未变、恢复后取消，终态 `CANCELLED`（记录总时长 473 秒）；旧 Demo04 `integrated-demo04-8ebf33849f` 是普通 Workbench 人工确认，**不是 task-owned**，其 transition 为 04:34:28Z–04:35:08Z，before 两框与 persisted edge 同源、after 无框、Cloud 5959ms。
+
+task-owned 人工完成的独立浏览器证据为 `integrated-demo04-4002604215` / `task-47b6c7f0b8b449cc`：04:40:45Z 创建，Cloud `.95`（4355ms）→ Agent 真实 create → Task UI 派发/推进至 LOCATED/zero-candidate `HUMAN_FALLBACK` → 用户 `manual_complete` 04:44:10Z（audit `ALLOW`）→ verification `.99` → `CLOSED` 04:44:14Z。Task/Workbench 同步、after 可见，冷重载后自04:43Z起 Console errors=[]。HMR 编辑期间曾有 Provider identity 错配，整页刷新后恢复；不得误写为全程无 error。
+
+Reviewer B 的 Agent 实跑记录位于 `/tmp/cleaning-p1g-agent-b.QIs7LG/REVIEW_SUMMARY.md`：FlashBot 首轮因不存在 office POI 要求澄清，确认 `a2-corridor` 后才真实 create/dispatch；Omnie standby 真实 create/dispatch。三种越权意图由模型直接拒绝、0 tool/0 operational task write；另有三项独立 backend guard probe 返回 `POLICY_REJECTED`，必须与模型 tool call 区分。B 的范围 PASS 已纳入上述最终工程审查；不将其扩张为生产身份或硬件授权结论。
 
 ## P1-H Trace Inspector 验收（IMPLEMENTED · A/E PASS · 2026-08-30）
 
@@ -56,7 +93,7 @@
 
 > Use case: lighting-weather / precise camera imaging edit. Image 1 is the edit target, a CONTROLLED SYNTHETIC CCTV test asset for a transparently labeled multi-view perception demo. Create ONE version of exactly this camera frame, same 4:3 aspect ratio, identical viewpoint, room geometry, floor tile lines, glass entrance, and location of the tiny yellowish patch near normalized x=.50,y=.52. Change ONLY camera optical visibility: a localized soft translucent lens smear / diffuse reflected glare across the central region makes the patch and its boundaries genuinely indistinct. It should no longer be visually possible to confidently distinguish actual liquid on the floor from a reflection or lens contamination using this single frame alone. Keep a faint ambiguous patch in its current spot, do NOT draw a clearly outlined puddle, cup, boxes or extra objects. The surrounding room and floor outside this localized hazy glare remain naturally sharp. This is an optical ambiguity TEST INPUT, NOT model output or a fake detection result. No boxes, no confidence numbers, no annotations, no model answers, no new text. Remove the existing small black timestamp/camera text strip and reconstruct background there, because camera identity/timestamp are supplied as separate factual metadata. Do not move, crop, or redesign the scene.
 
-P1-C 并不代替 P1-G：连续5次至少4次成功、四场景Repeat/完整Analytics/Operations/Advanced验收仍待后续。
+P1-C 并不代替 P1-G：**本段为 P1-C 当时记录**，彼时连续批次、完整 Analytics/Operations/Advanced 验收尚未开始；当前 P1-G engineering closure 已完成，用户主观展示验收见页首边界。
 
 ## 1. 当前 AI / Runtime 事实（IMPLEMENTED）
 
@@ -73,7 +110,7 @@ P1-A 已提交推送 `fcd01d4`。P1-B 本次仅前端与文档改动，不修改
 - Demo04 `integrated-demo04-6b02cb6896`：在真实 cloud-review 处理中刷新；服务访问日志证明该事件 cloud-review 只有 1 次 POST，刷新后 GET 读取 SQLite，再继续 locate/assign 至 zero-candidate HUMAN_FALLBACK。只验证同会话防重复，未声称跨新标签页幂等。
 - 浏览器发现并修复过 route Hook 等值数组引发的 maximum update depth、UTC 解析导致瞬间完成、已走路线拐点丢失；最终检查无新运行时错误。空间面板有独立错误边界，故障不清空工作台。
 
-Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。该段为 P1-B 当时的记录；P1-C 新 Agent 当前已完成（见本文最新记录），P1-D 完整事件列表已实现；P1-B当时P1-E/F/H与最终多次LIVE尚未实施；P1-E当前完成证据见页首，H/G仍待后续。
+Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、网络结果不确定只读同步、session keys 清理/跨页全局幂等为 P2/后续。该段为 P1-B 当时的记录；P1-C/D/E/F/H/G 当前工程验收均已完成，当前证据见页首。
 
 ### 2026-08-30 P1-A Closure 最新验收（IMPLEMENTED · Reviewer A/E PASS）
 
@@ -118,10 +155,10 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 - **LIVE**：真实云端模型请求；失败必须可见并停在 `HUMAN_REVIEW`，不得自动切换 Replay。
 - **Stable Replay（本轮 P1-A 路径已验证，四 Demo 连续次数回归仍属 P1-G）**：只允许使用过去真实成功调用保存的 structured AI evidence；Camera→SLAM、Scheduler、Dijkstra global topology planner / `plan_route()`、Fleet、SQLite transitions、Verification 仍需现场运行。UI 明示“稳定回放”。当前 Demo01/Demo04 各一次真实 LIVE→Replay 通过不代表四 Demo 完整多次回归通过。
 - **Product capability / deployment policy**：测试客户显示为赛特净界 S5、高仙 Omnie、蜗小白 SC50、普渡 FlashBot Max，同时验证内部 ID 未变；SC50 地毯轻量垃圾仅作为 Demo Configuration；FlashBot Max 不能成为 Cleaning Scheduler 候选。
-- **Demo03 verification（TODO）**：目标 ROI，不是整图找不同；输入原类别、bbox/ROI、before/after 全图和 ROI；机器人、人员、阴影、光照、无关变化不能单独导致失败。非目标干扰失败时独立 ROI 二审，不读取第一次答案。
+- **Demo03 verification（P1-G IMPLEMENTED）**：目标 ROI，不是整图找不同；输入原类别、bbox/ROI、before/after 全图和 ROI；机器人、人员、阴影、光照、无关变化不能单独导致失败。primary 失败时最多一次独立 ROI 二审，不读取第一次答案；真实 qualifying batch 的五次 verification 均由 primary 直接通过，独立 ROI failure 路径只在 fixture 覆盖。
 - **Demo04（本轮已真实验证一次，连续 3 次总回归属 P1-G）**：已验证 Cloud → Locate → Capability Engine zero candidate → `HUMAN_FALLBACK` → 人工完成 → after → 云端验收，不允许 Demo ID 或 Cloud 直接跳人工。
 
-## 4. 新 Multi-view Agent 验收（P1-C 核心已通过；P1-G 连续5次仍 TODO）
+## 4. 新 Multi-view Agent 验收（P1-C / P1-G 连续验收均已完成）
 
 ### 通用不变量
 
@@ -140,7 +177,7 @@ Reviewer A / E 均 PASS，P0/P1=0（限 P1-B）；未知语义中文待复核、
 
 模型不稳定时只允许优化主视角、Prompt、Tool Description、Camera Metadata、Evidence Assets；严禁增加 demo_id 分支或强制前端阶段。客户 UI 步骤必须能回溯 Agent Trace / Tool Audit / Cloud Response / backend transition，且不展示 Chain-of-Thought。
 
-## 5. Workbench / Event Center / Analytics 验收（P1-B/D/E工程已通过；P1-G最终联验TODO）
+## 5. Workbench / Event Center / Analytics 验收（P1-B/D/E 与 P1-G 联验均已完成）
 
 | 范畴 | 验收标准 |
 |---|---|

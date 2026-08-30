@@ -7,38 +7,31 @@ export const cameras: Record<string, Camera> = {
     id: "CAM-OUT-01", location: "园区东侧道路",
     image: asset("CAM-OUT-01", "event-outdoor-tissue-001", "primary.png"),
     afterImage: asset("CAM-OUT-01", "event-outdoor-tissue-001", "after.png"),
-    overlay: [{ label: "其他小型垃圾", confidence: 0.81, bbox: [716 / 1448, 675 / 1086, 775 / 1448, 716 / 1086] }],
   },
   "CAM-A1-01": {
     id: "CAM-A1-01", location: "A栋1F大堂",
     image: asset("CAM-A1-01", "event-beverage-spill-002", "primary-ambiguous-v2.png"),
     afterImage: asset("CAM-A1-01", "event-beverage-spill-002", "after.png"),
-    overlay: [{ label: "液体污渍", confidence: 0.58, bbox: [643 / 1448, 544 / 1086, 827 / 1448, 641 / 1086] }],
   },
   "CAM-A1-02": {
     id: "CAM-A1-02", location: "A栋1F入口补充视角",
     image: asset("CAM-A1-02", "event-beverage-spill-002", "secondary.png"),
-    overlay: [{ label: "液体污渍", confidence: 0.63, bbox: [684 / 1448, 529 / 1086, 802 / 1448, 617 / 1086] }], temporary: true,
+    temporary: true,
   },
   "CAM-A1-04": {
     id: "CAM-A1-04", location: "A栋1F休息区补充视角",
     image: asset("CAM-A1-04", "event-beverage-spill-002", "secondary.png"),
-    overlay: [{ label: "液体污渍", confidence: 0.61, bbox: [630 / 1448, 539 / 1086, 817 / 1448, 614 / 1086] }], temporary: true,
+    temporary: true,
   },
   "CAM-A2-08": {
     id: "CAM-A2-08", location: "A栋2F连廊区域",
     image: asset("CAM-A2-08", "event-indoor-can-003", "primary.png"),
     afterImage: asset("CAM-A2-08", "event-indoor-can-003", "after.png"),
-    overlay: [{ label: "易拉罐", confidence: 0.84, bbox: [699 / 1448, 695 / 1086, 735 / 1448, 721 / 1086] }],
   },
   "CAM-A2-11": {
     id: "CAM-A2-11", location: "A栋2F公共区域",
     image: asset("CAM-A2-11", "event-oversized-box-004", "primary.png"),
     afterImage: asset("CAM-A2-11", "event-oversized-box-004", "after.png"),
-    overlay: [
-      { label: "大件物品", confidence: 0.82, bbox: [505 / 1448, 570 / 1086, 627 / 1448, 706 / 1086] },
-      { label: "大件物品", confidence: 0.76, bbox: [604 / 1448, 610 / 1086, 723 / 1448, 729 / 1086] },
-    ],
   },
 };
 
@@ -81,4 +74,6 @@ export const stageCopy: Record<PrototypeState, { title: string; detail: string }
   CLOSED: { title: "事件已闭环", detail: "清洁验收通过，完整事件记录已保留" },
   HUMAN_FALLBACK: { title: "已转人工处置", detail: "大件物品超出 现有清洁机器人 能力边界，机器人未移动" },
   HUMAN_REVIEW: { title: "建议人工复核", detail: "自动流程已停止，保留已发生的完整处置记录" },
+  CANCELLED: { title: "事件已取消", detail: "任务已停止，保留已发生的处置记录" },
+  PAUSED: { title: "任务已暂停", detail: "通过共享任务卡继续或取消任务" },
 };

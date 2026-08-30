@@ -1,7 +1,7 @@
 import { Bot, ChevronDown, ChevronUp, Mic, Send, Wrench } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useRobotOperations } from "./RobotOperationsProvider";
-import { FLOATING_EXPANDED_KEY, FLOATING_POSITION_KEY, actionLabel, adviceWindowLabel, clampFloatingPosition, defaultFloatingPosition, parseStoredPosition, readStorage, recentTasks, taskActions, taskKindLabel, taskStatusLabel, writeStorage, type AgentAudit, type OperationsTask } from "./robotOperationsModel";
+import { FLOATING_EXPANDED_KEY, FLOATING_POSITION_KEY, actionLabel, adviceWindowLabel, clampFloatingPosition, defaultFloatingPosition, parseStoredPosition, readStorage, recentTasks, taskActions, taskKindLabel, taskRobotLabel, taskStatusLabel, writeStorage, type AgentAudit, type OperationsTask } from "./robotOperationsModel";
 
 type PageContext = Record<string, unknown>;
 
@@ -9,7 +9,7 @@ function TaskCard({ task, compact = false }: { task: OperationsTask; compact?: b
   const { pending, session, taskAction } = useRobotOperations();
   const origin = task.origin?.label ?? "未提供起点";
   const destination = task.destination?.label ?? "未提供目的地";
-  return <article className="border border-slate-200 bg-slate-50 p-2.5 text-[10px] text-slate-600"><div className="flex items-start justify-between gap-2"><div><p className="font-semibold text-slate-800">{taskKindLabel(task.kind)}</p><p className="mt-0.5 font-mono text-slate-500">{task.task_id}</p></div><span className="border border-slate-200 bg-white px-1.5 py-0.5 text-slate-600">{taskStatusLabel(task.status)}</span></div><p className="mt-2 leading-4">机器人：{task.robot_id ?? "待系统分配"}</p><p className="leading-4">{origin} → {destination}</p><p className="mt-1 text-slate-400">来源：{task.source === "POC_SIMULATION" ? "PoC 模拟任务" : task.source}</p>{!compact && <div className="mt-2 flex flex-wrap gap-1.5">{taskActions(task).map((action) => <button key={action} type="button" disabled={pending || Boolean(session?.busy)} onClick={() => void taskAction(task, action)} className="border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-700 hover:bg-slate-100 disabled:opacity-50">{actionLabel(action)}</button>)}</div>}</article>;
+  return <article className="border border-slate-200 bg-slate-50 p-2.5 text-[10px] text-slate-600"><div className="flex items-start justify-between gap-2"><div><p className="font-semibold text-slate-800">{taskKindLabel(task.kind)}</p><p className="mt-0.5 font-mono text-slate-500">{task.task_id}</p></div><span className="border border-slate-200 bg-white px-1.5 py-0.5 text-slate-600">{taskStatusLabel(task.status)}</span></div><p className="mt-2 leading-4">机器人：{taskRobotLabel(task.robot_id)}</p><p className="leading-4">{origin} → {destination}</p><p className="mt-1 text-slate-400">来源：{task.source === "POC_SIMULATION" ? "PoC 模拟任务" : task.source}</p>{!compact && <div className="mt-2 flex flex-wrap gap-1.5">{taskActions(task).map((action) => <button key={action} type="button" disabled={pending || Boolean(session?.busy)} onClick={() => void taskAction(task, action)} className="border border-slate-300 bg-white px-2 py-1 text-[10px] text-slate-700 hover:bg-slate-100 disabled:opacity-50">{actionLabel(action)}</button>)}</div>}</article>;
 }
 
 function auditOutcome(audit: AgentAudit): string {

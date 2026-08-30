@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   SESSION_STORAGE_KEY, operationSessionHeaders, readStorage, writeStorage,
-  type AdviceSnapshot, type AgentSessionSnapshot, type OperationsTask,
+  type AdviceSnapshot, type AgentSessionSnapshot, type OperationsTask, type OperationsTaskAction,
 } from "./robotOperationsModel";
 
 type PageContext = Record<string, unknown>;
@@ -12,7 +12,7 @@ type OperationsContextValue = {
   pending: boolean;
   /** False means the text remains in the composer for an operator retry. */
   sendMessage: (text: string, pageContext: PageContext) => Promise<boolean>;
-  taskAction: (task: OperationsTask, action: "dispatch" | "pause" | "resume" | "cancel" | "advance") => Promise<void>;
+  taskAction: (task: OperationsTask, action: OperationsTaskAction) => Promise<void>;
   advice: AdviceSnapshot | null;
   adviceLoading: boolean;
   adviceError: string | null;
@@ -108,7 +108,7 @@ export function RobotOperationsProvider({ children }: { children: ReactNode }) {
     finally { setPending(false); }
   }, [applySnapshot, pending, session]);
 
-  const taskAction = useCallback(async (task: OperationsTask, action: "dispatch" | "pause" | "resume" | "cancel" | "advance") => {
+  const taskAction = useCallback(async (task: OperationsTask, action: OperationsTaskAction) => {
     if (!session || pending) return;
     mutationId.current += 1;
     setPending(true); setError(null);

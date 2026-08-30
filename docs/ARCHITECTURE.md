@@ -3,6 +3,12 @@
 > **状态：IMPLEMENTED 基线 + LOCKED/TODO · 2026-08-30**
 > 本文同时表达代码事实与下一实现目标；没有明确标为 IMPLEMENTED 的内容均不可据此宣称已完成。
 
+## P1-G 当前验收增量（IMPLEMENTED；用户主观展示验收仍待）
+
+`perception/verification_evidence.py` 从与定位同源的主相机 controlled-edge detections 提取 normalized bbox union，生成 before/after target ROI（仅用于验单，不改 Camera→SLAM），并只把 crop hash、ROI 与事实 context 进入 Replay key；crop 本身仅用于当次模型调用。`qwen.py` 的 primary verifier 接收 full-before/full-after/ROI-before/ROI-after 四项证据；primary 未闭环时，最多调用一次完全独立的 paired-ROI verifier，不能携带第一次答案。service 在保存/Replay 时严格校验 schema、JSON bool 与有限 raw float，异常一律 `VERIFICATION_ERROR` / fail closed；Analytics 读取保存的 `first_review`，不把独立 ROI 补救结果冒充首判。
+
+P1-G acceptance runner 以独立 SQLite append-only `acceptance_runs` 保存真实阶段执行、运行时 trace、source batch 和安全摘要。正式 batch 满足 Live 5/5、5/5、5/5、3/3；post-review 四个 Replay 各3/3，Replay transport 被断言阻断且无新 Cloud request。该 runner 在每个 Demo03 跨楼试验前以持久化、显式的 relocation task 返回 B1F，绝不直接写坐标或 reset Fleet。Task-owned human completion 通过 session+lease 唯一 owner；task-owned event 的旧 manual HTTP 返回409，Agent没有人工确认工具，Workbench不暴露该旧入口；非 task-owned event 保留原人工完成流程。backend164/frontend46/build/bash-n/diff与 A/B/C/D/E 已通过，故 P1-G 工程/自动化/浏览器验收 IMPLEMENTED；用户主观展示验收仍独立，提交和合并状态以 git log 与 remote 为准。
+
 ## P1-H 当前观测架构（IMPLEMENTED · A/E PASS · 2026-08-30）
 
 `observability/context.py`传递独立Trace；`requests.py`只在实际调用时记录模型metadata和stage spans；`service.py`是只读SQLite投影，`redaction.py/errors.py`在API边界执行白名单及taxonomy安全映射，`routes.py`仅GET。`AdvancedView/advancedTraceModel`负责63/37布局和节点选择，不拥有Runtime。
@@ -58,7 +64,7 @@ FastAPI /api
   ├── perception/multiview/autonomous（证据不足时真实 model auto-tool）
   ├── spatial（地图、标定、Dijkstra global topology planner / plan_route()）
   ├── scheduling（Capability Engine + Scheduler）
-  ├── analytics / optimization（演示聚合与确定性 mock recommendation）
+  ├── analytics + robot_operations Advice（真实演示聚合与共享 Agent 只读建议；旧 Optimization endpoint 410）
   └── SQLite（CleaningEvent / transitions / decisions / human work orders）
 ```
 
@@ -82,7 +88,7 @@ POST create event
 - `assignment_decision` 是前端行动机器人的唯一事实源。旧 `/api/demo-v1/runs/*` 已 RETIRED (410)。
 - 受控 bbox 是 `CONTROLLED_EDGE_DEMO`，不是本地权重推理；现有 operation playback 也不得称为真实机器人遥测。
 
-## 3. 锁定的清洁 Runtime（P1-A/B/C IMPLEMENTED；target-aware Verification 最终验收仍 TODO）
+## 3. 锁定的清洁 Runtime（P1-A/B/C IMPLEMENTED；target-aware Verification 与 P1-G 工程总收口已完成）
 
 ```text
 Fixed Camera
@@ -104,7 +110,7 @@ Fixed Camera
 
 `confidence` 与 `evidence_sufficient` 必须是不同输出，且 **Evidence Sufficiency Gate 优先于最终 confidence disposition**。Single-view `evidence_sufficient=false`、ambiguity 属于 reflection / occlusion / perspective / lens_contamination / insufficient_view 等可由额外视角缓解的问题、并存在合法 supporting cameras 时，先进入自主 Multi-view evidence acquisition；不能仅因 Single-view `confidence < 0.50` 提前 `HUMAN_REVIEW`。取得最终充分 evidence 后，才执行 `confidence >= 0.85` 不独立二审、`0.50 <= confidence < 0.85` 独立 targeted second review、`confidence < 0.50` 为 `HUMAN_REVIEW`。没有合法 supporting camera、Evidence Fetch 失败、或最多 2 rounds 后仍不充分时必须 `HUMAN_REVIEW`；最终 evidence 不充分即使 raw confidence 高也不得自动机器人处置。
 
-**CURRENT vs TARGET（P1-A IMPLEMENTED，工程验收通过）**：活跃 stage API 已用 bbox 地面代表点调用共享 `map_pixel_to_slam()`；navigation 从 SQLite Fleet 当前 map 调 Dijkstra `plan_route()`。Camera→SLAM 失败持久化 `error.error_type=SPATIAL_ERROR` 与 HUMAN_REVIEW transition，阻止后续 Scheduler/assignment/route；完整 taxonomy 仍属 P1-H。P1-C 已替换活跃 Multi-view 为先单图、证据不足时真实自主取证；旧初轮多图/场景强制已删除。
+**CURRENT vs TARGET（P1-A IMPLEMENTED，工程验收通过）**：活跃 stage API 已用 bbox 地面代表点调用共享 `map_pixel_to_slam()`；navigation 从 SQLite Fleet 当前 map 调 Dijkstra `plan_route()`。Camera→SLAM 失败持久化 `error.error_type=SPATIAL_ERROR` 与 HUMAN_REVIEW transition，阻止后续 Scheduler/assignment/route；P1-H 的八类 taxonomy 已实施。P1-C 已替换活跃 Multi-view 为先单图、证据不足时真实自主取证；旧初轮多图/场景强制已删除。
 
 ### P1-A Closure 的持久化与 Replay（IMPLEMENTED · Reviewer A/E PASS）
 

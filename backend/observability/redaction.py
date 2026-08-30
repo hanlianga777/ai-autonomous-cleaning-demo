@@ -25,6 +25,7 @@ ALLOWED_FIELDS = {
     "second_raw_cloud_confidence", "yolo_category_consistency", "camera_location_time_mapping_consistency", "multi_view_consistency",
     "class_name", "evidence_summary", "recommended_capabilities", "interference_factors", "roi", "roi_source", "evidence_status",
     "final_confidence", "evidence_source", "result_state", "span_id", "tool_duration_ms",
+    "first_review", "independent_roi_review",
 }
 
 

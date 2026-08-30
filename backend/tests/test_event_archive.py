@@ -64,6 +64,19 @@ class EventArchiveTests(unittest.TestCase):
             row = project_event(event, NOW)
             self.assertEqual((row["category"], row["handling_mode"]), ("exception", "system_error"))
 
+    def test_cancelled_task_is_terminal_all_only_and_duration_stops(self):
+        event = event_fixture(state="CANCELLED")
+        self.store(event)
+        row = project_event(event, NOW)
+        self.assertEqual((row["category"], row["status_label"], row["duration_seconds"]), ("cancelled", "已取消", 60))
+        self.assertNotEqual(row["handling_mode"], "system_error")
+        index = archive_index(now=NOW)
+        self.assertEqual(index["total"], 1)
+        self.assertEqual(index["counts"]["all"], 1)
+        self.assertEqual(set(index["counts"]), {"all", "in_progress", "autonomous_closed", "human_pending", "exception"})
+        for category in ("in_progress", "autonomous_closed", "human_pending", "exception"):
+            self.assertEqual(archive_index(category=category, now=NOW)["total"], 0)
+
     def test_autonomous_closed_requires_robot_verification_and_no_human_intervention(self):
         event = event_fixture()
         self.assertEqual(project_event(event, NOW)["category"], "autonomous_closed")

@@ -15,7 +15,7 @@ TYPE_LABELS = {"small_litter": "其他小型垃圾", "liquid": "液体污渍", "
 METRIC_DEFINITIONS = {
     "autonomous_closure_rate": "分子：无人工介入、机器人完成且验收通过的CLOSED；分母：已形成业务处置结论的CLOSED/HUMAN_FALLBACK/HUMAN_REVIEW，排除系统异常与仍在自动处理中。",
     "human_intervention_rate": "分子：有效业务结论中曾进入人工兜底/复核；同一业务处置结论分母，不为凑100%补造结果。",
-    "first_pass_success_rate": "分子：第一次验收通过；分母：保存了第一次验收明确布尔结果的非系统异常事件。",
+    "first_pass_success_rate": "分子：第一次主验收通过；分母：保存了第一次验收明确布尔结果的非系统异常事件。独立ROI二审通过不覆盖主验收失败。",
     "average_response_time_minutes": "从首次CLOUD_REVIEW确认到首次NAVIGATING或明确HUMAN_STARTED/HUMAN_WORK_STARTED。人工完成不是开始；缺观察记录排除并公开样本数。",
     "average_closure_time_minutes": "发现DETECTED到CLOSED，仅有效闭环且两个时间均存在的事件。",
     "robot_utilization": "事件时点NAVIGATING/ARRIVED/CLEANING区间取并集并裁剪统计窗口，除以PoC假定连续可用窗口(00–24)。这是分析归一化假设，不是已观测uptime或生产遥测；后续可用实际可用区间替换。FlashBot Max不参与清洁排名。",
@@ -31,7 +31,25 @@ def minutes(start, end):
 
 
 def first_verification(event, snapshot):
+    def primary_value(value):
+        if isinstance(value, dict):
+            # A same-attempt independent ROI review can close an event, but it
+            # is remediation evidence, not a rewrite of the primary verdict.
+            first = value.get("first_review")
+            if isinstance(first, dict) and type(first.get("verification_pass")) is bool:
+                return first["verification_pass"]
+            value = value.get("verification_pass")
+        return value if type(value) is bool else None
+
     transitions = event.get("transitions", [])
+    saved_verification = snapshot.get("verification") if isinstance(snapshot, dict) else None
+    # Persisted new-runtime provenance is authoritative for a single
+    # verification attempt even if an older transition projection only carries
+    # its final verdict.
+    if (sum(item.get("state") == "VERIFYING" for item in transitions) == 1
+            and isinstance(saved_verification, dict)
+            and isinstance(saved_verification.get("first_review"), dict)):
+        return primary_value(saved_verification)
     for index, row in enumerate(transitions):
         if row["state"] != "VERIFYING":
             continue
@@ -39,17 +57,18 @@ def first_verification(event, snapshot):
             if outcome["state"] == "VERIFYING":
                 return None
             detail = outcome.get("detail") or {}
-            value = detail.get("verification_pass")
-            if type(value) is bool:
+            value = primary_value(detail.get("verification"))
+            if value is None:
+                value = primary_value(detail.get("verification_pass"))
+            if value is not None:
                 return value
             if outcome["state"] in {"CLOSED", "HUMAN_REVIEW"}:
-                value = (detail.get("verification") or {}).get("verification_pass")
-                if type(value) is bool:
+                value = primary_value(detail.get("verification"))
+                if value is not None:
                     return value
                 # Final snapshot is first-pass evidence only for one attempt.
                 if sum(item["state"] == "VERIFYING" for item in transitions) == 1:
-                    value = (snapshot.get("verification") or {}).get("verification_pass")
-                    return value if type(value) is bool else None
+                    return primary_value(snapshot.get("verification"))
                 return None
     return None
 

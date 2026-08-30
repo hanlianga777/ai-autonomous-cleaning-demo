@@ -82,6 +82,8 @@ def project_event(event: dict, now: datetime) -> dict:
     if state == "CLOSED":
         category = "autonomous_closed" if autonomous else "human_closed" if manual or reviewed else "other_closed"
         status_label = "已自主闭环" if autonomous else "人工处置后闭环" if manual or reviewed else "已闭环 · 待核对执行记录"
+    elif state == "CANCELLED":
+        category, status_label = "cancelled", "已取消"
     elif failed:
         category, status_label = "exception", "系统/流程异常"
     elif state in {"HUMAN_FALLBACK", "HUMAN_REVIEW"}:
@@ -100,7 +102,7 @@ def project_event(event: dict, now: datetime) -> dict:
     first_transition = next((item for item in transitions if item["state"] in {"DETECTED", "DISCOVERED"}), None)
     discovered_at = (first_transition or {}).get("created_at") or event.get("created_at")
     start = utc_time(discovered_at)
-    end = utc_time(event.get("updated_at")) if state in {"CLOSED", "HUMAN_REVIEW"} else now
+    end = utc_time(event.get("updated_at")) if state in {"CLOSED", "HUMAN_REVIEW", "CANCELLED"} else now
     duration = max(0, int((end - start).total_seconds())) if start and end else None
     return {
         "event_id": event["event_id"], "event_type": profile.get("object_type", "unknown"),

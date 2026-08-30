@@ -41,6 +41,7 @@ REVIEW = {
 VERIFICATION = {
     "provider": "test-provider",
     "verification_pass": True,
+    "issue_remaining": False,
     "confidence": 0.95,
     "evidence_summary": "test verification pass",
     "next_action": "close",

@@ -49,9 +49,9 @@ def action(task_id: str, action: str, session_id: str = Header(..., alias="X-Ope
     try:
         if session_id != task["session_id"]:
             raise ValueError("POLICY_REJECTED: task belongs to another session.")
-        if action not in {"advance", "dispatch", "pause", "resume", "cancel"}:
+        if action not in {"advance", "dispatch", "pause", "resume", "cancel", "manual_complete"}:
             raise ValueError("Unknown task action.")
-        result = tasks.advance(task_id) if action == "advance" else tasks.control(task_id, action)
+        result = tasks.advance(task_id) if action == "advance" else tasks.complete_manual(task_id) if action == "manual_complete" else tasks.control(task_id, action)
         repo.audit(task["session_id"], phase="operator_action", tool=action, task_id=task_id, robot=result.get("robot_id"),
                    policy="ALLOW", final_status=result["status"], source="EXPLICIT_UI_ACTION")
         return result

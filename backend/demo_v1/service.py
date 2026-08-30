@@ -14,7 +14,15 @@ from uuid import uuid4
 
 from perception.config import get_agent_model, get_runtime
 from perception.multiview.autonomous import RECOVERABLE_AMBIGUITIES, acquisition_contract, run_autonomous_acquisition
-from perception.qwen import run_event_qwen_vl, run_targeted_event_qwen_vl, run_verification_qwen_vl
+from perception.qwen import (
+    TARGET_ROI_VERIFICATION_PROMPT_SHA256,
+    run_event_qwen_vl,
+    run_target_roi_verification,
+    run_targeted_event_qwen_vl,
+    run_verification_qwen_vl,
+    validate_verification_response,
+)
+from perception.verification_evidence import build_verification_evidence
 from perception.yolo import RealInferenceError
 from database.connection import (
     get_event,
@@ -214,6 +222,10 @@ def _snapshot(stored: dict[str, Any]) -> dict[str, Any]:
         "assignment_decision": stored.get("assignment_decision"),
         "created_at": stored.get("created_at"),
         "updated_at": stored.get("updated_at"),
+        "operations_task_id": stored.get("operations_task_id"),
+        "operations_control": stored.get("operations_control"),
+        "operations_pause_started_at": stored.get("operations_pause_started_at"),
+        "operations_paused_ms": stored.get("operations_paused_ms", 0),
         "transitions": stored.get("transitions", []),
     })
     return result
@@ -559,16 +571,62 @@ def complete_cleaning(event_id: str) -> dict[str, Any]:
     return _save_stage(stored, "CLEANING_COMPLETED", {"source": "poc_robot_execution"}, fleet_snapshot=get_fleet_state(), reason="清洁动作已完成，等待固定摄像头验收。")
 
 
+def _verification_closes(verification: dict[str, Any] | None) -> bool:
+    """The existing terminal verification gate, kept in one audited predicate."""
+    return bool(
+        verification
+        and verification.get("verification_pass") is True
+        and verification.get("confidence", 0) >= 0.85
+        and verification.get("next_action") == "close"
+    )
+
+
+def _independent_roi_context(context: dict[str, Any]) -> dict[str, Any]:
+    """Select only factual target evidence for the bounded independent review."""
+    return {
+        "verification_contract": context["verification_contract"],
+        "roi_source": context["roi_source"],
+        "target": context["target"],
+        "event_type": context.get("event_type"),
+        "camera_id": context.get("camera_id"),
+        "manual_completion": context.get("manual_completion", False),
+    }
+
+
+def _validate_replayed_verification(verification: dict[str, Any]) -> None:
+    """Reject a legacy failed record that lacks its required independent ROI turn."""
+    validate_verification_response(verification)
+    first_present = "first_review" in verification
+    if first_present:
+        first = verification.get("first_review")
+        if not isinstance(first, dict):
+            raise RealInferenceError("Replay independent ROI record has an invalid primary verification response.")
+        validate_verification_response(first)
+        # Once a record claims a primary response, it cannot masquerade as an
+        # old primary-pass bundle: a failed first response always requires the
+        # one bounded independent ROI result and its exact prompt contract.
+        if verification.get("independent_roi_review") is not True:
+            raise RealInferenceError("Replay verification record lacks the required independent ROI review.")
+        if _verification_closes(first):
+            raise RealInferenceError("Replay independent ROI record cannot follow a passing primary verification.")
+        if verification.get("second_prompt_sha256") != TARGET_ROI_VERIFICATION_PROMPT_SHA256:
+            raise RealInferenceError("Replay independent ROI prompt contract does not match the current runtime.")
+        return
+    # Legacy compatibility is deliberately narrow: it applies only to an
+    # unannotated primary-pass response, never to a record with partial or
+    # false independent-review metadata.
+    if "independent_roi_review" in verification or "second_prompt_sha256" in verification:
+        raise RealInferenceError("Replay verification metadata is incomplete.")
+    if _verification_closes(verification):
+        return
+    raise RealInferenceError("Replay verification record lacks the required independent ROI review.")
+
+
 def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False) -> dict[str, Any]:
     """Run the same after-evidence workflow for robot and human completion."""
     result = stored["demo_v1"]
     primary = _primary_asset(result)
     after = next((asset for asset in result["asset_manifest"]["assets"] if asset["role"] == "after"), None)
-    context = {
-        "event_type": (stored.get("task_profile") or {}).get("object_type"),
-        "camera_id": primary["camera_id"],
-        "manual_completion": manual,
-    }
     if manual:
         result["human_work_order"] = {"status": "COMPLETED", "source": "manual_operator"}
     _save_stage(stored, "VERIFYING", {
@@ -580,20 +638,83 @@ def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False) -> dic
     try:
         if after is None:
             raise RealInferenceError("After-cleaning evidence is unavailable.")
+        before_path = _asset_path(primary)
+        after_path = _asset_path(after)
+        target_evidence = build_verification_evidence(
+            before=before_path,
+            after=after_path,
+            controlled_yolo=result.get("controlled_yolo") or [],
+            camera_id=primary["camera_id"],
+            object_type=(stored.get("task_profile") or {}).get("object_type"),
+        )
+        context = {
+            "event_type": (stored.get("task_profile") or {}).get("object_type"),
+            "camera_id": primary["camera_id"],
+            "manual_completion": manual,
+            **target_evidence.context,
+        }
         runtime = get_runtime()
-        key = evidence_key([_asset_path(primary), _asset_path(after)], context, runtime.qwen_model)
+        # Crop hashes and the versioned ROI contract are in ``context``; the
+        # existing evidence_key therefore invalidates old full-frame records.
+        key = evidence_key([before_path, after_path], context, runtime.qwen_model)
         if result.get("mode") == "STABLE_REPLAY":
             verification = load_replay_bundle(stored, "verification", key)["verification"]
+            _validate_replayed_verification(verification)
         else:
             if not runtime.qwen_ready:
                 raise RealInferenceError("Cloud verification is not configured.")
-            verification = run_verification_qwen_vl(_asset_path(primary), _asset_path(after), context, runtime.qwen_model)
+            first_verification = run_verification_qwen_vl(
+                before_path,
+                after_path,
+                context,
+                runtime.qwen_model,
+                before_roi=target_evidence.before_roi,
+                after_roi=target_evidence.after_roi,
+            )
+            verification = first_verification
+            if not _verification_closes(first_verification):
+                # The ROI review receives exactly the same paired crop bytes
+                # and factual contract, never the first answer/confidence or
+                # hidden reasoning.  It is bounded to one turn.
+                roi_context = _independent_roi_context(context)
+                try:
+                    independent = run_target_roi_verification(
+                        target_evidence.before_roi,
+                        target_evidence.after_roi,
+                        roi_context,
+                        runtime.qwen_model,
+                    )
+                except RealInferenceError as second_failure:
+                    verification = {
+                        **first_verification,
+                        "first_review": first_verification,
+                        "independent_roi_review": True,
+                        "second_prompt_sha256": TARGET_ROI_VERIFICATION_PROMPT_SHA256,
+                        "independent_roi_error": str(second_failure),
+                    }
+                    error = {
+                        "error_type": "VERIFICATION_ERROR",
+                        "code": "INDEPENDENT_ROI_REVIEW_UNAVAILABLE",
+                        "message": str(second_failure),
+                    }
+                else:
+                    verification = {
+                        **independent,
+                        "first_review": first_verification,
+                        "independent_roi_review": True,
+                        "second_prompt_sha256": TARGET_ROI_VERIFICATION_PROMPT_SHA256,
+                    }
             validate_response(verification, "verification")
-            save_live_bundle(stored, "verification", key, {"verification": verification})
+            # Do not create a replayable success-looking record when the
+            # required independent review transport was unavailable.
+            if error is None:
+                save_live_bundle(stored, "verification", key, {"verification": verification})
     except RealInferenceError as failure:
         error = {"error_type": "VERIFICATION_ERROR", "code": "VERIFICATION_UNAVAILABLE", "message": str(failure)}
 
-    passed = bool(verification and verification["verification_pass"] and verification["confidence"] >= 0.85 and verification["next_action"] == "close")
+    # A replay-contract validation error must never leave an otherwise passing
+    # archived response able to close the current event.
+    passed = error is None and _verification_closes(verification)
     state = "CLOSED" if passed else "HUMAN_REVIEW"
     reason = "验收通过，事件已闭环。" if passed else "验收未通过或证据不可用，已转人工复核。"
     robot_id = (stored.get("assignment_decision") or {}).get("selected_robot_id")

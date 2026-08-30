@@ -51,6 +51,7 @@ def _verification(*_args, **_kwargs) -> dict:
     return {
         "provider": "DashScope Qwen-VL",
         "verification_pass": True,
+        "issue_remaining": False,
         "confidence": 0.95,
         "evidence_summary": "mocked live verification",
         "next_action": "close",

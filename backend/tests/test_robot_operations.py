@@ -15,6 +15,7 @@ from robot_operations import agent, repository as repo, tasks, tools
 from robot_operations.catalog import DELIVERY_ADAPTERS
 from robot_operations.coordination import task_lease
 from robot_operations.routes import action
+from api.routes import post_demo_v1_manual_completion
 from fastapi import HTTPException
 
 
@@ -157,11 +158,20 @@ class RobotOperationsTests(TestCase):
         stored.update(state="NAVIGATING", assignment_decision={"selected_robot_id": "robot-a"})
         db.save_event(stored)
         db.update_fleet_robot("robot-a", status="navigating", active_event_id=event["event_id"], active_task_id=task["task_id"])
-        tasks.control(task["task_id"], "pause")
+        with patch.object(repo, "now", return_value="2026-08-30T04:00:00+00:00"):
+            tasks.control(task["task_id"], "pause")
         self.assertEqual(tasks.robot("robot-a")["status"], "paused")
+        db.initialize_database()
+        paused = workflow._snapshot(db.get_event(event["event_id"]))
+        self.assertEqual(paused["operations_pause_started_at"], "2026-08-30T04:00:00+00:00")
+        self.assertEqual(paused["operations_control"], "PAUSED")
         with self.assertRaises(ValueError):
             workflow.complete_navigation(event["event_id"])
-        tasks.control(task["task_id"], "resume")
+        with patch.object(repo, "now", return_value="2026-08-30T04:00:12+00:00"):
+            tasks.control(task["task_id"], "resume")
+        resumed = workflow._snapshot(db.get_event(event["event_id"]))
+        self.assertIsNone(resumed["operations_pause_started_at"])
+        self.assertEqual(resumed["operations_paused_ms"], 12000)
         self.assertEqual(tasks.robot("robot-a")["status"], "navigating")
         self.assertEqual(tasks.get_task(task["task_id"])["status"], "NAVIGATING")
 
@@ -172,6 +182,59 @@ class RobotOperationsTests(TestCase):
         self.assertEqual(error.exception.status_code, 409)
         self.assertEqual(tasks.get_task(task["task_id"])["status"], "CREATED")
         self.assertEqual(action(task["task_id"], "dispatch", self.session_id)["status"], "ASSIGNED")
+
+    def task_owned_human_fallback(self):
+        """Create a durable zero-candidate event without invoking Cloud I/O."""
+        event = workflow.create_demo_event("demo04")
+        task = tasks.create_task(self.session_id, "cleaning", event_id=event["event_id"])
+        tasks.control(task["task_id"], "dispatch")
+        stored = db.get_event(event["event_id"])
+        stored.update(state="HUMAN_FALLBACK", assignment_decision={
+            "status": "HUMAN_FALLBACK", "candidate_count": 0, "selected_robot_id": None,
+        })
+        db.save_event(stored)
+        return task, event
+
+    def test_task_owned_manual_completion_requires_explicit_session_action_and_lease(self):
+        task, event = self.task_owned_human_fallback()
+        closed = {**db.get_event(event["event_id"]), "state": "CLOSED"}
+        # The workflow function is still invoked by the task action.  Its
+        # provider-dependent verifier is replaced only for this ownership test.
+        with patch("demo_v1.service._verify_stored_event", return_value=closed) as verify:
+            with self.assertRaises(HTTPException) as foreign:
+                action(task["task_id"], "manual_complete", "foreign-session")
+            self.assertEqual(foreign.exception.status_code, 409)
+            with task_lease(task["task_id"]):
+                # A separate request context sees the durable busy lease; the
+                # current context is intentionally re-entrant for the stage
+                # wrapper itself.
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(action, task["task_id"], "manual_complete", self.session_id)
+                    with self.assertRaises(HTTPException) as leased:
+                        future.result()
+                self.assertEqual(leased.exception.status_code, 409)
+            result = action(task["task_id"], "manual_complete", self.session_id)
+        self.assertEqual(result["status"], "CLOSED")
+        self.assertEqual(repo.get("task", task["task_id"])["status"], "CLOSED")
+        verify.assert_called_once()
+
+    def test_legacy_manual_endpoint_cannot_bypass_task_owned_event(self):
+        task, event = self.task_owned_human_fallback()
+        with self.assertRaises(HTTPException) as rejected:
+            post_demo_v1_manual_completion(event["event_id"])
+        self.assertEqual(rejected.exception.status_code, 409)
+        self.assertEqual(repo.get("task", task["task_id"])["status"], "DETECTED")
+        self.assertEqual(db.get_event(event["event_id"])["state"], "HUMAN_FALLBACK")
+
+    def test_task_owned_manual_completion_rejects_pause_and_cancelled_task(self):
+        task, _ = self.task_owned_human_fallback()
+        # HUMAN_FALLBACK cannot be paused, and this action must not silently
+        # turn into an Agent advance while the explicit human action is blocked.
+        with self.assertRaises(ValueError):
+            tasks.control(task["task_id"], "pause")
+        tasks.control(task["task_id"], "cancel")
+        with self.assertRaises(ValueError):
+            tasks.complete_manual(task["task_id"])
 
     def test_missing_or_denied_delivery_route_policy_never_reserves(self):
         task = self.delivery()

@@ -1,15 +1,21 @@
 # Codex 交接｜从这里开始
 
-> **状态：LOCKED · 2026-08-30**
+> **状态：LOCKED + P1-G 工程/自动化/浏览器验收 IMPLEMENTED · 2026-08-30**
 > 新 Session 必须依次完整阅读：`PROJECT_CONTEXT.md`、`DECISIONS.md`、`TODO.md`、`ARCHITECTURE.md`、本文件、`AI_INTEGRATION_TEST.md`；随后检查代码、`git status`、`git log`。不要用聊天记忆补全事实。
 
-### 最新交接：P1-H IMPLEMENTED · A/E PASS
+### 最新交接：P1-G IMPLEMENTED（工程/自动化/浏览器；不替代用户展示验收）
+
+P1-G 新增 target-aware verification：四图 primary（before/after 全图 + 同源 target ROI），primary 失败最多一次独立 ROI 二审；二审没有 primary answer，非法 bbox/schema/raw float/Replay 一律 fail closed，Analytics 保持 primary first-pass。Demo03 两次 second review 是事件语义灰区二审，不是独立 ROI verification；五次 verification 均 primary `.99` 直接通过。隔离 `/tmp/cleaning-p1g-acceptance.lf8Dla/acceptance.sqlite` 的正式 LIVE batch 为 Demo01 `acceptance-b0af62b416cc4c03be6c304ddb569a40` 5/5、Demo02 `acceptance-20c748edbaa44c9d86f1257412d92198` 5/5、Demo03 `acceptance-cfee4992075a42839a463253fa0f53dd` 5/5、Demo04 `acceptance-da76bfb5b67e4acaad62a5541d2acdd7` 3/3；post-review Replay 四 Demo 各3/3且没有新 Cloud request。`b84edc` 的 per-run reset 不合格，`d3729` 是 diagnostic，不能混入。
+
+P1-G 工程/自动化/浏览器验收已 IMPLEMENTED：backend164=161 PASS+3 paid opt-in skipped、frontend46/build、bash-n/diff与 A/B/C/D/E 均 PASS；task-owned `HUMAN_FALLBACK` 人工完成唯一 owner 已经 session+lease、旧 manual HTTP 409、Agent无人工确认工具、Workbench隐藏旧入口的代码/测试/浏览器复核。当前模型组合为 `qwen-vl-max` / `qwen3-vl-plus`。全部工程门槛 PASS，可按现有授权提交并 merge；实际同步状态以 `git log` 与 remote 为准。用户主观展示验收仍独立，文档不声称其已完成。
+
+### 历史交接：P1-H IMPLEMENTED · A/E PASS
 
 实施分支`codex/unified-implementation`：A/B/C/D/E/F已提交推送，F `06ef575`。H本次独立提交，精确hash读git log；按授权继续P1-G最终稳定性回归，全PASS前不合并main。
 
 H：14定向、完整135项（132PASS/3paid opt-in skipped）、前端42/build、实际浏览器与A/E PASS。新Trace/请求/任务关联在写时记录；旧event没有Trace时明确LEGACY_MISSING，GET不修补。受控edge、真实Cloud、确定性Runtime、PoC与未授权设备明确分离；没有第二运行引擎。Advanced API不暴露原始错误文本/Prompt/secret/CoT。
 
-P1-G必须继续：Demo01/02/03各连续5次至少4成功、Demo04连续3次全成功、四Demo Replay各3次全成功、Agent越权/档案/Analytics/Advanced最终回归。Demo03此前after ROI真实拒绝尚未收敛，不能写死通过。P2包括原生Delivery/Relocation独立Trace查询入口、生产身份/分布式追踪/审计留存/真实设备，不阻塞本地H。
+**这是 H 完成时的下一步清单，非当前待办**。当前连续门槛、Agent 越权、档案/Analytics/Advanced 与 A/E 结论均已完成，证据见页首。P2包括原生Delivery/Relocation独立Trace查询入口、生产身份/分布式追踪/审计留存/真实设备，不阻塞本地 H。
 
 ### P1-F 当时交接：IMPLEMENTED · A/E PASS
 
@@ -19,28 +25,28 @@ F：后端16定向通过；完整121项=118 PASS+3付费opt-in skipped；前端3
 
 核心文件在 `backend/robot_operations/`。清洁必须关联已有集成事件；create不等于dispatch，task lease保护原阶段入口；位置来自共享Spatial/合法POI，机器人清洁选择仍Capability/Scheduler。Task/Fleet原子、暂停状态一致、终点重启保留。模型失败没有本地成功回复；旧Optimization固定建议已退役410。对外平台仍AUTH REQUIRED。
 
-继续H前核对：现有Advanced仍shell；需要只读投影已有Cloud/Agent/Spatial/Task/audit，而非第二Runtime。P2：PoC session header非身份系统，单worker恢复非分布式queue，审计保留与真实provider未来做；不得偷偷扩大为硬件/外部平台接入。F运行证据在测试事实源，历史失败也保留。
+**P1-F 当时继续 H 前的核对**：当时 Advanced 仍是 shell，目标是只读投影已有 Cloud/Agent/Spatial/Task/audit，而非第二 Runtime。当前 P1-H 已完成该目标；P2仍为 PoC session header非身份系统、单worker恢复非分布式queue、审计保留与真实provider未来做，且不得偷偷扩大为硬件/外部平台接入。F运行证据与历史失败均保留。
 
 ### P1-E 当时交接： IMPLEMENTED · A/E PASS
 
-P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`、P1-D `a350ad5` 已推送。E代码、12定向/102后端PASS+3skip/32前端/build/浏览器与A/E均PASS，独立提交后继续 **P1-F**，不合并main。P1-F当前已完成；H/G尚未实施完成。
+P1-A `fcd01d4`、P1-B `b2a1899`、P1-C `c9cf220`、P1-D `a350ad5` 已推送。E代码、12定向/102后端PASS+3skip/32前端/build/浏览器与A/E均PASS，当时独立提交后继续 **P1-F**，不合并main。这是历史交接；当前 F/H/G 工程验收均已完成。
 
 E注意：启动会幂等插入标明DEMO_HISTORY的演示档案，不能将其当作真实AI。利用率可用时长仅PoC连续可用假设，不是生产uptime；人工缺开始时刻的响应样本排除。旧optimization API已在F退役410，客户Analytics显示真实Agent缓存建议。
 
 ### P1-C 已完成交接： IMPLEMENTED · A/E PASS
 
-P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P1-C 完成，独立提交 `c9cf220` 后已进入 P1-D，无需重新向用户询问授权；仍不得提前合并 main。22 项定向、86 后端 PASS + 3 opt-in skipped、前端17/build、真实 Demo02 LIVE→Replay 与浏览器均通过。后续最终五次稳定性等仍 P1-G TODO，不把本轮两次真实成功等同全部终验。
+P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P1-C 完成，独立提交 `c9cf220` 后已进入 P1-D，无需重新向用户询问授权；仍不得提前合并 main。22 项定向、86 后端 PASS + 3 opt-in skipped、前端17/build、真实 Demo02 LIVE→Replay 与浏览器均通过。**这是 P1-C 当时记录**：其后 P1-G 连续稳定性已完成，不把本轮两次真实成功误作当时的全部终验。
 
 关键实现：`autonomous.py` 真实 tool_choice=auto；`perception_records.py` 只回放 provider response，工具/policy仍真实跑；first single-view不足即使 confidence<0.50 也先合法补证；最终不足不能自动派发。Demo02 原图清晰未触发补证是正确行为，因此新增透明的受控模糊 variant（原图保留），不是 fixed confidence 或假 trace。model configurable，原用户 .env 未改。
 
-请先读测试事实源最新 P1-F 记录、检查 git log/status，再继续 H；不要回到旧 demo02 先固定多图后 Cloud 路径。P2：6 model turns 不是6取证轮次；旧技术AI Lab兼容路径/生产同步/跨标签页幂等未因本轮自动升级。影像版本与完整编辑提示记录在测试事实源。
+历史交接曾要求读 P1-F 后继续 H；当前应读页首 P1-G 记录并检查 git log/status，不要重做已完成阶段，也不要回到旧 demo02 先固定多图后 Cloud 路径。P2：6 model turns 不是6取证轮次；旧技术AI Lab兼容路径/生产同步/跨标签页幂等未因本轮自动升级。影像版本与完整编辑提示记录在测试事实源。
 
 ## 当前基线与授权状态
 
 - 仓库：`ai-autonomous-cleaning-demo`；实施分支：`codex/unified-implementation`；已验收文档基线：`00bd982982c81450e41f1755a3ba95be94c25b23`。
 - P0 阶段 Runtime 已实现并做过技术回归：`e6b1eb9 feat: make integrated demo stage-driven`；它不能回退为一次性 `/runs` + 前端播放。
 - Robot Operations Agent/未授权配送Adapter已P1-F IMPLEMENTED，Advanced已P1-H IMPLEMENTED，新Multi-view已P1-C IMPLEMENTED；真实外部接入仍TODO。
-- **Unified Implementation已明确授权，A/B/C/D/E/F/H工程PASS，独立提交后继续P1-G。** 精确提交链读git log；最终产品稳定性与用户验收未完成。
+- **Unified Implementation已明确授权，A/B/C/D/E/F/H/G工程PASS。** 精确提交与合并链读git log/remote；工程稳定性回归已完成，用户主观展示验收仍待。
 
 ### P1-B 当时交接： MapCanvas / 统一详情工程完成
 
@@ -61,7 +67,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 3. 旧基线的模板 locate / 演示锚点路线已由 P1-A 改为 bbox→共享 `map_pixel_to_slam()` + Fleet current map→`plan_route()`；P1-B 唯一 MapCanvas 已接入这些事实并通过浏览器验收；不再使用旧外层独立路线投影。
 4. P1-A 的共享 Fleet 已有正式名称及 product_capability / demo_configuration，主工作台外仍有旧静态 mock 文案待清理；保持内部 ID `robot-a` / `robot-b` / `robot-c` / `robot-d`。
 5. Demo04 cloud 直接人工分支已删除，当前阶段 Runtime 只允许 Capability zero candidate 产生 HUMAN_FALLBACK；用户确认 context 后，真实完整路径与 Replay 已通过。
-6. 当前 Advanced 已按P1-H实现只读Trace Inspector、node detail、structured Tool Audit、Reality Matrix、错误分类与Trace ID；最终连续场景稳定性仍P1-G，不将工程PASS当作最终用户验收。
+6. 当前 Advanced 已按P1-H实现只读Trace Inspector、node detail、structured Tool Audit、Reality Matrix、错误分类与Trace ID；P1-G 连续场景工程回归已通过，不将工程PASS当作最终用户验收。
 
 ## 不可违反规则
 
@@ -78,7 +84,7 @@ P1-A `fcd01d4`、P1-B `b2a1899` 已在 `codex/unified-implementation`。本轮 P
 11. Advanced 是 read-mostly Technical Observability & Execution Trace Inspector，不是 Admin / Configuration。它只投影真实 Runtime records，不能重跑模型/Scheduler/Route，不能编辑 SLAM、标定、Coverage、范围、Capability、Scheduler/threshold/topology、安全、门禁、电梯或 Agent tool permission。
 12. Advanced 四个模块固定：AI Recognition Trace（六段）、Spatial/Capability/Scheduling/Route Trace（四段）、Runtime/Model/Tool/Error Observability、System Reality Matrix。关键来源使用 `LIVE MODEL`、`DETERMINISTIC RUNTIME`、`CONTROLLED EVIDENCE`、`POC SIMULATION`、`REPLAY`、`AUTH REQUIRED / NOT CONNECTED`；不得 fake trace/tool/latency/error/badge/model status/reality status，也不得展示 Chain-of-Thought 或任何 secret。
 
-## 获得统一 implementation prompt 后的建议顺序
+## 历史执行顺序（Unified Implementation 初始计划；当前 A/B/C/D/E/F/H/G 工程验收均已完成）
 
 1. P1-A：机器人名称投影、bbox→Camera→SLAM、共享 Fleet、`plan_route()` Runtime、Demo04 zero candidate、真实 transition time、Stable Replay 最小控制区。
 2. P1-B：MapCanvas、连续路线与终态、Workbench 布局/相机矩阵、统一 `EventDetailPanel`。

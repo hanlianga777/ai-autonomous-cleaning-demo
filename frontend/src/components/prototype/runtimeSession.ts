@@ -1,6 +1,27 @@
 import { fromStoredEvent, type RecordValue } from "./eventViewModel";
 import type { ActiveEvent } from "./types";
 
+export function isTerminalEvent(event: ActiveEvent | null): boolean {
+  return ["CLOSED", "HUMAN_REVIEW", "CANCELLED"].includes(event?.backendState ?? "");
+}
+
+export function canStartDemo(event: ActiveEvent | null): boolean {
+  return !event || (!event.processing && isTerminalEvent(event));
+}
+
+export function operationsOwnsEvent(event: ActiveEvent | null): boolean {
+  return typeof event?.liveResult?.operations_task_id === "string" && Boolean(event.liveResult.operations_task_id);
+}
+
+export function isEventPaused(event: ActiveEvent | null): boolean {
+  return event?.liveResult?.operations_control === "PAUSED";
+}
+
+/** Task-owned stages are explicitly advanced by the shared Operations controls. */
+export function canAutoAdvance(event: ActiveEvent | null): boolean {
+  return Boolean(event && !event.processing && !isTerminalEvent(event) && !operationsOwnsEvent(event) && !isEventPaused(event));
+}
+
 /** Reloads are GET-only. The browser stores IDs/request guards, not business facts. */
 export async function loadEventSnapshot(eventId: string, signal?: AbortSignal, request: typeof fetch = fetch): Promise<ActiveEvent> {
   const response = await request(`/api/events/${encodeURIComponent(eventId)}`, { signal });
