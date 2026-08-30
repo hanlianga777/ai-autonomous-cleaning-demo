@@ -153,7 +153,7 @@ Single-view VLM
 
 P1-B 前端模块边界：`spatialProjection.ts` 提供纯坐标/路径/插值函数（缺少或未知 node_path 返回空）；`MapCanvas.tsx` 统一实际图像矩形；`useRoutePlayback.ts` 按 UTC NAVIGATING timestamp 恢复 rAF 插值与入口 1 秒停留；`SpatialDispatchView.tsx` 读取 Fleet 与 ASSIGNED 起点快照。插值不是遥测，也不构成第二个 Route Planner。
 
-`eventViewModel.ts` 只投影存档 transitions/asset_manifest；`EventStageEvidence.tsx` 展示可审计的 AI、能力、空间、路线与终态快照；`EventDetailPanel.tsx` 的 live/history 共用卡片，history 不执行 action、不自动滚动。`runtimeSession.ts` 保存 ID/请求防重键、GET-only 恢复、拒绝倒退/外来快照；`PanelBoundary.tsx` 隔离空间显示异常。图像缺失显示不可用，不用预设成功图片替换。
+`eventViewModel.ts` 只投影存档 transitions/asset_manifest；`EventStageEvidence.tsx` 与 `EventDetailPanel.tsx` 当前共用 live/history 卡片，history 不执行 action、不自动滚动。`runtimeSession.ts` 保存 ID/请求防重键、GET-only 恢复、拒绝倒退/外来快照；`PanelBoundary.tsx` 隔离空间显示异常。图像缺失显示不可用，不用预设成功图片替换。当前 Workbench 详情仍将可审计 AI、空间、路线、终态与技术边界混合展示；其历史 UI Shell **SUPERSEDED BY WB-DETAIL-01**，现属 `IMPLEMENTATION_DIVERGENCE`。未来仍从同一 durable transition/asset/decision/route/verification 投影，但 Workbench 只呈现面客业务事实，技术 trace/latency/schema/PoC boundary 转由 Advanced 承担。
 
 ## 6. Event Model、Event Center 与历史快照（P1-B 详情与 P1-D 列表/URL 已实现）
 

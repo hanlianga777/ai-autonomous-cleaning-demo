@@ -34,7 +34,8 @@
 - [x] **机器人执行体验**：真实 anchor path 连续插值；未走/已走路线、小 marker、少量箭头；蜗小白 SC50 在电梯入口停约 1 秒并显示“乘梯中”；CLOSED / HUMAN_REVIEW 保留终点和路线。
 - [x] **布局与双监控矩阵**：实现 72/28、31/69、右详情独立滚动、145–155px 资产栏、相机 `object-contain` 规范；四个 Demo before/after 状态矩阵；Demo02 补充图永不替换顶部监控。
 - [x] **统一 EventDetailPanel**：实现 `mode="live"` / `mode="history"`；实时自动跟随一次 smooth scroll，历史只读不滚动、不重跑；统一字段、卡片、颜色、stage hierarchy、历史 snapshot。
-- [x] **客户表达收敛**：全量 enum 中文化；云端 raw confidence、Fusion “N分”、系统决策分层；客户层不展示 raw next_action / 公式 / Chain-of-Thought。
+- [x] **P1-B 客户表达收敛（历史已实现事实）**：全量 enum 中文化；Fusion “N分”、系统决策分层；客户层不展示 raw next_action / 公式 / Chain-of-Thought。其旧 Workbench 详情视觉范围被 **WB-DETAIL-01 SUPERSEDED**，不得把历史收敛写成新面客详情已完成。
+- [ ] **WB-DETAIL-01｜面客事件处置详情与实时业务进度（LOCKED TARGET；未 IMPLEMENTED）**：Workbench 右侧从技术流程/免责面板改为面客实时业务详情；业务阶段逐步可感知，Cloud/Multi-view/Verification 只按真实调用推进，导航/清洁可感知但不伪造事实。客户卡只呈现事件、识别、单一最终 AI置信度、系统处置评分 N分、真实二维空间定位、正式机器人名及真实 hard filter→score→assignment、真实路线和 after image→AI验收→结果；技术 trace/latency/schema/PoC 边界移 Advanced。四 Demo 必须可终态化，失败释放启动条件，WorkBench/Agent ownership 清楚；route 缺 distance/ETA 是实施 Gap，不能编造。未来报告必须逐项交付 WB-DETAIL-01.1–01.11 的 Requirement→Code→Test→Screenshot/User Acceptance，任一缺失不得 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#wb-detail-01面客事件处置详情与实时业务进度`。
 
 验收：前端 17/17、backend 64 PASS + 2 opt-in skipped、build 与 diff check PASS；主代理实际浏览器验证 Demo04 人工闭环、Demo03 跨楼导航/验收失败保留、同会话云端处理中刷新不重复请求、终态刷新、history 只读、1024/1440/1920 桌面布局。详情见测试事实源。最终产品/用户验收仍未代替。
 

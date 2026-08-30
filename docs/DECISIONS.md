@@ -14,6 +14,14 @@
 - Analytics 不显示浮动球，右侧必须为同一个固定 AI Area：上半 AI 运营分析/运营建议，下半完整 Robot Operations Agent Chat。该右侧区域应独立布局/滚动；左侧长 Analytics 内容不得把 Chat 输入入口推到整页底部，进入页面的当前可视高度内必须能找到聊天入口。
 - 三页仍共享同一个 Agent、Agent Session、Task / Audit / Backend State，即“一个 Agent，两种 UI 投影”；禁止新增 Analytics Agent、Optimization Agent 或第二 Conversation Agent。完整的逐项目标、当前偏差和验收标准见 `INTERVIEW_DEMO_RECONCILIATION.md#ai-ui-01ai-运营入口与聊天交互`。
 
+## WB-DETAIL-01｜面客事件处置详情与实时业务进度（LOCKED TARGET · 2026-08-30）
+
+- Workbench 右侧“最近事件处置详情”是客户/面试官实时业务展示，不是工程日志、Debug/免责/数据库 Trace/算法参数面板；首屏只回答事件、AI 结论、系统下一步、机器人执行位置和 AI 验收闭环。技术事实、raw evidence、latency、错误、schema、算法/PoC 边界统一由 Advanced / Technical Detail 投影，Workbench 只保留低干扰全局 `POC / DEMO` 身份提示。
+- 旧客户层显示“完整处置过程/真实阶段记录/事件已持久化/受控边缘检测/非本地 YOLO/历史 schema/PoC 插值非遥测/API latency/内部 error、schema、evidence、technical reason”等表述，及 P1-C 对客户展示 Tool Trace/Evidence 明细、D05 对客户显示模型 latency 的旧 UI 表述，**SUPERSEDED BY WB-DETAIL-01**。这些底层事实仍保留且在 Advanced 可审计；当前 Workbench 仍显示它们属于 `IMPLEMENTATION_DIVERGENCE`。
+- Workbench 必须以真实 Runtime 渐进展示事件：确定性业务阶段约 1.5–3 秒可感知，真实 Cloud/Multi-view/Verification 仅按真实调用/响应推进，Dijkstra route 的 PoC playback 连续移动，Cleaning 不可瞬跳 Verify。不得伪造 Cloud latency、路径、ETA、设施、状态或验收结论。
+- Cloud 仅显示最终有效 AI研判置信度和清晰字段行；Fusion 显示“系统处置评分 N分”，不显示为百分比。真实 spatial 必须显示客户地图名、Building/Floor/Zone 与 SLAM X/Y；Capability/Assignment 只用正式机器人名，真实 hard filter→eligible→score→assignment，FlashBot Max 不进清洁候选；route 只显示后端真实数据，缺 distance/ETA 即为实施 Gap。
+- 四个 Workbench demo 必须按其真实业务流程终态化；Workbench-origin demo 和 Agent-origin task 的 ownership 必须清楚，故障必须成为明确错误或 HUMAN_REVIEW 并释放下一次启动条件。右侧必须保留 after image → AI验收结果/置信度 → CLOSED 或真实后续处置的清晰业务闭环。完整的逐项目标、证据门槛和当前偏差见 `INTERVIEW_DEMO_RECONCILIATION.md#wb-detail-01面客事件处置详情与实时业务进度`；本条未实施，不得写为 IMPLEMENTED。
+
 ## P1-G 验收执行边界（IMPLEMENTED；不替代用户主观展示验收）
 
 - 通用 verification 的 target ROI 只能由主相机 controlled edge 的合法 normalized bbox union 推导；同一 normalized ROI 同时裁取 before/after，不得使用场景专用坐标、supporting-camera bbox 或猜测目标。primary verifier 必须同时获得 before/after 全图及这对 ROI；缺失、畸形、非法 bbox、非有限数值或不匹配 Replay 一律安全失败。
@@ -100,7 +108,7 @@
 
 **IMPLEMENTED / LOCKED（P1-A/B）**：`locate` 以 bbox 底边中心（液体用合理区域代表点）调用 `map_pixel_to_slam(camera_id,u,v)`，持久化 building/floor/zone/map/x/y，之后才显示 marker。Scheduler 当前 map 与 target map 调 Dijkstra global topology planner / `plan_route()`；不是 Demo ID 固定路线。Demo03 基线故事为 B1F → 电梯 → B2F → Skybridge → A2F 地毯易拉罐；连续运行仍遵守当前 Fleet，不能偷偷重置位置以强制重复基线路线。
 
-**IMPLEMENTED / LOCKED（P1-B）**：任务后机器人保留终点与低透明路线；Demo03 验收失败 `HUMAN_REVIEW` 仍在 A2F，Demo04 人工路径无人移动。复位仍遵守 P1-A 显式 baseline/reset 边界，不因普通新事件或刷新自动复位。客户时间轴只读 SQLite transition timestamp；处理中显示真实持续时间，模型可显示真实 latency。路线起点取 ASSIGNED 快照，不用终态 Fleet 倒推。
+**IMPLEMENTED / LOCKED（P1-B runtime） / WB-DETAIL-01 UI target**：任务后机器人保留终点与低透明路线；Demo03 验收失败 `HUMAN_REVIEW` 仍在 A2F，Demo04 人工路径无人移动。复位仍遵守 P1-A 显式 baseline/reset 边界，不因普通新事件或刷新自动复位。客户时间轴可只读 SQLite transition timestamp 与处理中真实持续时间；“客户层显示模型真实 latency”已被 **WB-DETAIL-01 SUPERSEDED**，真实 latency 仍由 Advanced 投影。路线起点取 ASSIGNED 快照，不用终态 Fleet 倒推。
 
 **P1-B 刷新/失败边界**：localStorage 仅保存当前 event ID；GET SQLite 重建，不保存第二份事件/Fleet/route。sessionStorage request keys 防止同一会话刷新重发；异步快照不得覆盖不同 event 或倒退 transition。网络结果不确定时保留记录、只读同步，不自动重试模型或 Replay。该机制不等于跨标签页/服务器端全局幂等，后者为 P2。创建失败只显示本地连接提示，不捏造已保存 HUMAN_REVIEW。
 
@@ -150,7 +158,7 @@
 
 **IMPLEMENTED / LOCKED（P1-C）**：Agent 只有 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 这类等价工具；最多 2 路额外摄像头、最多 2 个 evidence acquisition rounds。PoC Evidence Adapter 可返回 controlled evidence assets，必须如实说明，不得假装 RTSP 同步；未来可替换 RTSP/VMS/NVR/Camera Platform。Agent 不得改 Coverage、邻接、calibration、SLAM、地图、机器人、confidence 或自动处置阈值。
 
-**IMPLEMENTED / LOCKED（P1-C）**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → final semantic judgment → confidence gate → 高仙 Omnie → verification → CLOSED。最终 `0.50 <= confidence < 0.85` 的 independent targeted second review 可读取本次合法取得的完整 evidence set，但不得读取上一轮模型答案或 reasoning。客户 UI 只展示来自 Agent Trace / Tool Audit / Cloud Response / Transition 的精简中文步骤，不展示 Chain-of-Thought；Advanced 才看技术 trace。
+**IMPLEMENTED / LOCKED（P1-C runtime） / WB-DETAIL-01 UI target**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → final semantic judgment → confidence gate → 高仙 Omnie → verification → CLOSED。最终 `0.50 <= confidence < 0.85` 的 independent targeted second review 可读取本次合法取得的完整 evidence set，但不得读取上一轮模型答案或 reasoning。旧“客户 UI 展示 Agent Trace / Tool Audit / Evidence 明细”的视觉范围已被 **WB-DETAIL-01 SUPERSEDED**；客户只看精简业务进度，Advanced 才看技术 trace，仍禁止 Chain-of-Thought。
 
 ## D11｜External Delivery Platform Integration
 
