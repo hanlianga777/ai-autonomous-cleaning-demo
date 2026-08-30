@@ -134,6 +134,20 @@ class DemoV1Tests(unittest.TestCase):
             self.assertEqual(verify.call_count, 1)
             self.assertEqual([item["state"] for item in get_transitions(event_id)], ["DETECTED", "EDGE_DETECTED", "SINGLE_VIEW_REVIEW", "CLOUD_REVIEW", "LOCATED", "ASSIGNED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED", "VERIFYING", "CLOSED"])
 
+    def test_public_evidence_projection_never_releases_future_assets(self) -> None:
+        """Asset storage is complete; external snapshots are strictly temporal."""
+        with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_event_qwen_vl", return_value=_review("small_litter")), patch("demo_v1.service.run_verification_qwen_vl", side_effect=_verification):
+            created = create_demo_event("demo01")
+            event_id = created["event_id"]
+            self.assertEqual([asset["role"] for asset in created["asset_manifest"]["assets"]], ["before"])
+            edge = edge_review(event_id)
+            self.assertEqual([asset["role"] for asset in edge["asset_manifest"]["assets"]], ["before"])
+            cloud_review(event_id); locate_event(event_id); assign_event(event_id); start_navigation(event_id); complete_navigation(event_id)
+            cleaned = complete_cleaning(event_id)
+            self.assertNotIn("after", [asset["role"] for asset in cleaned["asset_manifest"]["assets"]])
+            verified = verify_event(event_id)
+            self.assertIn("after", [asset["role"] for asset in verified["asset_manifest"]["assets"]])
+
     def test_manual_multiview_entry_cannot_bypass_single_view(self) -> None:
         event_id = create_demo_event("demo02")["event_id"]
         edge_review(event_id)

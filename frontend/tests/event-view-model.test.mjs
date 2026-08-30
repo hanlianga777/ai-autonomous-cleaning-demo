@@ -27,11 +27,11 @@ test("only live can add a pending request row; history is snapshot-only", () => 
   assert.equal(view.timelineFor(event, "history").length, 1);
   assert.equal(view.timelineFor(event)[1].timestamp, undefined);
 });
-test("all four monitor pairs show primary before, idle clean, and after even on failed verification", () => {
+test("three-slot monitor wall shows primary before, normal views, and after even on failed verification", () => {
   for (const camera of ["CAM-OUT-01", "CAM-A1-01", "CAM-A2-08", "CAM-A2-11"]) {
     const before = view.fromStoredEvent(stored(camera, ["DETECTED", "EDGE_DETECTED"]));
     const pair = view.monitorViews(before);
-    assert.equal(pair.length, 2);
+    assert.equal(pair.length, 3);
     assert.equal(pair.filter((v) => v.eventView).length, 1);
     assert.equal(pair.find((v) => v.eventView).camera.image, `/evidence/${camera}-before.png`);
     assert.equal(pair.find((v) => !v.eventView).after, true);

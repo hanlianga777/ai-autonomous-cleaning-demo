@@ -12,14 +12,14 @@ const model = await import(`data:text/javascript;base64,${source}`);
 test("floating Agent defaults to bottom-left and persisted positions stay in viewport", () => {
   const viewport = { width: 1000, height: 700 };
   const start = model.defaultFloatingPosition(viewport);
-  assert.equal(start.x, 12);
-  assert.ok(start.y >= 12 && start.y <= 234);
-  assert.deepEqual(model.clampFloatingPosition({ x: 9999, y: -50 }, viewport), { x: 636, y: 12 });
-  assert.deepEqual(model.parseStoredPosition(JSON.stringify({ x: 900, y: 650 }), viewport), { x: 636, y: 234 });
-  assert.deepEqual(model.clampFloatingPosition({ x: Number.NaN, y: Number.POSITIVE_INFINITY }, { width: 100, height: 120 }), { x: 12, y: 12 });
+  assert.equal(start.x, 16);
+  assert.ok(start.y >= 16 && start.y <= 628);
+  assert.deepEqual(model.clampFloatingPosition({ x: 9999, y: -50 }, viewport), { x: 928, y: 16 });
+  assert.deepEqual(model.parseStoredPosition(JSON.stringify({ x: 900, y: 650 }), viewport), { x: 900, y: 628 });
+  assert.deepEqual(model.clampFloatingPosition({ x: Number.NaN, y: Number.POSITIVE_INFINITY }, { width: 100, height: 120 }), { x: 16, y: 16 });
   assert.equal(model.parseStoredPosition('{"x":1e999,"y":3}', viewport), null);
   assert.equal(model.parseStoredPosition("not-json", viewport), null);
-  assert.equal(model.FLOATING_EXPANDED_KEY, "cleanops.robot-operations.expanded.v1");
+  assert.equal(model.FLOATING_EXPANDED_KEY, "cleanops.robot-operations.expanded.v2");
 });
 
 test("task action cards expose only state-appropriate backend actions", () => {
@@ -33,8 +33,8 @@ test("task action cards expose only state-appropriate backend actions", () => {
   assert.deepEqual(model.taskActions({ ...created, status: "HUMAN_FALLBACK" }), ["manual_complete"]);
   assert.deepEqual(model.taskActions({ ...created, kind: "delivery", status: "HUMAN_FALLBACK" }), []);
   assert.deepEqual(model.taskActions({ ...created, status: "CLOSED" }), []);
-  assert.equal(model.actionLabel("advance"), "推进 PoC 模拟");
-  assert.equal(model.actionLabel("manual_complete"), "确认人工完成并验收");
+  assert.equal(model.actionLabel("advance"), "继续任务");
+  assert.equal(model.actionLabel("manual_complete"), "确认人工处置完成");
 });
 
 test("newest-first task records keep the newest three visible", () => {

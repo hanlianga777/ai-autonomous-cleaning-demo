@@ -9,8 +9,11 @@ from __future__ import annotations
 
 from pathlib import Path
 from math import isfinite
+from copy import deepcopy
 from typing import Any
 from uuid import uuid4
+from threading import Lock, Thread
+from time import sleep
 
 from perception.config import get_agent_model, get_runtime
 from perception.multiview.autonomous import RECOVERABLE_AMBIGUITIES, acquisition_contract, run_autonomous_acquisition
@@ -51,6 +54,8 @@ from robot_operations.coordination import event_stage
 from observability.errors import classify as classify_error
 
 ASSET_ROOT = Path(__file__).resolve().parents[2] / "sample_data" / "camera_events"
+_AUTONOMOUS_RUNS: set[str] = set()
+_AUTONOMOUS_RUNS_LOCK = Lock()
 
 SCENARIO_IDS = {
     "demo01": "event-outdoor-tissue-001",
@@ -203,6 +208,55 @@ def scenario_catalog() -> list[dict[str, Any]]:
     return [{"id": demo_id, "event_id": event_id, "title": scenario_assets(event_id)["title"], "verification_mode": scenario_assets(event_id)["verification_mode"]} for demo_id, event_id in SCENARIO_IDS.items()]
 
 
+def start_autonomous_progression(event_id: str) -> None:
+    """Run the official event flow from durable backend state, never React.
+
+    Each handler commits its own state. A navigation pause/cancel or a human
+    fallback ends this worker safely; reopening or closing a chat cannot alter
+    the persisted progress. A process restart leaves the latest state durable
+    and a launcher/startup recovery may resume a non-terminal event later.
+    """
+    with _AUTONOMOUS_RUNS_LOCK:
+        if event_id in _AUTONOMOUS_RUNS:
+            return
+        _AUTONOMOUS_RUNS.add(event_id)
+
+    def progress() -> None:
+        handlers = {
+            "DETECTED": edge_review,
+            "EDGE_DETECTED": cloud_review,
+            "CLOUD_REVIEW": locate_event,
+            "LOCATED": assign_event,
+            "ASSIGNED": start_navigation,
+            "NAVIGATING": complete_navigation,
+            "ARRIVED": complete_cleaning,
+            "CLEANING_COMPLETED": verify_event,
+        }
+        try:
+            while True:
+                stored = get_event(event_id)
+                if not stored or stored.get("operations_control") in {"PAUSED", "CANCELLED"}:
+                    return
+                handler = handlers.get(str(stored.get("state")))
+                if handler is None:
+                    return
+                # Keep state changes observable in the business timeline and
+                # allow planned navigation to be seen before arrival.
+                if stored.get("state") == "NAVIGATING":
+                    sleep(2.0)
+                handler(event_id)
+                sleep(0.25)
+        except (ValueError, RealInferenceError):
+            # The stage itself has already recorded HUMAN_REVIEW when that is
+            # appropriate. Never fabricate a fallback or silently replay.
+            return
+        finally:
+            with _AUTONOMOUS_RUNS_LOCK:
+                _AUTONOMOUS_RUNS.discard(event_id)
+
+    Thread(target=progress, name=f"demo-progress-{event_id[-8:]}", daemon=True).start()
+
+
 # Stage-driven customer-demo runtime -------------------------------------------------
 #
 # These functions are intentionally small, synchronous REST transitions.  They are
@@ -211,8 +265,46 @@ def scenario_catalog() -> list[dict[str, Any]]:
 # `run_demo` compatibility helper delegates to these same stages; its old HTTP
 # endpoint is retired and no second runtime or synthetic replay path exists.
 
+def available_evidence_manifest(result: dict[str, Any], state: str, transitions: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Return the customer/Agent consumable evidence set, never the full asset store.
+
+    The repository manifest deliberately remains complete so the authoritative
+    runtime can obtain assets at the correct future stage.  It is *not* a
+    business evidence list.  Every external projection must use this gate.
+    """
+    manifest = deepcopy(result.get("asset_manifest") or {})
+    assets = manifest.get("assets") if isinstance(manifest.get("assets"), list) else []
+    states = {state, *(item.get("state") for item in (transitions or []) if isinstance(item, dict))}
+    multi_view = result.get("multi_view") if isinstance(result.get("multi_view"), dict) else {}
+    acquired = {
+        asset.get("camera_id") for asset in multi_view.get("evidence_assets", [])
+        if isinstance(asset, dict) and asset.get("camera_id")
+    }
+    after_released = "VERIFYING" in states or bool(result.get("verification"))
+    visible: list[dict[str, Any]] = []
+    for asset in assets:
+        role = asset.get("role")
+        if role == "before":
+            visible.append(asset)
+        elif role == "evidence" and asset.get("camera_id") in acquired:
+            visible.append(asset)
+        elif role == "after" and after_released:
+            visible.append(asset)
+    manifest["assets"] = visible
+    manifest["availability"] = {
+        "primary_before": True,
+        "supporting_camera_ids": sorted(str(item) for item in acquired),
+        "after_released": after_released,
+    }
+    return manifest
+
+
 def _snapshot(stored: dict[str, Any]) -> dict[str, Any]:
-    result = dict(stored.get("demo_v1") or {})
+    result = deepcopy(stored.get("demo_v1") or {})
+    transitions = stored.get("transitions", [])
+    result["asset_manifest"] = available_evidence_manifest(result, str(stored.get("state", "DETECTED")), transitions)
+    if str(stored.get("state")) == "DETECTED":
+        result["controlled_yolo"] = []
     result.update({
         "event_id": stored["event_id"],
         "state": stored["state"],
@@ -226,9 +318,16 @@ def _snapshot(stored: dict[str, Any]) -> dict[str, Any]:
         "operations_control": stored.get("operations_control"),
         "operations_pause_started_at": stored.get("operations_pause_started_at"),
         "operations_paused_ms": stored.get("operations_paused_ms", 0),
-        "transitions": stored.get("transitions", []),
+        "transitions": transitions,
     })
     return result
+
+
+def customer_event_snapshot(event_id: str) -> dict[str, Any]:
+    """The only public integrated-event projection used by customer surfaces."""
+    stored = _load_stage_event(event_id)
+    stored["transitions"] = get_transitions(event_id)
+    return _snapshot(stored)
 
 
 def _require_state(stored: dict[str, Any], *allowed: str) -> None:

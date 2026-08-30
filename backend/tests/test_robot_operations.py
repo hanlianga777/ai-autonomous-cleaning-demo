@@ -39,6 +39,19 @@ class RobotOperationsTests(TestCase):
     def delivery(self):
         return tasks.create_task(self.session_id, "delivery", origin_poi="a1-delivery", destination_poi="a2-corridor")
 
+    def test_new_show_session_resets_only_current_fleet_and_agent_context(self):
+        task = self.delivery()
+        tasks.control(task["task_id"], "dispatch")
+        first = repo.begin_show_session()
+        second = repo.begin_show_session()
+        self.assertNotEqual(first["id"], second["id"])
+        self.assertNotEqual(first["agent_session_id"], second["agent_session_id"])
+        self.assertEqual(repo.current_show_session()["id"], second["id"])
+        self.assertFalse(any(robot.get("active_task_id") for robot in db.get_fleet_state()))
+        self.assertEqual(repo.snapshot(second["agent_session_id"])["messages"], [])
+        # Existing audit/task storage is retained for historical accountability.
+        self.assertEqual(repo.get("task", task["task_id"])["status"], "ASSIGNED")
+
     def test_delivery_real_state_machine_atomic_fleet_and_restart(self):
         task = self.delivery()
         task = tasks.control(task["task_id"], "dispatch")

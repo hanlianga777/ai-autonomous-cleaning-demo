@@ -56,49 +56,8 @@ function RealityMatrix({ trace }: { trace: AdvancedTrace }) {
   return <section className="border border-slate-200 bg-white"><header className="flex items-center gap-2 border-b border-slate-100 px-3 py-2"><ShieldCheck size={13} className="text-slate-500" /><p className="text-[10px] font-semibold tracking-[0.12em] text-slate-500">SYSTEM REALITY MATRIX</p></header>{rows.length ? <div className="divide-y divide-slate-100">{rows.map((row, index) => <article key={`${row.component ?? "component"}-${index}`} className="grid gap-2 px-3 py-2.5 md:grid-cols-[minmax(120px,0.75fr)_minmax(190px,1fr)_minmax(0,1.7fr)]"><p className="text-[10px] font-medium text-slate-800">{row.component ?? "组件未记录"}</p><div><span className={`inline-flex border px-1.5 py-0.5 text-[9px] ${sourceBadgeClass(row.status)}`}>{sourceBadgeLabel(row.status)}</span>{row.execution_status && <p className="mt-1 text-[9px] text-slate-500">执行状态：{traceStatusLabel(row.execution_status)}</p>}{row.replacement && <p className="mt-1 text-[9px] text-slate-400">替换点：{safeTraceText(row.replacement)}</p>}</div><p className="text-[10px] leading-4 text-slate-600">{safeTraceText(row.detail)}</p></article>)}</div> : <p className="px-3 py-3 text-[10px] text-slate-400">后端尚未返回 Reality Matrix 记录。</p>}</section>;
 }
 
-/** Read-only Technical Observability. Node clicks only select local projected records. */
-export function AdvancedView({ event, runtimeMode, onRuntimeModeChange }: AdvancedViewProps) {
-  const [trace, setTrace] = useState<AdvancedTrace | null>(null);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const requestRef = useRef(0);
-  const requestedEventId = eventIdFor(event);
-
-  useEffect(() => {
-    const request = ++requestRef.current;
-    const controller = new AbortController();
-    setLoading(true); setError(null);
-    void fetch(advancedTraceUrl(requestedEventId), { signal: controller.signal })
-      .then(async (response) => {
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : `Trace ${response.status}`);
-        return body as AdvancedTrace;
-      })
-      .then((body) => {
-        if (!acceptsTraceResponse(request, requestRef.current)) return;
-        const nodes = Array.isArray(body.nodes) ? body.nodes : [];
-        setTrace({ ...body, nodes });
-        setSelectedNodeId((current) => nextSelectedNode(nodes, current));
-      })
-      .catch((reason) => {
-        if (!controller.signal.aborted && acceptsTraceResponse(request, requestRef.current)) {
-          setTrace(null);
-          setSelectedNodeId(null);
-          setError(reason instanceof Error ? reason.message : "Trace 暂不可读取");
-        }
-      })
-      .finally(() => { if (!controller.signal.aborted && acceptsTraceResponse(request, requestRef.current)) setLoading(false); });
-    return () => controller.abort();
-  }, [requestedEventId]);
-
-  const nodes = trace?.nodes ?? [];
-  const selected = selectedTraceNode(nodes, selectedNodeId);
-  const aiNodes = useMemo(() => nodes.filter((node) => node.group === "AI"), [nodes]);
-  const spatialNodes = useMemo(() => nodes.filter((node) => node.group === "SPATIAL"), [nodes]);
-  const runtimeNodes = useMemo(() => nodes.filter((node) => node.group === "RUNTIME"), [nodes]);
-  const runtime = trace?.runtime;
-  const configured = runtime?.configured === true ? "已配置" : runtime?.configured === false ? "未配置" : "未知";
-
-  return <main className="min-h-[calc(100vh-54px)] bg-[#f6f7f8] px-5 py-5 text-slate-800 lg:px-7" aria-label="高级技术可观测性"><div className="mx-auto max-w-[1540px]"><header className="border border-slate-200 bg-white"><div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-4 py-3"><div><p className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">TECHNICAL OBSERVABILITY · READ ONLY</p><h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">高级技术可观测性</h1><p className="mt-1 text-xs text-slate-500">只投影已持久化的 Runtime、工具、空间与验证记录；选择节点不会重跑模型、调度或路线。</p></div><div className="flex border border-slate-200 p-0.5" aria-label="下次运行模式"><button type="button" onClick={() => onRuntimeModeChange("live")} className={`px-3 py-1.5 text-xs ${runtimeMode === "live" ? "bg-slate-900 text-white" : "text-slate-600"}`}>LIVE</button><button type="button" onClick={() => onRuntimeModeChange("replay")} className={`px-3 py-1.5 text-xs ${runtimeMode === "replay" ? "bg-slate-900 text-white" : "text-slate-600"}`}>Stable Replay</button></div></div><div className="grid gap-3 px-4 py-3 sm:grid-cols-2 lg:grid-cols-6"><RuntimeField label="TRACE ID" value={traceIdentityLabel(trace?.trace_id, trace?.trace_status)} /><RuntimeField label="EVENT ID" value={trace?.event_id ?? requestedEventId ?? "最新集成事件"} /><RuntimeField label="RUNTIME MODE" value={trace?.mode ?? "—"} /><RuntimeField label="CLOUD PROVIDER / MODEL" value={[runtime?.provider, runtime?.model].filter(Boolean).join(" / ") || "—"} /><RuntimeField label="MODEL CONFIGURATION" value={configured} /><RuntimeField label="LAST REQUEST" value={`${runtime?.last_request_status ?? "—"}${runtime?.last_latency_ms === null || runtime?.last_latency_ms === undefined ? "" : ` · ${runtime.last_latency_ms} ms`}${runtime?.last_request_at ? ` · ${formatTraceTime(runtime.last_request_at)}` : ""}`} /></div><RuntimeInfo info={trace?.runtime_info} /></header>{error && <div role="alert" className="mt-3 flex items-center gap-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"><AlertCircle size={14} />无法读取 Trace：{safeTraceText(error)}</div>}{loading ? <div className="flex min-h-[460px] items-center justify-center text-sm text-slate-500">正在读取只读 Trace 记录…</div> : trace ? <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,63fr)_minmax(320px,37fr)]"><section className="min-w-0 space-y-3"><div className="flex items-center gap-2 border border-slate-200 bg-white px-3 py-2 text-[10px] text-slate-500"><Database size={13} />Trace → Node → Inspect · 节点数 {nodes.length} · 工具记录 {(trace.tool_calls ?? []).length}</div><TraceGroup title="AI RECOGNITION TRACE · 六段投影" nodes={aiNodes} selectedId={selectedNodeId} onSelect={setSelectedNodeId} /><TraceGroup title="SPATIAL / CAPABILITY / SCHEDULING / ROUTE" nodes={spatialNodes} selectedId={selectedNodeId} onSelect={setSelectedNodeId} />{runtimeNodes.length ? <TraceGroup title="RUNTIME / VERIFICATION" nodes={runtimeNodes} selectedId={selectedNodeId} onSelect={setSelectedNodeId} /> : null}<ToolTrace calls={trace.tool_calls ?? []} /><RealityMatrix trace={trace} />{trace.errors?.length ? <section className="border border-rose-200 bg-rose-50 p-3"><p className="text-[10px] font-semibold tracking-[0.1em] text-rose-800">ERROR TAXONOMY</p>{trace.errors.map((item, index) => <p key={`${item.type ?? "error"}-${index}`} className="mt-1 text-[10px] leading-4 text-rose-800">{item.type ?? "ERROR"}{item.code ? ` · ${item.code}` : ""}{item.message ? ` · ${safeTraceText(item.message)}` : ""}</p>)}</section> : null}</section><NodeDetail node={selected} /></div> : <div className="mt-3 flex min-h-[460px] items-center justify-center border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"><div><Gauge size={20} className="mx-auto text-slate-300" /><p className="mt-3">后端尚未返回可展示的 Trace。</p><p className="mt-1 text-xs">不会以当前页面状态或默认节点伪造技术记录。</p></div></div>}</div></main>;
+/** Customer-facing Advanced shell. Backend observability stays available to engineering APIs. */
+export function AdvancedView(_: AdvancedViewProps) {
+  const [expanded, setExpanded] = useState(false);
+  return <main className="min-h-[calc(100vh-54px)] bg-[#f6f7f8] px-5 py-6 text-slate-800 lg:px-8" aria-label="高级模式"><div className="mx-auto max-w-[1040px]"><header className="mb-6"><p className="text-[12px] font-semibold tracking-[0.14em] text-slate-400">ADVANCED MODE</p><h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">技术展示辅助页</h1><p className="mt-2 text-[14px] leading-6 text-slate-600">用于面试讲解时展示经确认的技术材料。</p></header><button type="button" onClick={() => setExpanded(true)} className="flex min-h-[430px] w-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center transition hover:border-slate-400"><span><Eye size={28} className="mx-auto text-slate-300" /><strong className="mt-4 block text-[16px] text-slate-700">PENDING USER ASSET</strong><span className="mt-2 block text-[13px] leading-6 text-slate-500">等待用户提供最终技术讲解图片。收到后将在此居中展示，点击可放大。</span></span></button>{expanded && <div role="dialog" aria-label="技术图片放大预览" onClick={() => setExpanded(false)} className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/75 p-6"><div className="rounded-2xl bg-white p-8 text-center text-[14px] text-slate-600">PENDING USER ASSET</div></div>}</div></main>;
 }

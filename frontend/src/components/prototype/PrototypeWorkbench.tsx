@@ -127,26 +127,6 @@ export function PrototypeWorkbench() {
     }
   };
 
-  useEffect(() => {
-    if (view !== "workbench" || restoring || !runtimeReady || !event || !canAutoAdvance(event)) return;
-    const state = event.backendState;
-    const next = state === "DETECTED" ? ["edge-review", "EDGE_DETECTED"] as const
-      : state === "EDGE_DETECTED" ? ["cloud-review", "CLOUD_REVIEW"] as const
-      : state === "CLOUD_REVIEW" ? ["locate", "LOCATING"] as const
-      : state === "LOCATED" ? ["assign", "ROBOT_ASSIGNED"] as const
-      : state === "ASSIGNED" ? ["start-navigation", "NAVIGATING"] as const
-      : state === "ARRIVED" ? ["complete-cleaning", "CLEANING"] as const
-      : state === "CLEANING_COMPLETED" ? ["verify", "VERIFYING"] as const
-      : null;
-    if (!next) return;
-    // This queues a real backend transition; it is not a timer-driven
-    // presentation timeline.  Cloud/verification duration remains the only
-    // observable model latency and comes from the backend response.
-    let cancelled = false;
-    queueMicrotask(() => { if (!cancelled) void callStage(next[0], next[1]); });
-    return () => { cancelled = true; };
-  }, [view, restoring, runtimeReady, event?.backendState, event?.processing, event?.scenario.id, event?.liveResult?.operations_task_id, event?.liveResult?.operations_control]);
-
   // A reload during a cloud call observes SQLite instead of sending it again.
   useEffect(() => {
     const eventId = String(event?.liveResult?.event_id ?? "");
@@ -206,9 +186,9 @@ export function PrototypeWorkbench() {
     : workbenchAgentPageContext(event, runtimeMode);
   const spatialEvent = runtimeReady ? event : null;
   return <RobotOperationsProvider><div className="min-h-screen bg-[#f6f7f8] text-slate-900">
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-[9px] font-bold text-white">CO</div><div><p className="text-sm font-semibold">CleanOps</p><p className="text-[9px] tracking-[0.12em] text-slate-400">自主清洁</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="自主清洁工作台" active={view === "workbench"} onClick={() => navigate("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => navigate("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => navigate("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => navigate("advanced")} /></nav></aside>
-<div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "自主清洁工作台" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p>{view === "workbench" && <span className={`hidden items-center gap-1.5 text-[11px] md:flex ${event ? "text-slate-700" : "text-slate-500"}`}><CircleDot size={12} className={event?.processing ? "animate-pulse text-rose-500" : "text-emerald-500"} />{stageCopy[state].title}</span>}</div><span className="border border-slate-200 px-2 py-1 text-[10px] font-medium tracking-wide text-slate-600">{view !== "workbench" && view !== "advanced" ? "只读运营视图" : event?.liveResult?.mode === "STABLE_REPLAY" ? "STABLE REPLAY" : event?.liveResult?.mode === "LIVE" ? "LIVE" : runtimeMode === "live" ? "LIVE · 下次运行" : "STABLE REPLAY · 下次运行"}</span></header>
-      {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={spatialEvent} onNavigationComplete={() => void callStage("complete-navigation")} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={operationsOwnsEvent(event) ? undefined : completeManual} /></div></div></main>}
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-[9px] font-bold text-white">CO</div><div><p className="text-sm font-semibold">CleanOps</p><p className="text-[10px] text-slate-400">园区运营</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="AI机器人调度大脑" active={view === "workbench"} onClick={() => navigate("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => navigate("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => navigate("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => navigate("advanced")} /></nav></aside>
+<div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "AI机器人调度大脑" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p>{view === "workbench" && event && <span className={`hidden items-center gap-1.5 text-[12px] md:flex ${event ? "text-slate-700" : "text-slate-500"}`}><CircleDot size={12} className={event?.processing ? "animate-pulse text-rose-500" : "text-emerald-500"} />{stageCopy[state].title}</span>}</div></header>
+      {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={spatialEvent} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={operationsOwnsEvent(event) ? undefined : completeManual} /></div></div></main>}
       {view === "events" && <EventArchiveView onAgentContextChange={setArchiveAgentContext} />}{view === "analytics" && <AnalyticsView />}{view === "advanced" && <AdvancedView event={event} runtimeMode={runtimeMode} onRuntimeModeChange={setRuntimeMode} />}
     </div>
     {(view === "workbench" || view === "events") && <FloatingRobotOperationsAgent pageContext={agentPageContext} />}

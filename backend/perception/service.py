@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import os
+from urllib.error import HTTPError, URLError
 from pathlib import Path
 from uuid import uuid4
 
 from perception.config import get_runtime
+from perception.qwen import request_qwen_tool_turn, run_qwen_vl
 from perception.business_detection import business_detection
 from perception.keyframes import extract_keyframes
 from perception.integration import scheduler_preview
 from perception.mock import list_mock_cases, mock_analysis, mock_case_analysis
 from perception.models import AI_RESULT_SCHEMA_VERSION, derive_required_capabilities, perception_schema, validate_ai_result_schema
-from perception.qwen import run_qwen_vl
 from perception.yolo import RealInferenceError, run_yolo
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 
@@ -32,17 +33,77 @@ def system_ai_status() -> dict:
     runtime = get_runtime()
     yolo_path = Path(runtime.yolo_model).expanduser() if runtime.yolo_model else None
     return {
-        "contract": "system-ai-status.v1",
+        "contract": "system-ai-status.v2",
         "overall_mode": runtime.active_mode,
         "reason": runtime.reason,
         "yolo": {"mode": "REAL" if runtime.active_mode == "real" else "MOCK", "model": yolo_path.name if yolo_path else None, "loaded": bool(yolo_path and yolo_path.is_file() and runtime.active_mode == "real"), "weights_path": str(yolo_path) if yolo_path else None},
-        "qwen_vl": {"mode": "REAL_READY" if runtime.qwen_ready else "MOCK", "model": runtime.qwen_model, "api_key_configured": runtime.qwen_ready, "reachable": "not_checked"},
-        "multiview_agent": {"mode": "REAL_LOGIC", "max_additional_cameras": 2, "max_iterations": 2},
+        "qwen_vl": {"mode": "CONFIGURED" if runtime.qwen_ready else "KEY_MISSING", "model": runtime.qwen_model, "api_key_configured": runtime.qwen_ready, "reachable": "not_checked"},
+        "multiview_agent": {"mode": "CONFIGURED" if runtime.agent_ready else "KEY_MISSING", "model": runtime.agent_model, "max_additional_cameras": 2, "max_iterations": 2, "reachable": "not_checked"},
         "camera_to_slam": {"mode": "REAL_CALCULATION", "implementation": "spatial.calibration.map_pixel_to_slam"},
         "scheduler": {"mode": "REAL_ALGORITHM", "implementation": "Phase 3 deterministic capability + score"},
         "robot": {"mode": "SIMULATION"},
-        "verification": {"mode": "REAL" if runtime.active_mode == "real" else "MOCK"},
+        "verification": {"mode": "REAL" if runtime.qwen_ready else "UNAVAILABLE"},
+        "readiness": {
+            "cloud_vlm_configured": runtime.qwen_ready,
+            "cloud_vlm_reachable": "not_checked",
+            "multiview_agent_configured": runtime.agent_ready,
+            "multiview_agent_reachable": "not_checked",
+            "controlled_edge_ready": runtime.controlled_edge_ready,
+            "local_yolo_ready": runtime.local_yolo_ready,
+            "full_ai_lab_ready": runtime.full_ai_lab_ready,
+            "interview_live_ready": runtime.interview_live_ready,
+        },
     }
+
+
+def _probe_outcome(error: Exception) -> str:
+    """Stable, secret-free status category for a cloud readiness probe."""
+    if isinstance(error, HTTPError):
+        if error.code in {401, 403}:
+            return "AUTH_FAILED"
+        if error.code == 429:
+            return "RATE_LIMITED"
+        if error.code in {404, 400, 422}:
+            return "MODEL_UNAVAILABLE"
+        if error.code >= 500:
+            return "PROVIDER_5XX"
+    if isinstance(error, (URLError, TimeoutError)):
+        return "NETWORK_ERROR"
+    text = str(error).lower()
+    if "401" in text or "403" in text or "auth" in text:
+        return "AUTH_FAILED"
+    if "429" in text or "rate" in text:
+        return "RATE_LIMITED"
+    if "not configured" in text:
+        return "KEY_MISSING"
+    if "404" in text or "model" in text:
+        return "MODEL_UNAVAILABLE"
+    if "5" in text and "http" in text:
+        return "PROVIDER_5XX"
+    return "NETWORK_ERROR"
+
+
+def interview_ai_readiness_probe() -> dict:
+    """Probe the two official cloud models without creating any business data."""
+    runtime = get_runtime()
+    base = system_ai_status()
+    if not runtime.qwen_ready:
+        base["readiness"].update({"cloud_vlm_reachable": "KEY_MISSING", "multiview_agent_reachable": "KEY_MISSING", "interview_live_ready": False})
+        return base
+    outcomes: dict[str, str] = {}
+    for role, model in (("cloud_vlm", runtime.qwen_model), ("multiview_agent", runtime.agent_model)):
+        try:
+            answer, _ = request_qwen_tool_turn([{"role": "user", "content": "Reply exactly READY."}], [], model)
+            outcomes[role] = "READY" if isinstance(answer.get("content"), str) else "MODEL_UNAVAILABLE"
+        except Exception as error:  # transport errors are intentionally projected, not logged here
+            outcomes[role] = _probe_outcome(error)
+    ready = runtime.controlled_edge_ready and outcomes["cloud_vlm"] == "READY" and outcomes["multiview_agent"] == "READY"
+    base["readiness"].update({
+        "cloud_vlm_reachable": outcomes["cloud_vlm"],
+        "multiview_agent_reachable": outcomes["multiview_agent"],
+        "interview_live_ready": ready,
+    })
+    return base
 
 
 def ai_lab_schema() -> dict:

@@ -34,14 +34,14 @@ export function EventDetailPanel({ event, mode = "live", onCompleteManual }: {
   const pauseFollow = () => { if (mode === "live") setFollow(false); };
   return <aside data-testid="event-detail-panel" data-mode={mode} className="relative flex h-full min-h-0 flex-col border border-slate-200 bg-white">
     <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
-      <div><p className="text-sm font-semibold">{mode === "history" ? "历史事件详情" : "最近事件处置详情"}</p><p className="mt-0.5 text-[10px] text-slate-500">{mode === "history" ? "事件快照 · 只读 · 不触发重跑" : "真实阶段记录 · 完整处置过程"}</p></div><Clock3 size={16} className="text-slate-400" />
+      <div><p className="text-sm font-semibold">{mode === "history" ? "事件处置详情" : "当前事件处置详情"}</p><p className="mt-0.5 text-[10px] text-slate-500">{mode === "history" ? "已保存的业务快照 · 只读" : "发生、判断、调度与验收进度"}</p></div><Clock3 size={16} className="text-slate-400" />
     </div>
     {!event ? <div className="flex flex-1 flex-col items-center justify-center px-8 text-center"><p className="text-sm font-medium text-slate-700">当前没有事件</p><p className="mt-2 text-xs leading-5 text-slate-500">从监控区的摄像头设置中触发演示，即可查看识别、空间定位、派单、执行及验收全过程。</p></div> : <>
       <div className="shrink-0 border-b border-slate-100 px-4 py-3">
         <p className="text-sm font-semibold">{event.scenario.eventTitle}</p>
-        {operationsOwnsEvent(event) && !terminal && <p className="mt-1 text-[10px] text-slate-500">{isEventPaused(event) ? "任务已暂停" : "共享 Operations 任务"} · 请通过任务卡推进、继续或取消；工作台仅同步状态。</p>}
-        <p className="mt-1 text-[10px] text-slate-500">{event.scenario.cameraId} · {clockLabel(event.liveResult?.created_at)} · 耗时 {elapsed}</p>
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{event.liveResult?.mode === "DEMO_HISTORY" ? "演示历史 · 非 LIVE" : event.liveResult?.mode === "STABLE_REPLAY" ? "历史 AI 记录回放" : "LIVE 云端研判"}</span></div>
+        {operationsOwnsEvent(event) && !terminal && <p className="mt-1 text-[10px] text-slate-500">{isEventPaused(event) ? "任务已暂停" : "任务正在持续执行"} · 当前页面会同步最新进度。</p>}
+        <p className="mt-1 text-[10px] text-slate-500">{clockLabel(event.liveResult?.created_at)} · 已用时 {elapsed}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{terminal ? "处置记录已完成" : "处置进行中"}</span></div>
       </div>
       <div ref={bodyRef} data-testid="event-timeline-scroll" tabIndex={0} onWheel={pauseFollow} onTouchStart={pauseFollow} onPointerDown={pauseFollow} onKeyDown={(e) => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"].includes(e.key)) pauseFollow(); }} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {!timeline.length && <p className="text-xs text-slate-500">{event.processing ? "正在创建事件…" : "尚无已保存的阶段记录。"}</p>}

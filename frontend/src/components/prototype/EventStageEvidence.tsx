@@ -18,17 +18,14 @@ function CloudSummary({ event }: { event: ActiveEvent }) {
   const second = result?.second_qwen_review;
   const fusion = result?.evidence_fusion;
   if (!review) return <p className="mt-2 text-[11px] text-amber-700">尚未取得有效的云端结构化判断。</p>;
-  const times = [first?.elapsed_ms ?? review.elapsed_ms, ...(result.multi_view?.model_requests ?? []).map((request: RecordValue) => request.elapsed_ms), second?.elapsed_ms].filter((t) => typeof t === "number");
   return <div className={card}>
-    <p className="font-medium text-slate-800">{review.need_clean ? "需要处置" : "无需处置"} · {customerTerm(review.event_type)}</p>
-    <p>污染程度：{customerTerm(review.severity)} · 地面：{customerTerm(review.surface_type)}</p>
-    <p>首轮云端置信度：{percent(first?.decision_confidence ?? review.decision_confidence)}</p>
-    <p>最终语义置信度：{percent(review.decision_confidence)} · 证据{sufficiency(review.evidence_sufficient)}</p>
-    {second && <p>独立复核置信度：{percent(second.decision_confidence)}</p>}
-    {review.evidence_summary && <p>证据摘要：{String(review.evidence_summary)}</p>}
-    {Array.isArray(review.interference_factors) && review.interference_factors.length > 0 && <p>干扰因素：{review.interference_factors.map(customerTerm).join("、")}</p>}
-    {fusion && <p className="border-t border-slate-200 pt-1.5 font-medium text-slate-700">系统 Fusion 处置评分：{typeof fusion.score === "number" ? Math.round(fusion.score * 100) : "—"}分</p>}
-    <p className="text-[10px] text-slate-500">{result.mode === "STABLE_REPLAY" ? "读取已保存 LIVE 响应 · 本次未调用模型" : times.length ? `模型 API 耗时 ${Math.round(times.reduce((a, b) => a + b, 0))} ms` : "模型 API 耗时未记录"}</p>
+    <p><strong>研判结果：</strong>{review.need_clean ? "需要处置" : "无需处置"}</p>
+    <p><strong>事件类型：</strong>{customerTerm(review.event_type)}</p>
+    <p><strong>AI研判置信度：</strong>{percent(review.decision_confidence)}</p>
+    <p><strong>污染程度：</strong>{customerTerm(review.severity)}</p>
+    <p><strong>地面材质：</strong>{customerTerm(review.surface_type)}</p>
+    {fusion && <p className="border-t border-slate-200 pt-1.5 font-medium text-slate-700"><strong>系统处置评分：</strong>{typeof fusion.score === "number" ? Math.round(fusion.score * 100) : "—"}分</p>}
+    {review.evidence_summary && <p><strong>研判摘要：</strong>{String(review.evidence_summary)}</p>}
   </div>;
 }
 
@@ -66,9 +63,9 @@ export function EventStageEvidence({ event, entry, mode, onCompleteManual }: { e
   if (result.mode === "DEMO_HISTORY") return <div className={card}><p>结构化演示历史 · {entry.label}</p><p>该记录仅用于历史指标与档案展示；不是实际云端调用、现场图像或机器人执行。</p>{typeof entry.detail.verification_pass === "boolean" && <p>历史验收结果：{entry.detail.verification_pass ? "通过" : "未通过"}</p>}</div>;
   if (entry.pending) return <p className="mt-2 text-[11px] text-slate-500">正在执行本阶段，等待真实服务结果…</p>;
   switch (entry.state) {
-    case "DETECTED": return <p className="mt-1 text-[11px] text-slate-500">现场证据已接收，事件已持久化。</p>;
+    case "DETECTED": return <p className="mt-1 text-[12px] text-slate-600">固定摄像头发现疑似清洁事件，正在确认现场情况。</p>;
     case "CANCELLED": return <p className="mt-2 text-[11px] text-slate-600">操作员已取消任务；此前处置记录保留，不再自动推进。</p>;
-    case "EDGE_DETECTED": return <div className={card}><CameraEvidence event={event} detections /><p>受控边缘检测证据 · 检测框与原图同坐标系；不代表本地 YOLO 实跑。</p></div>;
+    case "EDGE_DETECTED": return <div className={card}><CameraEvidence event={event} detections /><p>现场目标识别完成，已进入 AI 研判。</p></div>;
     case "SINGLE_VIEW_REVIEW": return <div className={card}><p>仅主摄像头单张图像 · {percent(entry.detail.confidence)}</p><p>证据{entry.detail.evidence_sufficient ? "充分" : "不足"} · {customerTerm(entry.detail.ambiguity_type)}</p><p>{entry.detail.source === "REPLAY" ? "历史 LIVE 结构化响应（REPLAY）" : "真实单视角云端响应"}</p></div>;
     case "MULTI_VIEW": {
       const selected = result.multi_view?.selected_cameras ?? [];
@@ -79,10 +76,10 @@ export function EventStageEvidence({ event, entry, mode, onCompleteManual }: { e
     case "CLOUD_REVIEW": return <CloudSummary event={event} />;
     case "LOCATED": {
       const location = entry.detail;
-      return <div className={card}><p>Camera→SLAM 标定映射已完成</p><p>{location.building} 栋 · {location.floor} · {customerTerm(location.zone)}</p><p title={`SLAM ${location.map_id}: (${location.x}, ${location.y})`}>空间落点已写入事件与地图。</p></div>;
+      return <div className={card}><p><strong>事件位置：</strong>{location.building}栋 {location.floor} · {customerTerm(location.zone)}</p><p><strong>SLAM坐标：</strong>X {location.x} / Y {location.y}</p><p><strong>所属地图：</strong>{location.map_id}</p></div>;
     }
     case "ASSIGNED": return <CapabilitySummary decision={entry.detail.assignment_decision} />;
-    case "NAVIGATING": return <div className={card}><p>依据后端 Dijkstra 拓扑规划前往事件落点。</p><p>{(entry.detail.navigation_plan?.display_path ?? entry.detail.navigation_plan?.node_path ?? []).map(routeLabel).join(" → ")}</p><p>地图连续移动为 PoC 视觉插值，不是真实机器人遥测。</p></div>;
+    case "NAVIGATING": return <div className={card}><p>机器人正在前往现场。</p><p><strong>主要节点：</strong>{(entry.detail.navigation_plan?.display_path ?? entry.detail.navigation_plan?.node_path ?? []).map(routeLabel).join(" → ")}</p></div>;
     case "ARRIVED": return <p className="mt-2 text-[11px] text-slate-500">已记录到达目标区域，Fleet 位置更新完成。</p>;
     case "CLEANING_COMPLETED": return <p className="mt-2 text-[11px] text-slate-500">PoC 清洁执行完成，准备读取处置后证据。</p>;
     case "HUMAN_FALLBACK": return <><CapabilitySummary decision={entry.detail.assignment_decision} /><div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900"><p className="font-medium">人工处置工单已创建</p><p>能力引擎候选数为零。完成搬运后由固定摄像头证据进入同一验收流程。</p>{mode === "live" && event.backendState === "HUMAN_FALLBACK" && onCompleteManual && <button disabled={event.processing} onClick={onCompleteManual} className="mt-2 border border-amber-400 bg-white px-2 py-1 font-medium disabled:opacity-40">确认人工清理完成并验收</button>}{mode === "live" && event.backendState === "HUMAN_FALLBACK" && !onCompleteManual && <p className="mt-2">此事件由共享 Operations 任务管理；请在任务卡中确认人工完成并验收。</p>}{manualVerificationRecorded && <p>人工完成与固定摄像头验收已记录。</p>}{!manualVerificationRecorded && event.backendState === "CANCELLED" && <p>人工处置未完成，任务已取消。</p>}{!manualVerificationRecorded && event.backendState !== "HUMAN_FALLBACK" && event.backendState !== "CANCELLED" && <p>人工处置尚未完成或未通过验收。</p>}</div></>;

@@ -115,6 +115,22 @@ ensure_frontend() {
 # not ask to keep when an unknown browser service blocks the official entry.
 ensure_frontend_slot
 ensure_backend
+# A launcher invocation always establishes a fresh, server-authoritative Show
+# Session.  It resets only current fleet/chat state; Event Archive and 30-day
+# analytics history remain durable customer records.
+SHOW_SESSION_RESPONSE="$(curl --silent --show-error --fail --max-time 20 -X POST "http://127.0.0.1:$BACKEND_PORT/api/robot-operations/show-session")" || {
+  echo "[backend] unable to establish a new Show Session."
+  exit 1
+}
+if [[ -z "$SHOW_SESSION_RESPONSE" ]]; then
+  echo "[backend] Show Session response was empty."
+  exit 1
+fi
+READINESS_RESPONSE="$(curl --silent --show-error --fail --max-time 60 -X POST "http://127.0.0.1:$BACKEND_PORT/api/system/ai-readiness/probe")" || {
+  echo "[backend] Interview AI readiness probe could not complete."
+  exit 1
+}
+echo "[ai] Interview AI readiness probe completed."
 ensure_frontend
 
 if ! runtime_preflight_backend "$BACKEND_PORT" || ! runtime_record_matches_listener "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$BACKEND_DIR"; then

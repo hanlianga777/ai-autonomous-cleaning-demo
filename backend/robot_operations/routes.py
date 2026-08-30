@@ -26,6 +26,16 @@ def create_session():
     return repo.snapshot(repo.new_session()["id"])
 
 
+@router.get("/show-session")
+def show_session():
+    return {"show_session": repo.current_show_session()}
+
+
+@router.post("/show-session")
+def create_show_session():
+    return {"show_session": repo.begin_show_session()}
+
+
 @router.get("/sessions/{session_id}")
 def session(session_id: str):
     result = guarded(repo.snapshot, session_id)

@@ -18,11 +18,14 @@ export type AdviceSnapshot = { generated_at: string; data_window: { start: strin
 export type FloatingPosition = { x: number; y: number };
 
 export const SESSION_STORAGE_KEY = "cleanops.robot-operations.session.v1";
-export const FLOATING_POSITION_KEY = "cleanops.robot-operations.position.v1";
-export const FLOATING_EXPANDED_KEY = "cleanops.robot-operations.expanded.v1";
-export const FLOATING_SIZE = { width: 352, height: 454, edge: 12 };
+export const FLOATING_POSITION_KEY = "cleanops.robot-operations.position.v2";
+export const FLOATING_EXPANDED_KEY = "cleanops.robot-operations.expanded.v2";
+export const FLOATING_CHAT_SIZE = { width: 420, height: 560, edge: 16 };
+export const FLOATING_BALL_SIZE = { width: 56, height: 56, edge: 16 };
+/** Backward-compatible export used by geometry tests: the expanded chat size. */
+export const FLOATING_SIZE = FLOATING_CHAT_SIZE;
 
-export function clampFloatingPosition(position: FloatingPosition, viewport: { width: number; height: number }, size = FLOATING_SIZE): FloatingPosition {
+export function clampFloatingPosition(position: FloatingPosition, viewport: { width: number; height: number }, size = FLOATING_BALL_SIZE): FloatingPosition {
   const x = Number.isFinite(position.x) ? position.x : size.edge;
   const y = Number.isFinite(position.y) ? position.y : size.edge;
   return {
@@ -32,7 +35,7 @@ export function clampFloatingPosition(position: FloatingPosition, viewport: { wi
 }
 
 export function defaultFloatingPosition(viewport: { width: number; height: number }): FloatingPosition {
-  return clampFloatingPosition({ x: FLOATING_SIZE.edge, y: viewport.height - FLOATING_SIZE.height - FLOATING_SIZE.edge }, viewport);
+  return clampFloatingPosition({ x: FLOATING_BALL_SIZE.edge, y: viewport.height - FLOATING_BALL_SIZE.height - FLOATING_BALL_SIZE.edge }, viewport);
 }
 
 export function parseStoredPosition(value: string | null, viewport: { width: number; height: number }): FloatingPosition | null {
@@ -70,10 +73,25 @@ export function taskLocationLabel(value?: string | null): string {
   return value === "East Corridor" ? "东侧走廊" : value || "未提供目的地";
 }
 
+/** Render persisted Agent copy safely in the customer shell. Internal IDs and
+ * lightweight Markdown tokens can be useful to audits, never to a customer. */
+export function customerAgentMessage(value: string): string {
+  return value
+    .replace(/\*{1,3}|`/g, "")
+    .replace(/\brobot-a\b/gi, "赛特净界 S5")
+    .replace(/\brobot-b\b/gi, "高仙 Omnie")
+    .replace(/\brobot-c\b/gi, "蜗小白 SC50")
+    .replace(/\brobot-d\b/gi, "普渡 FlashBot Max")
+    .replace(/\b(?:event|task|session|camera|zone|map)-[a-z0-9_-]+\b/gi, "相关业务记录")
+    .replace(/\b(?:LIVE|MOCK|REPLAY|DEBUG|POC_SIMULATION)\b/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export type OperationsTaskAction = "dispatch" | "pause" | "resume" | "cancel" | "advance" | "manual_complete";
 
 export function actionLabel(action: OperationsTaskAction): string {
-  return ({ dispatch: "派发", pause: "暂停", resume: "继续", cancel: "取消", advance: "推进 PoC 模拟", manual_complete: "确认人工完成并验收" })[action];
+  return ({ dispatch: "开始执行", pause: "暂停", resume: "继续", cancel: "取消", advance: "继续任务", manual_complete: "确认人工处置完成" })[action];
 }
 
 export function taskActions(task: OperationsTask): OperationsTaskAction[] {

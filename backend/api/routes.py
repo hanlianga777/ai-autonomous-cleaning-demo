@@ -8,7 +8,7 @@ from database.connection import get_event, get_fleet_state, get_transitions_afte
 from event_archive.service import archive_index
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
 from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
-from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, media_kind, save_upload, system_ai_status
+from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_schema, ai_lab_status, analyze_mock_case, analyze_upload, available_mock_cases, interview_ai_readiness_probe, media_kind, save_upload, system_ai_status
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
@@ -18,6 +18,7 @@ from workbench.service import list_scenario_assets, run_scenario_02_workbench, r
 from demo_v1.service import (
     assign_event,
     cloud_review,
+    customer_event_snapshot,
     complete_cleaning,
     complete_demo04_manual,
     complete_navigation,
@@ -26,6 +27,7 @@ from demo_v1.service import (
     locate_event,
     multi_view_review,
     scenario_catalog,
+    start_autonomous_progression,
     start_navigation,
     verify_event,
 )
@@ -52,7 +54,9 @@ def post_demo_v1_event(
     demo_id: str = Query(..., pattern="^demo0[1-4]$"),
     mode: str = Query("live", pattern="^(live|replay)$"),
 ) -> dict:
-    return _demo_stage(create_demo_event, demo_id, "STABLE_REPLAY" if mode == "replay" else "LIVE")
+    created = _demo_stage(create_demo_event, demo_id, "STABLE_REPLAY" if mode == "replay" else "LIVE")
+    start_autonomous_progression(str(created["event_id"]))
+    return created
 
 
 @router.post("/demo-v1/events/{event_id}/edge-review", tags=["Integrated Customer Demo"])
@@ -141,6 +145,11 @@ def get_system_ai_status() -> dict:
     return system_ai_status()
 
 
+@router.post("/system/ai-readiness/probe", tags=["System"])
+def post_interview_ai_readiness_probe() -> dict:
+    return interview_ai_readiness_probe()
+
+
 @router.get("/park")
 def get_park() -> dict:
     return read_snapshot("park")
@@ -213,7 +222,7 @@ def get_workbench_scenario_02_assets() -> dict:
 
 @router.post("/workbench/scenario02/run", tags=["Customer Workbench"])
 def post_workbench_scenario_02_run() -> dict:
-    return run_scenario_02_workbench()
+    raise HTTPException(status_code=410, detail="Retired customer path. Use the authoritative /demo-v1/events runtime.")
 
 
 @router.get("/workbench/scenarios", tags=["Customer Workbench"])
@@ -223,28 +232,12 @@ def get_workbench_scenarios() -> list[dict]:
 
 @router.post("/workbench/events/{event_id}/run", tags=["Customer Workbench"])
 def post_workbench_event(event_id: str) -> dict:
-    try:
-        return run_workbench_event(event_id)
-    except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Retired customer path. Use the authoritative /demo-v1/events runtime.")
 
 
 @router.post("/workbench/upload", tags=["Customer Workbench"])
 async def post_workbench_upload(file: UploadFile = File(...)) -> dict:
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="An upload filename is required.")
-    try:
-        media_kind(file.filename)
-        content = await file.read()
-        if not content:
-            raise ValueError("The uploaded file is empty.")
-        if len(content) > MAX_UPLOAD_BYTES:
-            raise ValueError(f"The upload exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.")
-        return run_workbench_upload(file.filename, content)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    finally:
-        await file.close()
+    raise HTTPException(status_code=410, detail="Retired customer path. Upload workflows are engineering-test only.")
 
 
 @router.get("/operations/snapshot", tags=["Customer Operations"])
@@ -260,28 +253,12 @@ def get_operations_work_orders(limit: int = Query(50, ge=1, le=100)) -> list[dic
 
 @router.post("/operations/runs/{event_id}", tags=["Customer Operations"])
 def post_operations_run(event_id: str) -> dict:
-    try:
-        return start_scenario(event_id)
-    except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Retired customer path. Use Robot Operations or /demo-v1/events.")
 
 
 @router.post("/operations/upload", tags=["Customer Operations"])
 async def post_operations_upload(file: UploadFile = File(...)) -> dict:
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="An upload filename is required.")
-    try:
-        media_kind(file.filename)
-        content = await file.read()
-        if not content:
-            raise ValueError("The uploaded file is empty.")
-        if len(content) > MAX_UPLOAD_BYTES:
-            raise ValueError(f"The upload exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.")
-        return start_upload(file.filename, content)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    finally:
-        await file.close()
+    raise HTTPException(status_code=410, detail="Retired customer path. Upload workflows are engineering-test only.")
 
 
 @router.get("/robots/{robot_id}")
@@ -364,10 +341,7 @@ async def post_ai_lab_analyze(
 
 @router.post("/multiview/scenario02/run", tags=["Multi-view Perception Agent"])
 def post_multiview_scenario_02() -> dict:
-    try:
-        return run_scenario_02()
-    except WorkflowError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Retired customer path. Multi-view is evidence-gated within cloud-review.")
 
 
 @router.get("/events", tags=["Workflow + Scheduler"])
@@ -395,26 +369,17 @@ def get_event_templates() -> list[dict]:
 
 @router.post("/events/mock/{template_name}", tags=["Workflow + Scheduler"])
 def post_mock_event(template_name: str) -> dict:
-    try:
-        return create_mock_event(template_name)
-    except WorkflowError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Retired customer path. Mock events are engineering-test only.")
 
 
 @router.post("/events/{event_id}/run", tags=["Workflow + Scheduler"])
 def post_run_event(event_id: str) -> dict:
-    try:
-        return run_event(event_id)
-    except WorkflowError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Retired customer path. Use the authoritative /demo-v1/events runtime.")
 
 
 @router.post("/scheduler/evaluate", tags=["Workflow + Scheduler"])
 def post_scheduler_evaluate(event_id: str = Query(...)) -> dict:
-    try:
-        return evaluate_event(event_id)
-    except WorkflowError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Retired customer path. Scheduler is invoked only by the authoritative runtime.")
 
 
 @router.get("/events/stream", tags=["Workflow + Scheduler"])
@@ -434,6 +399,15 @@ async def stream_events(last_event_id: int = Query(0, ge=0)) -> StreamingRespons
 
 @router.get("/events/{event_id}", tags=["Workflow + Scheduler"])
 def get_event_detail(event_id: str) -> dict:
+    # Integrated events are always projected through the authoritative
+    # temporal-evidence gate.  The historical workflow read model remains an
+    # engineering-only compatibility surface and must never leak into the
+    # customer Prototype.
+    if event_id.startswith("integrated-"):
+        try:
+            return customer_event_snapshot(event_id)
+        except ValueError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
     try:
         return event_detail(event_id)
     except WorkflowError as error:

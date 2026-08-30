@@ -80,7 +80,8 @@ export function eventCamera(event: ActiveEvent, role: "before" | "after" = "befo
 /** Primary event slot + clean idle slot. Supporting cameras never enter this grid. */
 export function monitorViews(event: ActiveEvent | null): Array<{ camera: Camera; available: boolean; eventView: boolean; after: boolean; detections: boolean }> {
   const primary = event?.scenario.cameraId;
-  const ids = !primary || primary === "CAM-OUT-01" ? ["CAM-OUT-01", "CAM-A2-08"] : primary === "CAM-A1-01" ? [primary, "CAM-A2-08"] : ["CAM-OUT-01", primary];
+  const known = ["CAM-OUT-01", "CAM-A1-01", "CAM-A2-08"];
+  const ids = primary ? [primary, ...known.filter((id) => id !== primary)].slice(0, 3) : known;
   const transitions = event?.liveResult?.transitions;
   const stateSet = new Set(Array.isArray(transitions) ? transitions.map((t: RecordValue) => t.state) : []);
   const hasAfter = stateSet.has("VERIFYING"); // after exists even when verification subsequently fails.

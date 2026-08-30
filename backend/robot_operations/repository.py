@@ -3,7 +3,8 @@ import json
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from database.connection import database_session
+from database.connection import database_session, read_snapshot, save_fleet_state
+from database.connection import _baseline_fleet
 from observability.context import new_trace_id, CURRENT_TRACE
 
 
@@ -64,6 +65,36 @@ def tasks(session_id=None):
 
 def new_session():
     return save("session", {"id": f"ops-{uuid4().hex}", "trace_id": new_trace_id(), "created_at": now(), "messages": [], "page_context": {}, "busy": False})
+
+
+def current_show_session():
+    """Return the one active customer-show session, if a launcher created it."""
+    try:
+        value = read_snapshot("show_session")
+    except KeyError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def begin_show_session():
+    """Start a new customer show without erasing historical business records.
+
+    The active fleet projection and chat context are intentionally reset. Event
+    archive, Analytics history and the persisted old task/audit rows remain
+    intact, but cannot be reused by the new browser session.
+    """
+    session = new_session()
+    show = {"id": f"show-{uuid4().hex}", "agent_session_id": session["id"], "created_at": now()}
+    with database_session() as connection:
+        connection.execute(
+            "INSERT INTO system_snapshots(snapshot_key,payload,updated_at) VALUES(?,?,CURRENT_TIMESTAMP) "
+            "ON CONFLICT(snapshot_key) DO UPDATE SET payload=excluded.payload,updated_at=CURRENT_TIMESTAMP",
+            ("show_session", json.dumps(show, ensure_ascii=False)),
+        )
+    # Do not call reset_fleet_state: an interrupted old task must not prevent a
+    # new show from opening.  The new Show Session owns a fresh baseline.
+    save_fleet_state(_baseline_fleet())
+    return show
 
 
 def audit(session_id, **fields):

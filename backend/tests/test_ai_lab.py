@@ -2,10 +2,11 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from perception.config import get_runtime
 from perception.models import TASK_PROFILE_FIELDS, perception_schema, validate_ai_result_schema
-from perception.service import analyze_mock_case, analyze_upload, media_kind, system_ai_status
+from perception.service import analyze_mock_case, analyze_upload, interview_ai_readiness_probe, media_kind, system_ai_status
 
 
 class AiLabTests(unittest.TestCase):
@@ -17,7 +18,8 @@ class AiLabTests(unittest.TestCase):
         os.environ.pop("DASHSCOPE_API_KEY", None)
         os.environ.pop("AI_LAB_YOLO_MODEL", None)
         try:
-            runtime = get_runtime()
+            with patch("perception.config._load_project_env"):
+                runtime = get_runtime()
             self.assertEqual(runtime.active_mode, "mock")
             self.assertEqual(runtime.label, "DEMO MOCK MODE")
         finally:
@@ -35,15 +37,50 @@ class AiLabTests(unittest.TestCase):
         os.environ["DASHSCOPE_API_KEY"] = "local-test-key"
         os.environ.pop("AI_LAB_YOLO_MODEL", None)
         try:
-            runtime = get_runtime()
+            with patch("perception.config._load_project_env"):
+                runtime = get_runtime()
             self.assertEqual(runtime.active_mode, "mock")
             self.assertTrue(runtime.qwen_ready)
+            self.assertTrue(runtime.interview_live_ready)
+            self.assertFalse(runtime.full_ai_lab_ready)
         finally:
             for key, value in (("AI_LAB_MODE", old_mode), ("DASHSCOPE_API_KEY", old_key), ("AI_LAB_YOLO_MODEL", old_model)):
                 if value is None:
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = value
+
+    def test_yolo_without_dashscope_is_not_interview_live_ready(self):
+        old_key = os.environ.get("DASHSCOPE_API_KEY")
+        old_model = os.environ.get("AI_LAB_YOLO_MODEL")
+        with tempfile.NamedTemporaryFile() as model:
+            os.environ.pop("DASHSCOPE_API_KEY", None)
+            os.environ["AI_LAB_YOLO_MODEL"] = model.name
+            try:
+                with patch("perception.config._load_project_env"):
+                    runtime = get_runtime()
+                self.assertTrue(runtime.local_yolo_ready)
+                self.assertFalse(runtime.interview_live_ready)
+                self.assertFalse(runtime.full_ai_lab_ready)
+            finally:
+                if old_key is None: os.environ.pop("DASHSCOPE_API_KEY", None)
+                else: os.environ["DASHSCOPE_API_KEY"] = old_key
+                if old_model is None: os.environ.pop("AI_LAB_YOLO_MODEL", None)
+                else: os.environ["AI_LAB_YOLO_MODEL"] = old_model
+
+    def test_readiness_probe_reports_missing_key_without_secret(self):
+        old_key = os.environ.get("DASHSCOPE_API_KEY")
+        os.environ.pop("DASHSCOPE_API_KEY", None)
+        try:
+            with patch("perception.config._load_project_env"):
+                runtime = get_runtime()
+            with patch("perception.service.get_runtime", return_value=runtime):
+                result = interview_ai_readiness_probe()
+            self.assertEqual(result["readiness"]["cloud_vlm_reachable"], "KEY_MISSING")
+            self.assertFalse(result["readiness"]["interview_live_ready"])
+            self.assertNotIn("DASHSCOPE_API_KEY", str(result))
+        finally:
+            if old_key is not None: os.environ["DASHSCOPE_API_KEY"] = old_key
 
     def test_mock_image_result_is_structured_and_does_not_dispatch(self):
         with tempfile.TemporaryDirectory() as directory:

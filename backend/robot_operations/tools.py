@@ -4,12 +4,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from analytics.read_model import analytics_overview
-from database.connection import get_event, get_fleet_state, ROBOT_PRESENTATION
+from database.connection import get_event, get_fleet_state, get_transitions, ROBOT_PRESENTATION
 from event_archive.service import archive_index
 from spatial.spatial_data import CAMERAS
 from scheduling.profiles import ROBOT_CAPABILITIES
 from robot_operations import repository as repo, tasks
 from robot_operations.catalog import POIS, poi, DELIVERY_ADAPTERS
+from demo_v1.service import available_evidence_manifest
 
 
 class Arguments(BaseModel):
@@ -68,7 +69,12 @@ def camera_evidence(event_id):
     event = get_event(event_id)
     if not event or not event.get("demo_v1"):
         raise ValueError("No supported camera evidence for this event.")
-    assets = event["demo_v1"]["asset_manifest"]["assets"]
+    assets = available_evidence_manifest(
+        event["demo_v1"], str(event.get("state", "DETECTED")),
+        # Agent reads need the event's durable transition history too; a
+        # missing list is safely treated as no future evidence release.
+        get_transitions(event_id),
+    )["assets"]
     return {"event_id": event_id, "source": "CONTROLLED_EVIDENCE_ASSETS", "assets": [
         {key: asset.get(key) for key in ("camera_id", "role", "filename", "url")} for asset in assets]}
 
@@ -89,8 +95,10 @@ def read(resource, id=""):
         if not value:
             raise ValueError("Event not found.")
         snapshot = value.get("demo_v1") or value
+        public_assets = available_evidence_manifest(snapshot, str(value.get("state", "DETECTED")), get_transitions(id))
         return {"event_id": id, "state": value["state"], "location": value.get("location"), "task_profile": value.get("task_profile"),
                 "assignment_decision": value.get("assignment_decision"), "verification": snapshot.get("verification"),
+                "evidence_availability": public_assets.get("availability"),
                 "error": snapshot.get("error"), "source": value.get("source", snapshot.get("mode"))}
     if resource == "analytics":
         return analytics_overview()

@@ -55,13 +55,21 @@ export function RobotOperationsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const id = readStorage(SESSION_STORAGE_KEY);
     const initialise = async () => {
       const request = ++requestId.current;
       setLoading(true); setError(null);
       try {
+        const showResponse = await fetch("/api/robot-operations/show-session", { signal: controller.signal });
+        const show = await responseJson(showResponse) as { show_session?: { id?: string; agent_session_id?: string } | null };
+        const showSessionId = show.show_session?.id;
+        const showAgentSessionId = show.show_session?.agent_session_id;
+        const storedShow = readStorage("cleanops.show-session.v1");
+        const id = showSessionId && storedShow === showSessionId ? readStorage(SESSION_STORAGE_KEY) : null;
+        if (showSessionId) writeStorage("cleanops.show-session.v1", showSessionId);
         const response = id
           ? await fetch(`/api/robot-operations/sessions/${encodeURIComponent(id)}`, { signal: controller.signal })
+          : showAgentSessionId
+            ? await fetch(`/api/robot-operations/sessions/${encodeURIComponent(showAgentSessionId)}`, { signal: controller.signal })
           : await fetch("/api/robot-operations/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: "{}", signal: controller.signal });
         const body = await responseJson(response);
         if (!controller.signal.aborted && request === requestId.current) applySnapshot(body);

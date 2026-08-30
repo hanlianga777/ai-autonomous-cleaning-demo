@@ -24,8 +24,11 @@ def _load_project_env() -> None:
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip().strip('"').strip("'")
-            if key:
-                os.environ.setdefault(key, value)
+            # A non-empty process value is intentional and wins.  An empty
+            # exported value, however, must not shadow a valid local secret:
+            # macOS launchers commonly inherit empty placeholders.
+            if key and value and not os.getenv(key, "").strip():
+                os.environ[key] = value
 
 
 @dataclass(frozen=True)
@@ -38,6 +41,12 @@ class AiRuntime:
     yolo_model: str | None
     qwen_model: str
     qwen_ready: bool
+    agent_model: str
+    agent_ready: bool
+    controlled_edge_ready: bool
+    local_yolo_ready: bool
+    full_ai_lab_ready: bool
+    interview_live_ready: bool
 
 
 def get_agent_model() -> str:
@@ -47,11 +56,12 @@ def get_agent_model() -> str:
 
 
 def get_runtime() -> AiRuntime:
-    """Resolve a truthful AI runtime without attempting any cloud call.
+    """Return distinct AI-Lab and official-Demo readiness facts.
 
-    REAL is available only when both a local YOLO model and DashScope key are
-    supplied.  This prevents a configured-looking screen from pretending that
-    an inference actually happened.
+    Official Demo01–04 consume controlled edge evidence plus two cloud models;
+    they do not need a locally installed YOLO model.  ``active_mode`` remains
+    the *AI Lab* pipeline mode so a mock local lab is never presented as a
+    real YOLO run.
     """
     _load_project_env()
     requested = os.getenv("AI_LAB_MODE", os.getenv("AI_MODE", "auto")).strip().lower()
@@ -60,8 +70,13 @@ def get_runtime() -> AiRuntime:
     model = os.getenv("AI_LAB_YOLO_MODEL", "").strip() or None
     key_present = bool(os.getenv("DASHSCOPE_API_KEY", "").strip())
     model_present = bool(model and Path(model).expanduser().is_file())
-    if requested != "mock" and model_present and key_present:
-        return AiRuntime(requested, "real", "REAL AI MODE", True, "Local YOLO model and DashScope credentials are configured.", model, os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max"), key_present)
+    qwen_model = os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max").strip() or "qwen-vl-max"
+    agent_model = get_agent_model()
+    controlled_edge_ready = True
+    full_ai_lab_ready = model_present and key_present
+    interview_live_ready = controlled_edge_ready and key_present and bool(agent_model)
+    if requested != "mock" and full_ai_lab_ready:
+        return AiRuntime(requested, "real", "REAL AI MODE", True, "Local YOLO model and DashScope credentials are configured.", model, qwen_model, key_present, agent_model, key_present, controlled_edge_ready, model_present, full_ai_lab_ready, interview_live_ready)
     if requested == "real":
         missing = []
         if not model_present:
@@ -73,4 +88,4 @@ def get_runtime() -> AiRuntime:
         reason = "MOCK mode was selected explicitly."
     else:
         reason = "REAL prerequisites are not configured; stable local Mock is active."
-    return AiRuntime(requested, "mock", "DEMO MOCK MODE", False, reason, model, os.getenv("DASHSCOPE_VL_MODEL", "qwen-vl-max"), key_present)
+    return AiRuntime(requested, "mock", "DEMO MOCK MODE", False, reason, model, qwen_model, key_present, agent_model, key_present, controlled_edge_ready, model_present, full_ai_lab_ready, interview_live_ready)
