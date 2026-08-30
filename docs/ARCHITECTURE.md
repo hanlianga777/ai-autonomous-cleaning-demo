@@ -34,7 +34,7 @@ CleaningTask 只关联现有集成事件，阶段完全委托 demo_v1；完整 t
 
 `analytics/read_model.py` 从一次 `read_archived_events()` SQLite快照计算5KPI、样本分母、数据来源组成、时段/类型/热点、事件时活跃区间利用率。默认滚动30天；自定义窗口同步返回真实 `period.days`。利用率 provider 当前显式假定连续可用，未来可替换观测区间。无 GET 写入、无当前 Fleet 覆盖。
 
-`AnalyticsView` 与纯 `analyticsViewModel` 消费真实 API；ECharts 与已有 MapCanvas/projectMapCoordinate 共用内层坐标。热点选择为聚合区域交互，事件点坐标不被挪动；明细保留精确 map/x/y/type/time 与平均闭环并跳档案。Event Archive 能恢复 UTC 时间筛选且 input 显示本地时间。Analytics右侧已按P1-F接入共享Agent/真实只读Advice；旧固定推荐入口退役410。
+`AnalyticsView` 与纯 `analyticsViewModel` 消费真实 API；ECharts 与已有 MapCanvas/projectMapCoordinate 共用内层坐标。热点选择为聚合区域交互，事件点坐标不被挪动；明细保留精确 map/x/y/type/time 与平均闭环并跳档案。Event Archive 能恢复 UTC 时间筛选且 input 显示本地时间。Analytics右侧已按P1-F接入共享Agent/真实只读Advice；旧固定推荐入口退役410。上述大标题/筛选/长页、Scatter bubble heatmap、粗 projection、Data Composition、原始 Advice/Chat audit/语音入口和 286px 非固定右栏，均是当前实现事实，**SUPERSEDED BY ANALYTICS-01**，属 `IMPLEMENTATION_DIVERGENCE`；不得据此宣称已完成本条。
 
 ## P1-D 当前实现补充（2026-08-30）
 
@@ -183,7 +183,7 @@ CleaningEvent
   → Analytics UI（P1-E已实现） + Robot Operations Agent read tools（P1-F IMPLEMENTED）
 ```
 
-Analytics Engine 不是 Agent，不得由 LLM 编造 KPI、utilization 或效果数字。热力图用 map_id/x/y/event_type/timestamp 聚合，点击热点可带 filter 跳到 Event Center。FlashBot Max 不进入清洁机器人利用率排名。运营建议只读取此确定性数据；默认显示带 Data Window / Generated At 的 snapshot，用户主动点击才重新生成。
+Analytics Engine 不是 Agent，不得由 LLM 编造 KPI、utilization、事件数量、区域、机器人、ROI、成本收益或效果数字。热力图继续用真实 `map_id/x/y/zone` 聚合，点击热点可带 filter 跳到 Event Center，FlashBot Max 不进入清洁机器人利用率排名。旧 Scatter 气泡和 `projectMapCoordinate()` overview 位置不是 ANALYTICS-01 的面客 Heatmap Geometry；未来必须以连续 Density Heat Layer、五个 Canonical Zone 的确定性投影测试和 Interview Dataset Boundary 实施。运营建议只读取确定性数据；其旧 Data Window/Generated At/related events/长 evidence 客户卡已被 ANALYTICS-01 SUPERSEDED，未来最多三条简洁可执行建议，完整证据进入 Advanced。
 
 ## 8. Robot Operations Agent、Policy Guard 与页面上下文（P1-F runtime IMPLEMENTED；AI-UI-01 UI Shell LOCKED TARGET）
 
@@ -210,7 +210,7 @@ Shared AgentSession / Message / ActionAudit / Task context
   └── Analytics: 固定统一右侧 Advice + 完整 Chat Area + KPI/hotspot/chart context
 ```
 
-AI-UI-01 锁定：Workbench / Event Center 的默认收起入口是左下小型圆形/球形 AI 悬浮球，可在整个浏览器可视区域的合法位置拖动并持久化，且默认不遮挡核心内容；点击后弹出完整 Chat Window，并可关闭/收起回圆球。旧“共享横向 Floating Window、仅 Header / Drag Handle 拖动、展开式 Tool/Task Panel”**SUPERSEDED BY AI-UI-01**，当前代码是 `IMPLEMENTATION_DIVERGENCE`。Analytics 仅显示固定且统一的右侧 AI Area：上半 Advice、下半完整 Chat；其独立布局/滚动必须保证左侧长内容不会将 Chat 入口推至整页底部。三页仍为一个 Agent、一个 Agent Session、同一 Task / Audit / Backend State；不得新建 Analytics / Optimization / 第二 Conversation Agent。语音只是同一 Agent 的 Microphone → real ASR → transcript 输入适配，不是独立 Agent，也不是当前清洁 Demo 主秀；麦克风只有在真实 ASR provider 已配置时可用，否则 disabled 或明确显示“语音服务未配置”，不得 fake voice interaction。
+AI-UI-01 / ANALYTICS-01 锁定：Workbench / Event Center 的默认收起入口是左下小型圆形/球形 AI 悬浮球，可在整个浏览器可视区域的合法位置拖动并持久化，且默认不遮挡核心内容；点击后弹出完整 Chat Window，并可关闭/收起回圆球。旧“共享横向 Floating Window、仅 Header / Drag Handle 拖动、展开式 Tool/Task Panel”**SUPERSEDED BY AI-UI-01**，当前代码是 `IMPLEMENTATION_DIVERGENCE`。Analytics 仅显示约340–380px、占当前可视高度的固定统一右侧 AI Area：上半最多三条简洁事实建议、下半完整 Chat，独立布局/滚动必须保证输入入口始终可见。三页仍为一个 Agent、一个 Agent Session、同一 Task / Audit / Backend State；不得新建 Analytics / Optimization / 第二 Conversation Agent。正常面客 Chat 统一只显示用户/AI消息、状态与简洁业务任务卡；Audit/trace/Task ID 进 Advanced。旧 disabled 麦克风及“语音服务未配置”文字 **SUPERSEDED BY ANALYTICS-01**：当前面客 Chat 只保留文本输入与发送。
 
 ## 9. External Delivery Adapter（registry IMPLEMENTED；真实授权/回调 TODO）
 

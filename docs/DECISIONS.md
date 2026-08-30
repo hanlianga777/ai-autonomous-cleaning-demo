@@ -141,13 +141,13 @@
 
 ## D07｜Analytics
 
-**LOCKED**：Analytics 正式名为 **AI Autonomous Cleaning Operations Analysis Center / AI 自主清洁运营分析中心**，不是物业驾驶舱。三层为 Autonomy Outcome、Operational Efficiency、Optimization Advice；所有 KPI 由后端 CleaningEvent / Transition 计算，前端不得 hardcode，只有真实计算才显示 period-over-period trend。
+**P1-E 历史实现 / ANALYTICS-01 当前 LOCKED TARGET**：旧 `AI Autonomous Cleaning Operations Analysis Center / AI 自主清洁运营分析中心` 大标题、三层纵向长页、客户数据来源说明、筛选栏和 Data Composition 卡 **SUPERSEDED BY ANALYTICS-01**。当前面客产品为一级“运营分析”，二级“运营洞察”（默认）与“数据统计”：运营洞察单屏以 5 KPI + 近30天 Heat Layer 为主，数据统计一屏 2×2；客户不必滚动长页才理解结果。所有 KPI 仍只能由后端 CleaningEvent / Transition 的确定性计算提供，前端和 Agent 不得 hardcode/编造。
 
-**LOCKED**：顶部 5 KPI 固定为自主闭环率、人工介入率、首次处置成功率、平均响应时间、平均闭环时间。自主闭环率是有效事件中“无人介入 + Robot 完成 + verification PASS + CLOSED”；人工介入率是发生 `HUMAN_REVIEW` 或 `HUMAN_FALLBACK` 的有效事件比例；首次处置成功率为第一次清洁后第一次 verification PASS；平均响应从确认/可处置到机器人或人工实际开始；平均闭环从发现到 `CLOSED`。处理中和系统异常须有明确 denominator 规则，不能为了加总好看强行凑 100%。
+**LOCKED**：5 KPI 固定为自主闭环率、人工介入率、首次处置成功率、平均响应时间、平均闭环时间。客户卡仅名称、核心值、轻量图标；旧样本/统计口径/分子分母/责任边界文案 **SUPERSEDED BY ANALYTICS-01**，但其真实定义仍在 Backend、测试与 Advanced。自主闭环率是有效事件中“无人介入 + Robot 完成 + verification PASS + CLOSED”；人工介入率是 `HUMAN_REVIEW` 或 `HUMAN_FALLBACK` 的有效事件比例；首次处置成功率为第一次 verification PASS；平均响应为确认至实际开始；平均闭环为发现至 `CLOSED`。处理中/系统异常的 denominator 规则仍不可伪造。
 
-**LOCKED**：主视觉为 **Campus Spatial Event Heatmap / 园区历史事件空间热力图**，复用 Campus / SLAM white model，以 map_id/x/y/event_type/timestamp 聚合。低频浅蓝灰、中频低饱和蓝、高频 amber/orange；不使用红黄绿气象图，实时路线不是主角。数据源为明确标识的“近30天 · 演示历史数据”结构化 Seed History + 当前 Runtime CleaningEvent Increment，绝不冒充真实客户历史。
+**P1-E 数据基础 / ANALYTICS-01 当前 LOCKED TARGET**：Heatmap 继续以真实 `map_id/x/y/zone` 位置事实聚合，并保留热点到 Event Center 的只读 drill-down；旧 Scatter/symbolSize 气泡和粗粒度 overview projection 是 `IMPLEMENTATION_DIVERGENCE`，**SUPERSEDED BY ANALYTICS-01**。正式视觉必须是半透明连续 Gaussian/Blur Density Heat Layer：低频蓝/青、中频黄、较高橙、最高红，保留底图可读性；仅 Top 2–3 慢呼吸。未来必须建立可验证 Heatmap Projection Geometry 和五个 Canonical Zone 的确定性测试，禁止把热点放到错误楼栋/建筑外。客户不默认显示来源说明；正式 Interview Dataset 仅 Canonical 30-day DEMO_HISTORY + 合法 Interview Runtime，排除开发/测试/验收/Legacy 脏数据。
 
-**LOCKED**：过滤为事件类型（全部、其他小型垃圾、液体污渍、易拉罐、大件物品）和时段（全天、06–10、10–14、14–18、18–22）。热点 drill-down 展示区域、总数、类型、时段、平均闭环，并可跳 Event Center 携带 location/type/time 筛选。辅助模块仅保留事件结构分析、高发区域与时段规律、清洁机器人运营效率；FlashBot Max 不参与清洁利用率排名。
+**P1-E API/事实基础 / ANALYTICS-01 当前 LOCKED TARGET**：事件类型/时段/日期过滤保留为后端能力但从客户运营洞察移除，正式窗口固定近30天。数据统计必须把 raw event type 先归一为 Canonical Customer Event Type 再聚合，未知/旧数据只允许一行“待研判”。热点 Top 标签只显示地点/事件数，其余 hover 只显示地点、30天数量、主要事件类型；内部 ID/坐标不面客显示。Event Center drill-down 仍携带合法位置/时间查询且不重跑 Runtime。时段、利用率、事件类型结构和闭环表现改在数据统计 2×2 中呈现；FlashBot Max 继续排除清洁利用率。
 
 ## D08｜Robot Operations Agent 与 Policy Guard
 
@@ -161,9 +161,9 @@
 
 **P1-F 历史实现 / AI-UI-01 当前 LOCKED TARGET**：P1-F 已实现且保留的事实是唯一共享 Robot Operations Agent，以及跨页不丢失 `AgentSession`、`AgentMessage`、`AgentActionAudit`、Task context。其旧 UI Shell（Workbench / Event Center 横向 Floating Window、仅 Header / Drag Handle 拖动、现有展开式 Tool/Task Panel）**SUPERSEDED BY AI-UI-01**，当前实现记录为 `IMPLEMENTATION_DIVERGENCE`。AI-UI-01 要求 Workbench / Event Center 默认左下圆形可拖动 AI 悬浮球、点击后的完整 Chat Window；Analytics 不显示圆球，而是在统一固定右侧 AI Area 中展示上半 Advice 与下半完整 Chat，且聊天入口在当前可视高度内可发现。三页继续共享同一 Agent、Session、Task / Audit / Backend State，不得新建第二 Agent。
 
-**IMPLEMENTED / LOCKED（P1-F）**：Page Context 自动注入：Workbench 当前 event/fleet/map/robot/camera/stage；Event Center 为 selected event snapshot/filters；Analytics 为 time window/type/hotspot/robot/KPI/chart context。真实机器人动作必须返回读取后端真实 Task 的 Action Card（Task ID、机器人、取件/目标、状态），不能只说“已安排”。语音只是同一 Agent 输入：Microphone → real ASR → transcript → Agent，不是当前清洁 Demo 的主要演示路径；禁止 fake voice interaction。若麦克风显示为可用，必须真实调用已配置的 ASR provider；未配置时必须 disabled 或明确显示“语音服务未配置”，禁止预设文本、前端 timer 或 mock transcript 冒充识别成功。
+**P1-F runtime 基础 / ANALYTICS-01 当前 LOCKED TARGET**：Page Context 继续注入 Workbench event/fleet/map/robot/camera/stage、Event Center selected snapshot/filters、Analytics KPI/hotspot/chart；任务仍从真实后端 Task 返回。旧面客 Chat 显示 Tool Audit、request/completion/model turn/policy/raw result/Task ID，以及 disabled 麦克风/“语音服务未配置”文字，**SUPERSEDED BY ANALYTICS-01**。三页同一完整 Chat 只显示用户问题、AI回答和必要状态；任务仅显示简洁业务确认卡（正式机器人名、合法起终点、状态），技术审计在 Advanced。语音入口从当前面客 Chat 完全移除，不以 disabled 替代。
 
-**IMPLEMENTED / LOCKED（P1-F）**：Analytics Advice 不是第三个独立运营分析 Agent。确定性 Analytics Engine 负责 KPI/Heatmap/Time/Utilization；Robot Operations Agent 最多 3–4 次 Read Tool 后给 3–4 条含发现、数据依据、建议、相关事件的只读建议。默认显示最近 snapshot（Data Window / Generated At），仅用户点击才重新生成；不得自动改 Scheduler、阈值、范围、能力或地图。
+**P1-F runtime 基础 / ANALYTICS-01 当前 LOCKED TARGET**：Analytics Advice 不是第三个独立运营分析 Agent。确定性 Engine 继续提供 KPI/Heatmap/Time/Utilization，Robot Operations Agent 只可总结事实、提供建议或经 Policy Guard 执行合法任务，不能发明数字/区域/机器人/ROI/收益或改 Scheduler/阈值/范围/能力/地图。旧 3–4 条、Data Window/Generated At、related events、长 evidence/内部资源名的客户展示 **SUPERSEDED BY ANALYTICS-01**：默认最多三条，每条标题 + 一句发现 + 一句可执行建议；完整证据链只在 Advanced。
 
 ## D10｜Multi-view Perception Agent
 

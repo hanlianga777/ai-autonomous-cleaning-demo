@@ -71,6 +71,8 @@
 - [x] **Campus Spatial Event Heatmap**：用 map_id/x/y/event_type/timestamp 聚合，复用 SLAM white model；实现 type/time filters、热点 drill-down、跳转 Event Center 的 location/type/time URL filter。
 - [x] **辅助分析**：事件结构、区域/时段规律、清洁机器人运营效率；FlashBot Max 不进清洁利用率排名；利用率必须由任务状态时间 ÷ 可用时间计算。
 
+- [ ] **ANALYTICS-01｜运营分析信息架构、AI运营洞察、数据统计、热力图与共享AI Chat（LOCKED TARGET；未 IMPLEMENTED）**：一级“运营分析”下必须有默认“运营洞察”和“数据统计”；洞察单屏只呈现极简 5 KPI + 固定近30天连续 Density Heat Layer，统计页为时段/利用率/类型/闭环 2×2。客户移除大标题、筛选、口径长文、Data Composition、技术 ID/evidence；raw type 必须归一聚合，待研判最多一行。热图按真实位置事实、可验证几何与五区测试渲染，Top 2–3 克制呼吸，保留只读跳转事件中心；默认 Dataset 排除开发/测试/验收/Legacy。右侧约340–380px固定 AI Area：最多三条简洁事实建议 + 与 AI-UI-01 相同的共享 Chat；无语音/Tool Audit/技术 trace，仅用户与AI消息及简洁业务任务卡。必须共享同一 Robot Operations Agent / Session / Task / Audit，禁止第二 Agent。未来报告须交付 ANALYTICS-01.1–01.28 的 Requirement→Code→Test→Screenshot/User Acceptance；缺一不得 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#analytics-01运营分析信息架构ai运营洞察数据统计热力图与共享ai-chat`。
+
 验收：backend定向12/12、完整105项=102PASS+3paid opt-in skipped、前端32/32、build/diff check、实际热点→81条对应档案/Seed来源/UTC范围浏览器验收，A/E PASS。默认近30天；自定义范围按实际period返回；时段保持D07四bucket。
 
 - [ ] **P1-E P2**：Seed滚动插入保留旧档案，未来明确保留/归档策略（当前不自动删用户数据）；真实availability/uptime provider仍缺，利用率假定24小时连续可用；后续按需在UI展示carried_tasks；ECharts首次引入后bundle>500KB可按路由拆包。旧固定Optimization API已在P1-F退役410，客户Analytics接真实只读Agent建议。

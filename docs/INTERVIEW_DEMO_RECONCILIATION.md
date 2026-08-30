@@ -5,7 +5,7 @@
 
 ## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
 
-- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01、ANALYTICS-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
 - 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → affected code → implementation status）。
 - 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
 
@@ -763,3 +763,214 @@ Event Center 是面向客户的“AI 清洁事件档案 / 工单中心”，不�
 - `backend/perception/multiview/autonomous.py`
 - `backend/perception/multiview/tools.py`
 - `sample_data/camera_events/CAM-A1-01/event-beverage-spill-002/metadata.json` and the canonical asset manifest/evidence paths (read-only in this round)
+
+## ANALYTICS-01｜运营分析信息架构、AI运营洞察、数据统计、热力图与共享AI Chat
+
+| Field | Value |
+| --- | --- |
+| ID | ANALYTICS-01 |
+| Module | AnalyticsView / deterministic Analytics Engine / shared Robot Operations Agent UI |
+| Status | **LOCKED TARGET** |
+| Scope | Docs-only delta sync；本轮不修改 frontend、backend、runtime、database、test 或 launcher，不提前制作 Heat Layer、Chat 或导航。 |
+
+### User Intent
+
+运营分析是管理者快速发现问题、了解运营表现并获得可执行 AI 优化建议的面客产品，而非技术数据看板、开发调试报告、数据来源说明页或超长 Analytics 页面。产品采取“一屏一主题、信息少而有效”的企业 SaaS 信息架构；确定性 Analytics Facts、共享 Robot Operations Agent、Policy Guard 和现有任务能力继续作为唯一事实基础。
+
+### Previous Source Coverage
+
+- 已覆盖：active `AnalyticsView.tsx` 从后端同一 SQLite 读模型取得 5 KPI、事件时段、利用率、事件类型、热点和 Event Center drill-down；`ZONE_PROFILES` 与 Runtime `CleaningEvent` 提供 `map_id/x/y/zone`；Analytics 与 Workbench/Event Center 已共享同一 Robot Operations Agent、Session、Task/Audit/Backend State。
+- 已覆盖：Analytics Engine 是确定性读模型，Agent 只可总结/建议或依 Policy Guard 创建合法任务；不能创建第二个 Analytics/Optimization Agent，也不能编造 KPI、热点、机器人、ROI、成本收益或改变运营配置。
+- 以前缺失：运营洞察/数据统计二级信息架构、固定近30天的一屏布局、客户 KPI/Advice/Chat 字段边界、连续密度 Heat Layer、可验证投影几何、Interview Dataset Boundary、标准化 Customer Event Type 聚合、语音入口移除及完整的面客视觉验收。
+- 旧 Analytics 大标题、过滤栏、纵向长页、Data Composition、Scatter 气泡热力图、长解释 KPI、Advice 的原始 evidence/ID、普通 Chat 的 Audit/任务 ID/语音入口，是历史实现或覆盖描述，**SUPERSEDED BY ANALYTICS-01**。数据真实性、后端过滤能力、Advanced 审计、热点跳转和共享 Agent 事实仍有效。
+
+### Current Implementation
+
+- `PrototypeWorkbench.tsx` 直接加载 active `frontend/src/components/prototype/AnalyticsView.tsx`；仓库的 `frontend/src/components/analytics/OptimizationCenter.tsx` 是未接入的历史组件，不能误认为当前正式 Analytics。
+- active 页面当前有大标题/说明区、刷新按钮和事件类型/时段/起始/结束筛选栏；5 KPI 还展示样本、统计口径；热力图、时段、利用率、事件结构、Data Composition 纵向堆叠，左侧长内容使右侧 Chat 输入不能保证一直在当前可视高度。
+- 当前热力图是 ECharts `scatter` + `symbolSize` 的独立圆点，投影使用粗粒度 `projectMapCoordinate()` anchor offset，非连续 Density Heat Layer，尚无五个 Canonical Zone 的确定性投影验收。
+- 当前 `event_structure` 按 raw event_type 聚合后才翻译；多个未知内部 type 可被翻成多行“待研判”。读模型目前读取 archive 中的所有行，尚未建立隔离开发/测试/验收/Legacy 脏数据的 Interview Analytics Dataset Boundary。
+- `AnalyticsAdviceAndChat` 已在同一 Agent/Session 下提供 Advice + Chat，但只有 `286px` 宽且随左侧整页流布局；Advice 展示 Data Window、Generated At、evidence、related events，普通 Chat 展示 Tool Audit、policy、任务 ID/source 和禁用麦克风/“语音服务未配置”。这些均不符合当前面客目标。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。P1-E/P1-F 锁定了真实统计、读模型、热点跳转、Advice 与共享 Agent 基础，但没有锁定面客导航、单屏信息架构、Heat Layer/投影验证、客户字段边界或文本 Chat 的统一 Shell；当前实现仍是历史的可审计 Analytics page。
+
+### Locked Target
+
+#### ANALYTICS-01.1｜一级与二级导航
+
+- **User Intent**：一级导航为“运营分析”，其下有“运营洞察”“数据统计”两个二级入口，默认进入“运营洞察”；不得使用“热力图与AI运营分析”等过长名称。
+- **Acceptance Criteria**：用户点击运营分析即可见两个清晰二级入口，默认内容是运营洞察。
+
+#### ANALYTICS-01.2｜运营洞察的一屏结构
+
+- **User Intent**：运营洞察左侧只以第一层 5 KPI、第二层近30天园区空间热力图为核心；不得再把 KPI、热力图、时间图、利用率、事件结构、数据来源纵向堆成超长页面。
+- **Acceptance Criteria**：标准桌面面试视口进入后基本无需向下滚动即可看见 KPI 和热力图主要内容。
+
+#### ANALYTICS-01.3｜移除页面大标题区
+
+- **User Intent**：删除客户主页面的 `AI AUTONOMOUS CLEANING OPERATIONS ANALYSIS CENTER`、`AI自主清洁运营分析中心`、“近30天·演示历史数据+Runtime增量”等大标题/灰字；左侧导航已说明当前位置，KPI 应直接顶端呈现。
+- **Acceptance Criteria**：运营洞察首屏无重复巨大标题或数据来源免责声明区。
+
+#### ANALYTICS-01.4｜移除客户筛选栏
+
+- **User Intent**：面试 Demo 主页面采用固定近30天窗口，移除事件类型、时段、起始日期、结束日期筛选栏；后端过滤能力可保留，不在客户主层暴露。
+- **Acceptance Criteria**：客户运营洞察没有该筛选栏，返回数据仍是固定近30天窗口。
+
+#### ANALYTICS-01.5｜极简 KPI Card
+
+- **User Intent**：仅保留自主闭环率、人工介入率、首次处置成功率、平均响应时间、平均闭环时间；每卡仅名称、核心数值、轻量图标。
+- **Locked Target**：样本、统计口径、分子/分母、责任边界和“不可凑100%”等真实定义保留 Backend/测试/Advanced，不在面客 KPI 卡展开。
+- **Acceptance Criteria**：五张卡没有长说明、details 或技术审计文字，数值仍来自真实后端计算。
+
+#### ANALYTICS-01.6｜数据统计独立二级页
+
+- **User Intent**：数据统计是独立二级页面，一屏 2×2：左上事件时段分布、右上机器人利用率、左下事件类型结构、右下处置效率/闭环表现。
+- **Acceptance Criteria**：四张核心统计图同屏、位置明确；用户无需长滚动才发现关键图。
+
+#### ANALYTICS-01.7｜移除 Data Composition 客户卡
+
+- **User Intent**：`DATA COMPOSITION`、演示历史/Runtime 增量数量、`DEMO_HISTORY + RUNTIME` 来源说明不作为客户运营分析卡。
+- **Locked Target**：它属于系统真实性/数据来源审计，保留到 Advanced。
+- **Acceptance Criteria**：客户运营页面无该卡；Advanced 仍可追溯数据来源边界。
+
+#### ANALYTICS-01.8｜事件类型标准化后聚合
+
+- **User Intent**：必须先 `Raw Event Type → Canonical Customer Event Type → Aggregate`。客户类别至少为其他小型垃圾、液体污渍、易拉罐、大件物品；未知/旧数据统一为待研判，最多只出现一行。
+- **Acceptance Criteria**：数据统计事件结构没有多行同名“待研判”，不会向客户暴露 raw internal type。
+
+#### ANALYTICS-01.9｜固定右侧 AI Area
+
+- **User Intent**：桌面面试尺寸右侧为约 `340–380px` 宽、占满当前可视高度的固定 AI 区域；上半 AI 运营建议约 35–40%，下半共享 AI Chat 约 60–65%，输入框始终可见且两部分是同一区域。
+- **Acceptance Criteria**：左侧内容再长也不会把右侧 Chat 推到页面底部；右侧有独立布局/滚动。
+
+#### ANALYTICS-01.10｜面客 AI 运营建议卡
+
+- **User Intent**：默认最多三条建议；每条仅“标题 + 一句业务发现 + 一句可执行建议”，如 A栋1F东入口液体污渍高发及提前安排高仙 Omnie 待命。
+- **Locked Target**：禁止 zone_id、event_id、duration_seconds、analytics resource 名、related_events、raw evidence、Debug Log 风格或长技术解释。
+- **Acceptance Criteria**：建议短、明确、可执行，且客户层无内部 ID/evidence 堆积。
+
+#### ANALYTICS-01.11｜建议真实性与证据边界
+
+- **User Intent**：建议只能总结/归纳 Backend 提供的确定性 Analytics Facts；不能发明事件数量、区域、机器人、ROI、成本收益或其他重要数字。
+- **Locked Target**：完整证据链进入 Advanced，面客 UI 不默认展开完整 evidence。
+- **Acceptance Criteria**：建议中可量化主张均能回溯到 Analytics Facts；无事实支持时 Agent 不虚构结论。
+
+#### ANALYTICS-01.12｜唯一共享 Robot Operations Agent
+
+- **User Intent**：Analytics Chat、Workbench 悬浮 Chat、Event Center 悬浮 Chat 使用同一个 Robot Operations Agent、共享 Session、Task/Audit/Backend State。
+- **Acceptance Criteria**：没有 Analytics Agent、Optimization Agent 或第二 Chat Agent；跨页消息和任务状态连续。
+
+#### ANALYTICS-01.13｜Chat UI 完全统一
+
+- **User Intent**：Analytics 固定 Chat 与 AI-UI-01 弹出 Chat 复用一套消息样式、间距、输入框、发送、状态、字体、圆角/边框规范；只允许容器位置不同。
+- **Acceptance Criteria**：同一会话在两种容器中视觉与交互一致，不像两种聊天产品。
+
+#### ANALYTICS-01.14｜彻底移除语音入口
+
+- **User Intent**：面客 Chat 完全不显示麦克风按钮或“语音服务未配置”文字；不是 disabled，而是移除。仅保留文本输入和发送按钮。
+- **Acceptance Criteria**：Analytics、Workbench 与 Event Center 的正常 Chat 均无语音图标/相关提示。
+
+#### ANALYTICS-01.15｜Chat 去工程信息
+
+- **User Intent**：普通面客 Chat 默认只显示用户问题和 AI 回答；禁止 Tool Audit、request、completion、model_turn、policy name、raw tool result、Task ID、技术 trace。
+- **Locked Target**：若 Agent 执行任务，只可显示简洁业务任务确认卡（任务类型、正式机器人名、合法起终点、状态）；技术审计进入 Advanced。
+- **Acceptance Criteria**：普通 Chat 无工程审计字段，任务确认仍如实反映后端 Task。
+
+#### ANALYTICS-01.16｜Chat 面客能力范围
+
+- **User Intent**：固定 Chat 至少支持运营数据问答（垃圾/液体/人工介入高发区域与时段、最低利用率）和机器人任务操作（创建配送/清洁、前往合法 POI 待命、查看当前任务）。
+- **Locked Target**：继续遵守既有 Policy Guard、白名单、权限和 Agent 不直接控制底盘坐标的边界。
+- **Acceptance Criteria**：两类问题都走同一 Agent/真实 Facts 或合法 Task；越界请求被正确拒绝。
+
+#### ANALYTICS-01.17｜真实连续 Density Heat Layer
+
+- **User Intent**：当前 ECharts `scatter` + `symbolSize` 独立圆点是 **IMPLEMENTATION_DIVERGENCE**，不得作为正式热力图。
+- **Locked Target**：以半透明连续空间密度层、柔和 Gaussian/Blur、热点自然融合呈现，而不是几个实心圆。
+- **Acceptance Criteria**：同一区域相邻高频点视觉融合为连续密度云层，底图仍清楚可见。
+
+#### ANALYTICS-01.18｜热力图色彩
+
+- **User Intent**：低频蓝/青、中频黄、较高橙、最高红；整体半透明、可见底图、不遮挡建筑，避免过饱和赛博色。
+- **Acceptance Criteria**：热度分级符合此色序，颜色克制且底图可读。
+
+#### ANALYTICS-01.19｜高频热点克制呼吸
+
+- **User Intent**：仅 Top 2–3 高频热点允许缓慢、克制地变化 opacity/blur radius，以增加生命感。
+- **Locked Target**：禁止全部热点闪动、快速脉冲、告警灯或霓虹光圈。
+- **Acceptance Criteria**：仅 Top 2–3 有低干扰慢呼吸，其他热区静态。
+
+#### ANALYTICS-01.20｜真实30天位置事实
+
+- **User Intent**：热力图从实际近30天事件的 `map_id + x + y + zone` 聚合；`ZONE_PROFILES` 的 canonical 位置和结构化 Runtime `CleaningEvent` 是事实源。
+- **Acceptance Criteria**：不得为画面好看随意在白模图上摆放热点；每个可见热点可追溯到真实聚合行。
+
+#### ANALYTICS-01.21｜可验证 Heatmap Projection Geometry
+
+- **User Intent**：必须取代当前粗粒度 `projectMapCoordinate()` overview offset，建立可验证投影几何，使 A1F/A2F/B1F/OUTDOOR 热点分别位于相应建筑/道路的合理视觉区域。
+- **Acceptance Criteria**：热点不漂到建筑外、墙体、草地、空白或错误楼栋；投影不靠前端随意偏移。
+
+#### ANALYTICS-01.22｜五个 Canonical Zone 的确定性验收
+
+- **User Intent**：逐个验收 A栋1F东入口、A栋1F主大堂、B栋1F西侧大堂、园区室外东入口道路、A栋2F走廊的位置；Codex 必须添加确定性投影测试，不能只靠肉眼。
+- **Acceptance Criteria**：五点均落在各自视觉区域，自动化投影测试和用户视觉验收均通过。
+
+#### ANALYTICS-01.23｜热点客户标签
+
+- **User Intent**：最高频 Top 热点可直接轻量显示业务地点和事件数（如“A栋1F · 东入口 / 81起”）；其余热点 hover 显示位置、30天事件数、主要事件类型。
+- **Locked Target**：禁止 zone_id、map_id、x/y、internal ID。
+- **Acceptance Criteria**：客户可读标签不含内部坐标/ID，hover 信息只含指定业务字段。
+
+#### ANALYTICS-01.24｜热点到 Event Center 的只读联动
+
+- **User Intent**：保留点击热点跳转 Event Center、查看该位置历史事件的能力。
+- **Locked Target**：跳转不得重跑模型、调度或任务。
+- **Acceptance Criteria**：点击任何热点带正确位置/时间业务筛选进入事件中心，并只读显示对应档案。
+
+#### ANALYTICS-01.25｜Interview Analytics Dataset Boundary
+
+- **User Intent**：正式面试 Analytics 默认统计 Canonical 30-day `DEMO_HISTORY` 加正式 Interview Runtime 的合法业务事件；开发、测试、验收、Legacy 脏事件不得污染客户 KPI 或 Heatmap。
+- **Acceptance Criteria**：统一实施时审查 source 并建立清晰过滤边界；面客统计可证明未混入上述非正式记录，具体技术过滤由 Codex 决定。
+
+#### ANALYTICS-01.26｜整体视觉原则
+
+- **User Intent**：简洁、高级、现代企业 SaaS、浅色、Linear/Vercel 气质；无大段灰字、中英文重复标题、技术免责、复杂筛选、过多小字、Debug 字段或无限卡片堆叠。
+- **Acceptance Criteria**：面试官无需滚三屏即可理解 Analytics 表达的运营表现和行动建议。
+
+#### ANALYTICS-01.27｜正式 Active Code 范围
+
+- **User Intent**：当前正式 Analytics 是 `frontend/src/components/prototype/AnalyticsView.tsx`，由 `PrototypeWorkbench.tsx` 直接加载；历史 `OptimizationCenter.tsx` 不得误当为正式页面。
+- **Locked Target**：未来 Unified Implementation 优先修改 active AnalyticsView；旧组件是否清理是 Codex 的工程决策。
+- **Acceptance Criteria**：未来交付的代码/测试实际影响当前 Demo 路径，不仅修改未接入旧组件。
+
+#### ANALYTICS-01.28｜用户验收与实施报告
+
+- **User Intent**：用户必须亲眼验收二级导航、运营洞察单屏 KPI+Heatmap、无大标题/筛选/技术灰字、极简 KPI、真实 Density Heat Layer、Top 呼吸、五区正确投影/不漂移、热点跳转、数据统计 2×2、唯一待研判、无 Data Composition、固定右 AI、三条简洁建议、可见 Chat 输入、统一 Chat、无语音/审计、同一 Agent/Session。
+- **Locked Target**：用户未亲眼通过前，ANALYTICS-01 不得标记 `USER_ACCEPTED`。未来 Implementation Report 必须逐项列出 `.1`–`.28` 的 Requirement → Code → Test → Screenshot/User Acceptance；任一子项缺失不得标记 `IMPLEMENTED`。
+- **Acceptance Criteria**：报告提供全部 28 项可复核证据，并与此前/后续全部 LOCKED TARGET 一起回归。
+
+### Must Not Do
+
+- 不得用当前长页、Scatter 气泡、粗粒度投影、工具审计或历史文档反向简化本锁定目标。
+- 不得新建 Analytics/Optimization/第二 Chat Agent、第二 Session、第二 Task/Audit 真相，或由 Agent 改 Scheduler/地图/阈值/范围。
+- 不得把 Data Composition、数据来源、样本口径、raw evidence、ID、坐标、任务审计、技术 trace、API/模型细节默认放进客户 Analytics/Chat。
+- 不得硬编码热点、建议数字/区域/机器人/ROI/收益，或把开发、测试、验收、Legacy 脏数据混入 Interview Analytics。
+- 本轮不得修改 frontend、backend、runtime、database、test、launcher、Chat、导航或热力图；只更新 Markdown。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `frontend/src/components/prototype/AnalyticsView.tsx`
+- `frontend/src/components/prototype/analyticsViewModel.ts`
+- `frontend/src/components/prototype/spatialProjection.ts`
+- `frontend/src/components/prototype/MapCanvas.tsx`
+- `frontend/src/components/analytics/AnalyticsChart.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsPanel.tsx`
+- `frontend/src/components/robot-operations/RobotOperationsProvider.tsx`
+- `frontend/src/components/robot-operations/robotOperationsModel.ts`
+- `backend/analytics/history_seed.py`
+- `backend/analytics/mock_history.py`
+- `backend/analytics/read_model.py`
+- `backend/api/routes.py`
+- `frontend/src/components/analytics/OptimizationCenter.tsx` (historical inactive component; do not mistake for active work)
