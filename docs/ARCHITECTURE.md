@@ -40,7 +40,7 @@ CleaningTask 只关联现有集成事件，阶段完全委托 demo_v1；完整 t
 
 `backend/event_archive/service.py` 在同一 SQLite read transaction 批量读取 events/transitions，投影发现时间、类别、处理方式、事件时执行对象与位置、duration。`/api/event-archive` 支持 category/q/event_type/handling_mode/since/until/map_id/offset/limit；非法筛选 422，不静默回退全部。无 write/model/workflow/Fleet 依赖。
 
-`EventArchiveView` + `eventArchiveModel` 负责只读分页/1.5 秒串行轮询、URL selected event、请求取消与 ID 防错配；复用 `EventDetailPanel(mode="history")`，不另建详情 renderer。`PrototypeWorkbench` 路径与 popstate 恢复导航，阶段 POST 与当前任务 polling 仅在 Workbench 执行。历史布局 56/44，详情内部独立滚动、首次未选中、缺记录明确报错。
+`EventArchiveView` + `eventArchiveModel` 负责只读分页/1.5 秒串行轮询、URL selected event、请求取消与 ID 防错配；复用 `EventDetailPanel(mode="history")`，不另建详情 renderer。`PrototypeWorkbench` 路径与 popstate 恢复导航，阶段 POST 与当前任务 polling 仅在 Workbench 执行。历史布局 56/44、紧凑 archive header/row 和 history technical card 是当前实现事实；其面客页面标题、工单表格和 Workbench/Event Center 详情同构展示已被 **EVENT-01 SUPERSEDED / LOCKED TARGET**，当前属 `IMPLEMENTATION_DIVERGENCE`，不可据此宣称已满足 EVENT-01。
 
 ## P1-C 当前实现补充（IMPLEMENTED · A/E PASS）
 
@@ -143,7 +143,7 @@ Single-view VLM
 - PoC Evidence Adapter 可以返回 controlled evidence assets，必须显式标示；未来可替换 RTSP/VMS/NVR/Camera Platform。它不是生产级多摄像头同步。
 - Agent 不拥有配置权：不能修改 Camera Coverage、邻接关系、calibration、SLAM、地图、机器人、confidence、阈值、Capability 或 Scheduler。
 - Demo02 从 CAM-A1-01 单视角开始；只有真实模型以 `tool_choice=auto` 发出 Tool Call 后，后端才进入 acquisition。不得按 `demo_id`、固定 confidence、`tool_choice=required`、一次塞三图或前端动画强制进入。
-- 客户 UI 只投影 Agent Trace / Tool Audit / Cloud Response / transition 中的 Tool Calls、Evidence、Selected Cameras、Final Confidence、Decision；禁止 Chain-of-Thought。
+- 旧“客户 UI 只投影 Agent Trace / Tool Audit / Cloud Response”的表述是 P1-C 历史视觉范围，**SUPERSEDED BY WB-DETAIL-01 / EVENT-01**。客户详情应投影业务过程；Event Detail 的证据区仍可如实显示同图受控 edge YOLO bbox/对象/置信度、并排 supporting evidence 与独立 Multi-view VLM judgement。Tool JSON、arguments、round、raw response、latency 与 Chain-of-Thought 只在 Advanced。
 
 ## 5. 空间、路线与 Fleet（IMPLEMENTED 基础 + TODO）
 
@@ -168,7 +168,7 @@ CleaningEvent
        └── Event Center EventDetailPanel(mode="history")
 ```
 
-**P1-D 已实现**：Event Center 的列表产品化要求事件创建即进入列表、默认倒序；全部、处理中、已自主闭环、待人工处理、异常五类状态分离。`HUMAN_FALLBACK` 是业务兜底，不是异常。URL `?event=` 恢复选择但首次不自动打开。**P1-B IMPLEMENTED**：历史详情只读事件发生当时 robot / route / AI / verification / terminal Fleet snapshot，不用当前状态覆盖；列表实时提示与 URL 已在 P1-D 实现。
+**P1-D 已实现基础 / EVENT-01 LOCKED TARGET**：Event Center 的同一事件列表、默认倒序、五类状态、URL `?event=` 恢复选择、首次不自动打开和只读历史快照仍有效；`HUMAN_FALLBACK` 是业务兜底，不是异常。旧 archive/trace 页面定位、技术紧凑列表和 history-only detail visual shell **SUPERSEDED BY EVENT-01**。未来必须成为面客工单列表，详情与 Workbench 逐项同构（仅动作权限不同），并统一展示真实条件化 Multi-view 流程与 Demo02 canonical v2 evidence，不能另建第二模型或逻辑。
 
 ## 7. Analytics Engine（P1-E IMPLEMENTED；P1-F Agent Read Tools/Advice IMPLEMENTED）
 

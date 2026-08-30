@@ -7,7 +7,8 @@ camera_events/
 ├── CAM-OUT-01/event-outdoor-tissue-001/
 │   ├── primary.png / after.png       # 室外纸巾：Robot A
 ├── CAM-A1-01/event-beverage-spill-002/
-│   ├── primary.png / after.png       # 奶茶污渍主视角：Robot B
+│   ├── primary-ambiguous-v2.png / after.png # Demo02 正式主视角：受控光学歧义测试帧
+│   └── primary.png                   # 历史明显液体原图；保留归档，不是正式 Demo02 输入
 ├── CAM-A1-02/event-beverage-spill-002/secondary.png
 ├── CAM-A1-04/event-beverage-spill-002/secondary.png
 │                                      # 两个补充视角：Phase 5 Multi-view

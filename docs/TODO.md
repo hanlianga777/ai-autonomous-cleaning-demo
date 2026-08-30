@@ -60,6 +60,8 @@
 - [x] **History Detail Drawer 与 URL State**：右侧 42–46% `EventDetailPanel(mode="history")`；`/events?event=...` 可恢复选择；首次进入不自动选中；切换内容不闪烁。
 - [x] **read-only trace 边界**：不做删除、批量状态修改、批量派发、CSV/Excel 导出或其他批量运营动作。
 
+- [ ] **EVENT-01｜事件中心列表、统一事件详情、Multi-view Agent 展示与 Demo02 歧义证据（LOCKED TARGET；未 IMPLEMENTED）**：Event Center 必须成为“事件中心”的面客 AI 清洁档案/工单表，以事件、地点、发现时间、处置方式、执行者、当前/最终状态为主；技术 archive/SQLite/trace 文案退至 Advanced。右侧必须与 Workbench 使用同一 Event Detail UI，仅 live action/read-only 不同，继续投影同一 `CleaningEvent` / evidence / spatial / assignment / route / after / verification。Demo02 从正式 `primary-ambiguous-v2.png` 起始，真实 single insufficiency 才可由模型补两路证据；Agent 收集与 Multi-view VLM judgement 分卡、两图等宽并排且显示真实受控 YOLO overlay，技术 JSON/round/API 只在 Advanced。不得回退旧 `primary.png` 或硬编码 tool/camera/confidence/终态。未来报告须交付 EVENT-01.1–01.20 的 Requirement→Code→Test→Screenshot/User Acceptance；缺一不得 IMPLEMENTED。详见 `INTERVIEW_DEMO_RECONCILIATION.md#event-01事件中心列表统一事件详情multi-view-agent-展示与-demo02-歧义证据`。
+
 验收：archive backend7/7、frontend archive7/7（全量24/24）、full backend93 PASS+3paid opt-in skipped、build/diff check与浏览器PASS，Reviewer A/E PASS。修复历史ID错配、轮询重叠、新提示闭包/分页、UTC筛选和分类类型；D无未解决核心P0/P1。更大数据量的服务端SQL索引/聚合优化可后续扩展，不宣称生产规模验收。
 
 ## P1-E｜Analytics（IMPLEMENTED · A/E PASS）

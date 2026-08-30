@@ -131,13 +131,13 @@
 
 ## D06｜Event Center
 
-**LOCKED**：Event Center 正式名为 **AI Event Handling Archive Center / AI 事件处置档案中心**，是 read-only trace，不是普通告警列表。实时创建的 `CleaningEvent` 应立即出现在列表；默认发现时间倒序，新增事件不能抢走用户当前查看的历史详情，只提示“有 N 条新事件”。
+**P1-D 历史实现 / EVENT-01 当前 LOCKED TARGET**：旧“**AI Event Handling Archive Center / AI 事件处置档案中心**”“read-only trace”及首页 SQLite/不重跑等技术表述，**SUPERSEDED BY EVENT-01**；不得继续作为面客页面目标。Event Center 当前目标是“事件中心”的 AI 清洁事件档案/工单中心：同一 `CleaningEvent` 实时进入、默认发现时间倒序、新事件不得抢走当前详情，只提示“有 N 条新事件”。列表以事件、地点、发现时间、处置方式、执行者、当前/最终状态为主，技术 ID/模式只可用于搜索或 Advanced。
 
 **LOCKED**：主筛选固定为全部、处理中、已自主闭环、待人工处理、异常。处理中为已进入处置但未 terminal；已自主闭环为“无人介入 + 机器人执行 + fixed-camera verification PASS + CLOSED”；待人工处理包含 `HUMAN_FALLBACK` / `HUMAN_REVIEW` 并在 Item 内细分搬运/复核；异常只表示 Cloud、定位、规划、调度、验证等系统或流程失败。正常 Human Fallback 绝不标为异常。
 
 **LOCKED**：支持按 Event Type、Camera ID、Building/Floor、Robot Name、Event ID 搜索；轻量筛选为时间范围、事件类型、处置方式（机器人自主处置 / 人工兜底 / 人工复核 / 系统异常）。列表采用两级紧凑信息，不在主列表展示 YOLO/Qwen/Fusion、SLAM x/y、bbox、Dijkstra route、latency 或 `required_capabilities`。
 
-**LOCKED**：Workbench 的 `EventDetailPanel` 是唯一详情标准。Event Center 必须使用 `EventDetailPanel(mode="history")`：只读、不重跑模型/调度/机器人、不自动滚动，展示事件发生时 Fleet、robot、route、AI、verification snapshot。左侧紧凑 Event List，右侧约 42–46% 宽 Drawer；`/events?event=EVT-xxxx` 保存选择，首次进入不自动打开第一条，切换事件不得 close/open 闪烁。
+**P1-D 基础 / EVENT-01 当前 LOCKED TARGET**：Workbench 的 `EventDetailPanel` 仍是唯一详情事实投影，Event Center 必须使用同一 renderer 的 read-only mode：不重跑模型/调度/机器人、不自动滚动，展示事件发生时的 evidence、空间、robot、route、AI、verification snapshot。旧紧凑技术列表、历史专用标题/字段、或与 Workbench 不同的详情视觉壳均 **SUPERSEDED BY EVENT-01**；两页只允许 live action 与 read-only 的差异。`/events?event=EVT-xxxx` 保存选择，首次进入不自动打开第一条，切换不得闪烁。
 
 ## D07｜Analytics
 
@@ -175,7 +175,7 @@
 
 **IMPLEMENTED / LOCKED（P1-C）**：Agent 只有 `find_supporting_cameras()`、`fetch_camera_evidence()`、`finish_visual_judgment()` 这类等价工具；最多 2 路额外摄像头、最多 2 个 evidence acquisition rounds。PoC Evidence Adapter 可返回 controlled evidence assets，必须如实说明，不得假装 RTSP 同步；未来可替换 RTSP/VMS/NVR/Camera Platform。Agent 不得改 Coverage、邻接、calibration、SLAM、地图、机器人、confidence 或自动处置阈值。
 
-**IMPLEMENTED / LOCKED（P1-C runtime） / WB-DETAIL-01 UI target**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → final semantic judgment → confidence gate → 高仙 Omnie → verification → CLOSED。最终 `0.50 <= confidence < 0.85` 的 independent targeted second review 可读取本次合法取得的完整 evidence set，但不得读取上一轮模型答案或 reasoning。旧“客户 UI 展示 Agent Trace / Tool Audit / Evidence 明细”的视觉范围已被 **WB-DETAIL-01 SUPERSEDED**；客户只看精简业务进度，Advanced 才看技术 trace，仍禁止 Chain-of-Thought。
+**IMPLEMENTED / LOCKED（P1-C runtime） / EVENT-01、WB-DETAIL-01 UI target**：Demo02 必须由真实模型自主发起 Tool Call：CAM-A1-01 单视角看到液体/反光歧义 → Coverage candidate search → 选择 1–2 路（受控证据可为 A1-02/A1-04）→ evidence fetch → multi-view Cloud → final semantic judgment → confidence gate → 高仙 Omnie → verification → CLOSED。最终 `0.50 <= confidence < 0.85` 的 independent targeted second review 可读取本次合法取得的完整 evidence set，但不得读取上一轮模型答案或 reasoning。旧“客户 UI 展示 Agent Trace / Tool Audit / Evidence 明细”的视觉范围已被 **WB-DETAIL-01 / EVENT-01 SUPERSEDED**：客户只看业务进度；仅在 Event Detail 的 AI evidence 区如实展示与图片匹配的受控 edge YOLO bbox/对象/置信度、两张等宽补证图片和独立的 Multi-view VLM judgement。Advanced 才显示工具/参数/轮次/API 等技术 trace，仍禁止 Chain-of-Thought。
 
 ## D11｜External Delivery Platform Integration
 

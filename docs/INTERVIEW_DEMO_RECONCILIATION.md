@@ -5,7 +5,7 @@
 
 ## GLOBAL IMPLEMENTATION CONTRACT｜统一 Interview Demo Recovery
 
-- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
+- 本文件中全部 `LOCKED TARGET`（包括既有 AI-UI-01、WB-DETAIL-01、WB-MAP-01、WB-CAMERA-01、EVENT-01 和今后新增的每个 Requirement）共同组成一个强制的产品版本，都是未来 `UNIFIED INTERVIEW DEMO RECOVERY` 的 mandatory implementation scope；不得只实现最后一条、遗漏子项、用当前代码反向覆盖目标，或实现新需求时破坏已锁定需求。
 - 当前阶段仅同步需求，不实施。只有用户明确说“讨论结束，可以统一实施”后，才可开始代码工作；开始前必须完整读取本文件、`PROJECT_CONTEXT.md`、`DECISIONS.md`、`ARCHITECTURE.md`、`TODO.md`、`CODEX_HANDOFF.md`、`AI_INTEGRATION_TEST.md` 和 active code，并先建立覆盖每个子项的 `REQUIREMENT IMPLEMENTATION MATRIX`（Requirement → affected code → implementation status）。
 - 每次实施一个模块前都必须复核其相关所有 LOCKED Requirement；修改共享组件时必须检查 AI UI、Workbench Detail、Workbench Map 和后续要求的回归影响。技术实现由 Codex 决定；只有业务含义或最终产品/UI效果不明确时才可询问用户。
 
@@ -584,3 +584,182 @@
 - **Locked Target**：最终 Unified Implementation Report 必须逐项列出 `WB-CAMERA-01.1`–`.19` 的 Requirement → Code → Test → Screenshot/User Acceptance；任何子项未完成不得 IMPLEMENTED，用户未亲眼验收不得 USER_ACCEPTED。
 - **Acceptance Criteria**：Implementation Report 含全部 19 项可复核证据，用户观察四 Demo 监控循环后才可记录 `USER_ACCEPTED`。
 - **Affected Active Code**：本条覆盖上述 Workbench/customer/technical evidence files；本轮不修改任何代码。
+
+## EVENT-01｜事件中心列表、统一事件详情、Multi-view Agent 展示与 Demo02 歧义证据
+
+| Field | Value |
+| --- | --- |
+| ID | EVENT-01 |
+| Module | Event Center / shared Event Detail / Demo02 Multi-view evidence projection |
+| Status | **LOCKED TARGET** |
+| Scope | Docs-only delta sync；本轮不修改 frontend、backend、图片、Runtime、数据库或测试，亦不重跑 LIVE。 |
+
+### User Intent
+
+Event Center 是面向客户的“AI 清洁事件档案 / 工单中心”，不是 SQLite、Debug、Trace 或 Runtime 控制台。它和 Workbench 必须投影同一个 `CleaningEvent` 的同一处置证据、进度和结论；Demo02 必须如实以具有真实单视角歧义的受控素材起始，只有真实模型在合法条件下自主取证，才展示 Multi-view 过程。EVENT-01 不创建第二个事件模型、第二个 Agent、第二条调度/路线链或第二套详情 UI。
+
+### GitHub Previous Coverage
+
+- 已覆盖：P1-D 的同一 `CleaningEvent` / SQLite 历史快照、只读列表、筛选、URL 选择和 `EventDetailPanel(mode="history")`；P1-C 的 Single-view → Evidence Sufficiency Gate → 条件 Multi-view Agent → final VLM → 后续 Runtime；受控 Demo02 evidence manifest 已指向 `primary-ambiguous-v2.png`。
+- 以前缺失：Event Center 面客列表字段与标题层级、与 Workbench **完全相同**的详情投影验收、Agent 收集与 Multi-view Cloud 判定的独立 UI 阶段、两张补充视角等宽并排及其真实受控 YOLO overlay、Demo02 素材/输入/fingerprint 一致性与后续 LIVE 验收规则。
+- 旧“AI EVENT HANDLING ARCHIVE CENTER / AI 事件处置档案中心”“只读处置档案 · 同一 CleaningEvent / SQLite 快照”等首页技术表述，以及旧“客户 UI 只投影 Agent Trace / Tool Audit”的视觉范围，均为历史描述，**SUPERSEDED BY EVENT-01**。同一数据、只读边界和 Advanced 技术透明仍是有效事实。
+
+### Current Implementation
+
+- `EventArchiveView.tsx` 已从同一 archive API 读取 `CleaningEvent`，并复用 `EventDetailPanel(mode="history")`；但首页标题仍强调 archive / SQLite / 不重跑，列表是紧凑行，不是所要求的工单表格，且 Camera ID、模式和技术标签仍突出。
+- `EventDetailPanel.tsx` 的 live/history 已共用同一 renderer 和同一存档 transition；但它仍采用技术流程卡、标题/副标题随 mode 改写，尚未达到 WB-DETAIL-01 与 EVENT-01 的统一面客详情 UI。
+- `EventStageEvidence.tsx` 当前把模型工具审计、取证轮数、逐张纵向图片和“最终置信度”混在 `MULTI_VIEW` 一张卡内；补充图片调用时未开启 `showDetections`，因此没有按要求展示实际受控 edge YOLO 红框、对象和置信度，也没有两张等宽并排与独立 Multi-view VLM judgement card。
+- `backend/workbench/service.py` 的 Demo02 manifest 当前已使用 `CAM-A1-01/.../primary-ambiguous-v2.png`；`metadata.json` 明确其为 2026-08-30 生成的受控局部镜头模糊/反光歧义测试帧，原 `primary.png` 保留。active frontend `data.ts` 与 controlled detection mapping 亦引用 v2；本轮已将 `sample_data/README.md` 的旧 `primary.png` 说明同步为 canonical v2 与历史原图边界。
+
+### Root Cause
+
+`SOURCE_MISSING` + `IMPLEMENTATION_DIVERGENCE`。既有 P1-C/P1-D 主要锁定 Runtime、审计、只读历史和基础复用，没有锁定此次面客信息架构、Multi-view 可视过程与 Demo02 素材一致性。当前代码保留了有效的同一事件数据/历史快照基础，却仍呈现历史 archive/technical-card UI。
+
+### Locked Target
+
+#### EVENT-01.1｜面客事件工单列表
+
+- **User Intent**：列表必须是可快速扫描的真实工单/表格布局，至少清楚展示事件、地点、发现时间、处置方式、执行者和当前/最终状态。
+- **Locked Target**：事件与业务地点优先；Camera ID、Event ID、LIVE/Replay、内部状态码等技术字段可供搜索/Advanced 使用，但不得成为列表视觉主角。
+- **Acceptance Criteria**：不打开详情即可按上述六类业务信息理解和比较多条工单；列表不呈现 Debug/Trace 表。
+
+#### EVENT-01.2｜页面标题与面客语言
+
+- **User Intent**：一级页面面向客户显示“事件中心”，定位为 AI 清洁事件档案/工单中心。
+- **Locked Target**：移除或显著弱化 `AI EVENT HANDLING ARCHIVE CENTER`、read-only archive、`CleaningEvent / SQLite snapshot`、不重跑模型/调度/机器人等技术说明；只读属性和技术边界保留到 Advanced/必要的低干扰位置。
+- **Acceptance Criteria**：页面首屏不会被理解为数据库、调试、运行时或系统日志页面。
+
+#### EVENT-01.3｜与 Workbench 完全统一的详情 UI
+
+- **User Intent**：Event Center 右侧详情必须就是 Workbench 右侧的 Event Detail UI：相同宽度、卡片、时间线、字段、字级、图片、AI、Multi-view、空间、机器人、路线和验收呈现。
+- **Locked Target**：两页只允许 live action capability 与 read-only 的差异；不得建立 Event Center 简化版、历史专用版或第二个详情 renderer/逻辑。
+- **Acceptance Criteria**：对同一事件并排比较 Workbench 与 Event Center，所有业务字段、图片大小、顺序及 Multi-view 展示一致；Event Center 无动作按钮且不触发重跑。
+
+#### EVENT-01.4｜唯一事件与业务链
+
+- **User Intent**：两页必须共享同一 `CleaningEvent`、transitions、evidence、spatial、assignment、route、after、verification 和 trace。
+- **Locked Target**：Event Center 只读该事实快照；禁止第二个历史模型、重新执行模型/调度/路线，或为历史页面编造简化数据。
+- **Acceptance Criteria**：同一 Event ID 在两页取得相同阶段顺序、证据和终态；打开历史详情不会产生模型、机器人或调度写入。
+
+#### EVENT-01.5｜完整且条件化的真实业务链
+
+- **User Intent**：详情要能按真实发生顺序呈现：检测 → edge YOLO → 单视角 VLM → 证据充分性 → 条件 Multi-view Agent → Multi-view VLM → CameraSLAM → capability/scheduler/Dijkstra → navigation → cleaning → after → verification → closed/review。
+- **Locked Target**：没有触发 Multi-view 时必须如实不展示为已发生；不得为了 Demo 把 Multi-view 伪造为每个事件的固定阶段。
+- **Acceptance Criteria**：每个事件的可见阶段与其持久化 transition/真实结果一致，跳过和 Human Review 的原因可按业务事实理解。
+
+#### EVENT-01.6｜Multi-view 进入条件与人工复核
+
+- **User Intent**：仅当单视角 `evidence_sufficient=false`、存在 reflection/occlusion/perspective/lens contamination/insufficient view 等可恢复歧义、且有合法 supporting camera 时，才由 Agent 发起补证。
+- **Locked Target**：不得以 raw confidence 单独决定是否进入；无相机、fetch 失败或最多两轮后仍不足，必须 `HUMAN_REVIEW`。仍禁止 Demo/前端/后端 metadata 特判、强制 tool choice 或固定 camera/结果。
+- **Acceptance Criteria**：Runtime/audit 能证明入口来自真实模型 `MODEL_TOOL_CALL` 和合法 evidence policy；所有失败分支停在人工复核而非伪造闭环。
+
+#### EVENT-01.7｜Demo02 与 Demo03 的场景边界
+
+- **User Intent**：Demo02 是 A1F 液体/反光歧义/Multi-view/Omnie；Demo03 是跨楼易拉罐/SC50/电梯/连廊。
+- **Locked Target**：不得把 Demo03 的跨楼路径、机器人或易拉罐叙事混入 Demo02，也不得把 Demo02 Multi-view 液体叙事混入 Demo03。
+- **Acceptance Criteria**：两场景的事件、证据、空间、机器人和路线在列表、详情、地图及验收中各自一致。
+
+#### EVENT-01.8｜Demo02 的固定业务顺序
+
+- **User Intent**：Demo02 成功路径依次为 `CAM-A1-01 edge → single VLM → reflection insufficiency → Agent selects additional cameras → 两路 supporting evidence → multi-view VLM → liquid action → CameraSLAM → capability/schedule → Omnie → cleaning → fixed-camera after → verification → closed`。
+- **Locked Target**：这是展示真实 Runtime 的顺序，不是允许硬编码成功的脚本。
+- **Acceptance Criteria**：成功 Demo02 的 Workbench/Event Center 均以该顺序显示；实际不足/工具失败时改为真实的 `HUMAN_REVIEW`，不伪造后续步骤。
+
+#### EVENT-01.9｜Agent 收集与 Multi-view Cloud judgment 分离
+
+- **User Intent**：Agent 收集阶段只展示发现候选、选择合法摄像头、取得图片；Multi-view Cloud judgement 是下一张独立卡，展示最终类型、置信度、证据结论和摘要。
+- **Locked Target**：不得将二者塞入一张巨大混合卡，不得把工具审计/轮数/调试文本当客户主内容。
+- **Acceptance Criteria**：用户可一眼区分“AI 正在补证”和“AI 已依据多视角作出判断”。
+
+#### EVENT-01.10｜两路补充证据并排
+
+- **User Intent**：两张 supporting camera 图片必须同宽、并排展示。
+- **Locked Target**：不得将两图纵向堆叠、大小不等，或用主视角替代两张补充证据。
+- **Acceptance Criteria**：宽桌面详情中两张受支持 camera card 视觉等宽且同时可比较；窄屏可按响应式换行但不改变每张证据身份。
+
+#### EVENT-01.11｜事件证据必须显示真实受控 edge YOLO
+
+- **User Intent**：不同于顶部 WB-CAMERA-01 监控墙，Event Detail 的 AI evidence 区必须显示红色 bbox、对象标签和实际受控 edge YOLO confidence。
+- **Locked Target**：只可投影与该图片/事件匹配的 controlled detection；不得编造 bbox、标签或 confidence，也不得将监控墙的“无框”目标反向套到详情证据。
+- **Acceptance Criteria**：Demo02 主图和两张补充图的 Evidence 卡可见对应真实受控 overlay；监控墙仍按 WB-CAMERA-01 保持无框客户画面。
+
+#### EVENT-01.12｜Multi-view VLM 客户字段边界
+
+- **User Intent**：Multi-view VLM judgement 客户卡只显示处理结果/事件类型、最终 AI 置信度、证据结论和简明摘要。
+- **Locked Target**：不得展示 tool JSON、arguments、camera arrays、raw response、round number、技术调试字段或模型思维链；它们只在 Advanced。
+- **Acceptance Criteria**：客户卡不含原始审计/参数，但其结果与后台保存的 final semantic judgement 可核对。
+
+#### EVENT-01.13｜Demo02 正式 Before Evidence 素材事实
+
+- **User Intent**：Demo02 canonical Before Evidence 是 `sample_data/camera_events/CAM-A1-01/event-beverage-spill-002/primary-ambiguous-v2.png`；旧 `primary.png` 是历史明显液体原图，仅保留归档。
+- **Locked Target**：v2 是 2026-08-30 在原机位/ROI 上以 built-in image generation 制作的受控局部半透明镜头污渍/反光歧义测试帧；不是生产摄像头流、模型输出或伪造检测框。正式 Demo02 不得回退到旧 `primary.png`。
+- **Acceptance Criteria**：Demo02 Before、manifest、页面与可重复验收均指向 v2；旧图存在但不被作为正式输入。
+
+#### EVENT-01.14｜素材链、模型输入与 Replay 一致性
+
+- **User Intent**：frontend、backend Asset Manifest、Single VLM input、Multi-view initial evidence、Event Center detail 和 Stable Replay fingerprint 必须引用同一 v2/canonical manifest。
+- **Locked Target**：不得由任一页面、入口或 Replay 静默回退 `primary.png`，也不得只改 UI 文案而未统一事实输入。
+- **Acceptance Criteria**：统一实施后以 manifest/hash/Replay evidence 逐项核对以上六处均为 v2。
+
+#### EVENT-01.15｜禁止素材驱动的 Agent 硬编码
+
+- **User Intent**：v2 只提高真实模型出现证据不足/补证的机会，不是 Agent 触发器。
+- **Locked Target**：不得依据 Demo ID、asset filename、metadata、前端状态或后端特判强制 Multi-view、强制 camera、固定 confidence 或固定终态；真实 live gate 决定是否补证。
+- **Acceptance Criteria**：代码审查、审计和 LIVE 结果均无此类硬编码；未触发时如实显示单视角结论或人工复核。
+
+#### EVENT-01.16｜历史 AI_INTEGRATION_TEST 证据的正确定位
+
+- **User Intent**：历史 `AI_INTEGRATION_TEST` 的 Demo02 LIVE 5/5、真实 `MODEL_TOOL_CALL` search/fetch、首轮约 `.30`、补证后 `.85/.92` 等是证据事实。
+- **Locked Target**：这些数值、模型输出、tool path 和成功率是历史记录，不能成为未来固定 UI/Runtime 输出或实现硬编码。
+- **Acceptance Criteria**：文档/实施报告将其标为历史 evidence；未来验收重新运行真实 Live，不声称旧 batch 自动代表新素材版本后的结果。
+
+#### EVENT-01.17｜未来 Demo02 LIVE 验收
+
+- **User Intent**：统一实施后必须重做 Demo02 连续 5 次 LIVE；至少 4/5 由真实 single insufficiency → Agent → 两路输入 → Multi-view VLM → Omnie → Verify → Closed。
+- **Locked Target**：若未达标，按 v2、prompt、manifest、input 和 gate 排查；不得为达标 hardcode/force tool choice。失败路径必须保留真实 `HUMAN_REVIEW`。
+- **Acceptance Criteria**：报告含五次安全审计摘要、每次真实触发来源、两路 evidence、终态和失败诊断；达到阈值才可作为本条成功证据。
+
+#### EVENT-01.18｜两页 Demo02 卡片逐项一致
+
+- **User Intent**：Workbench 和 Event Center 的 Demo02 必须有相同卡片和顺序，尤其为两张并排、带红框/标签/置信度的支持证据，随后一张独立 Multi-view VLM judgement。
+- **Locked Target**：不得一页只有 Agent 卡、另一页字段不同、图片大小不同、顺序不同，或把 VLM judgement 混回收集卡。
+- **Acceptance Criteria**：逐屏对照截图/用户验收能证明两页相同；只读差异不改变视觉信息。
+
+#### EVENT-01.19｜继承 WB-DETAIL-01 的客户边界
+
+- **User Intent**：Event Center Detail 继续遵循 WB-DETAIL-01 面客业务详情规则。
+- **Locked Target**：客户详情不得显示非本地 YOLO、历史 schema、PoC 插值免责声明、SQLite、raw tool/API/latency 等技术内容；技术可追溯性保留到 Advanced。
+- **Acceptance Criteria**：不打开 Advanced 即可理解事件及处置；打开 Advanced 仍可核对原始审计和边界事实。
+
+#### EVENT-01.20｜统一实施回归范围
+
+- **User Intent**：任何 Event Center/共享详情改造都必须同时复核 AI-UI-01、WB-DETAIL-01、WB-MAP-01 和 WB-CAMERA-01。
+- **Locked Target**：未来 Unified Interview Demo Recovery 必须覆盖所有此前 LOCKED TARGET 加 EVENT-01；不得仅完成 Event Center 列表或“共享 Agent”就声称完成。
+- **Acceptance Criteria**：最终 Implementation Report 逐项列出 `EVENT-01.1`–`.20` 的代码、测试和用户验收；任一子项缺失时 EVENT-01 不得标记 `IMPLEMENTED`，且 Demo02 歧义素材不得回退。
+
+### Must Not Do
+
+- 不得以现有 archive/technical-panel 代码反向简化、合并或改写任何 EVENT-01 子项。
+- 不得新建第二个 Event Detail renderer、历史事件模型、Agent、Conversation、Scheduler、Route 或 Multi-view 逻辑。
+- 不得把 Event Center 写成 Debug/SQLite/Trace/Runtime 页面，或将技术字段、raw tool/API/latency 置于客户详情主层。
+- 不得将两张 supporting evidence 纵向化、省略 overlay，或将 Agent 收集与 Multi-view judgement 合并。
+- 不得改图、生成新图、重跑 LIVE，或在本轮修改 frontend/backend/Runtime/database/test；本轮仅同步 Markdown。
+- 不得回退 Demo02 正式输入到 `primary.png`，也不得根据 v2 或 demo metadata 强制 Agent、camera、confidence、tool choice 或闭环结果。
+
+### Affected Active Code (future work only; unchanged this round)
+
+- `frontend/src/components/prototype/EventArchiveView.tsx`
+- `frontend/src/components/prototype/eventArchiveModel.ts`
+- `frontend/src/components/prototype/EventDetailPanel.tsx`
+- `frontend/src/components/prototype/EventStageEvidence.tsx`
+- `frontend/src/components/prototype/eventViewModel.ts`
+- `frontend/src/components/prototype/CameraViewport.tsx`
+- `frontend/src/components/prototype/PrototypeWorkbench.tsx`
+- `backend/workbench/service.py`
+- `backend/workbench/preset_detections.py`
+- `backend/demo_v1/service.py`
+- `backend/demo_v1/perception_records.py`
+- `backend/demo_v1/replay.py`
+- `backend/perception/multiview/autonomous.py`
+- `backend/perception/multiview/tools.py`
+- `sample_data/camera_events/CAM-A1-01/event-beverage-spill-002/metadata.json` and the canonical asset manifest/evidence paths (read-only in this round)
