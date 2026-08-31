@@ -23,6 +23,7 @@ test("map has a high-contrast route and no obstructing status bubbles", () => {
   assert.match(source, /style\?\.completed/);
   assert.match(source, /strokeWidth="3"/);
   assert.match(source, /strokeWidth="5"/);
+  assert.doesNotMatch(source, /routeArrowPoints|pointAtRouteDistance/);
   assert.doesNotMatch(source, /定位完成后显示前往现场的路线|等待固定摄像头发现事件/);
 });
 

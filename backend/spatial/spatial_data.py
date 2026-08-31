@@ -4,6 +4,8 @@ Coordinates are local 2D SLAM coordinates in metres. They are deliberately
 hand-authored demo geometry, not a replacement for production SLAM maps.
 """
 
+from copy import deepcopy
+
 MAPS = [
     {
         "map_id": "OUTDOOR", "label": "Outdoor", "building": "OUTDOOR", "floor": "Outdoor", "width": 100, "height": 60,
@@ -94,6 +96,24 @@ ROBOT_ROUTE_STYLES = {
     "robot-b": {"planned": "#1686d9", "completed": "#0b61a4"},
     "robot-c": {"planned": "#ef4444", "completed": "#b91c1c"},
 }
+VISUAL_ROUTE_VERSION = 2
+
+
+def calibrated_visual_route(robot_id: str, _node_path: list[str] | tuple[str, ...] | None) -> dict | None:
+    """Return the approved white-model route without changing operational topology.
+
+    A robot can resume an event from a later operational topology node.  The
+    calibrated overview remains the approved demonstration geometry, so it is
+    intentionally independent from that mutable Dijkstra start node.
+    """
+    path = ROBOT_ROUTE_VISUALS.get(robot_id, [])
+    if not path or any(point.get("node_id") not in GRAPH_NODES for point in path):
+        return None
+    return {
+        "visual_route_version": VISUAL_ROUTE_VERSION,
+        "visual_path": deepcopy(path),
+        "visual_style": deepcopy(ROBOT_ROUTE_STYLES.get(robot_id, {})),
+    }
 
 # Edges are intentionally explicit. A production system would derive same-floor
 # travel from a costmap; Phase 2 demonstrates the campus connector topology.

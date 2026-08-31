@@ -11,7 +11,7 @@ from pathlib import Path
 
 from data.mock_data import PARK, ROBOTS
 from observability.context import new_trace_id, CURRENT_TRACE
-from spatial.spatial_data import ROBOT_POSITIONS
+from spatial.spatial_data import ROBOT_POSITIONS, VISUAL_ROUTE_VERSION, calibrated_visual_route
 
 DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_demo.db"
 _TRANSACTION: ContextVar[sqlite3.Connection | None] = ContextVar("runtime_transaction", default=None)
@@ -168,6 +168,40 @@ def initialize_database() -> None:
             columns = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
             if "trace_id" not in columns:
                 connection.execute(f"ALTER TABLE {table} ADD COLUMN trace_id TEXT")
+        _backfill_visual_routes(connection)
+
+
+def _backfill_visual_routes(connection: sqlite3.Connection) -> None:
+    """Upgrade only map-display metadata in saved navigation records."""
+    rows = connection.execute(
+        "SELECT id, event_id, detail FROM event_transitions WHERE state = 'NAVIGATING' ORDER BY id"
+    ).fetchall()
+    routes_by_event: dict[str, dict] = {}
+    for row in rows:
+        detail = json.loads(row["detail"])
+        plan = detail.get("navigation_plan")
+        if not isinstance(plan, dict):
+            continue
+        route = calibrated_visual_route(str(plan.get("robot_id", "")), plan.get("node_path"))
+        if route is None:
+            continue
+        if plan.get("visual_route_version") != VISUAL_ROUTE_VERSION or any(plan.get(key) != value for key, value in route.items()):
+            plan.update(route)
+            detail["navigation_plan"] = plan
+            connection.execute("UPDATE event_transitions SET detail = ? WHERE id = ?", (json.dumps(detail, ensure_ascii=False), row["id"]))
+        routes_by_event[row["event_id"]] = plan
+    for event_id, route in routes_by_event.items():
+        row = connection.execute("SELECT payload FROM cleaning_events WHERE event_id = ?", (event_id,)).fetchone()
+        if row is None:
+            continue
+        event = json.loads(row["payload"])
+        runtime = event.setdefault("demo_v1", {})
+        if runtime.get("navigation_plan") != route:
+            runtime["navigation_plan"] = route
+            connection.execute(
+                "UPDATE cleaning_events SET payload = ?, updated_at = CURRENT_TIMESTAMP WHERE event_id = ?",
+                (json.dumps(event, ensure_ascii=False, default=str), event_id),
+            )
 
 
 def read_snapshot(snapshot_key: str) -> dict | list:

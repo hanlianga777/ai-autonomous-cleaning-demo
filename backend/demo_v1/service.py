@@ -42,7 +42,7 @@ from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
-from spatial.spatial_data import CAMERAS, MAPS, ROBOT_ROUTE_STYLES, ROBOT_ROUTE_VISUALS
+from spatial.spatial_data import CAMERAS, MAPS, calibrated_visual_route
 from demo_v1.replay import evidence_key, load_replay_bundle, save_live_bundle, validate_response
 from demo_v1.perception_records import (
     PIPELINE_SCHEMA, RecordedToolTurns, load_perception_record,
@@ -697,15 +697,6 @@ def assign_event(event_id: str) -> dict[str, Any]:
     return _save_stage(stored, "ASSIGNED", {"assignment_decision": decision, "fleet_robot": robot}, assignment_decision=decision, fleet_snapshot=get_fleet_state(), reason="能力匹配与调度已生成机器人任务。")
 
 
-def _calibrated_visual_path(robot_id: str, plan: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return only a topology-consistent overview path for the saved plan."""
-    path = ROBOT_ROUTE_VISUALS.get(robot_id, [])
-    node_path = set(plan.get("node_path") or [])
-    if not path or any(point.get("node_id") not in node_path for point in path):
-        return []
-    return [deepcopy(point) for point in path]
-
-
 @event_stage
 @runtime_transaction()
 def start_navigation(event_id: str) -> dict[str, Any]:
@@ -720,12 +711,14 @@ def start_navigation(event_id: str) -> dict[str, Any]:
         plan = plan_route(str(robot["map_id"]), str(stored["location"]["map_id"]))
     except RouteNotFoundError as error:
         return _save_stage(stored, "HUMAN_REVIEW", {"error_type": "ROUTE_ERROR", "reason": str(error)}, reason=f"拓扑路线规划失败：{error}")
+    visual_route = calibrated_visual_route(robot_id, plan.get("node_path"))
+    if visual_route is None:
+        return _save_stage(stored, "HUMAN_REVIEW", {"error_type": "ROUTE_ERROR", "reason": "missing calibrated visual route"}, reason="地图展示路径未完成校准。")
     plan.update({
         "robot_id": robot_id,
         "source": "dijkstra_global_topology_planner",
         "display_anchors": plan["node_path"],
-        "visual_path": _calibrated_visual_path(robot_id, plan),
-        "visual_style": deepcopy(ROBOT_ROUTE_STYLES.get(robot_id, {})),
+        **visual_route,
     })
     update_fleet_robot(robot_id, status="navigating", active_event_id=event_id)
     return _save_stage(stored, "NAVIGATING", {"navigation_plan": plan}, navigation_plan=plan, fleet_snapshot=get_fleet_state(), reason="机器人已按 Dijkstra 园区拓扑路线前往目标区域。")

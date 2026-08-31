@@ -61,7 +61,7 @@ test("five canonical analytics zones land in their verified campus white-model a
   }
 });
 
-test("backend route includes persisted Fleet start, Dijkstra nodes and SLAM target continuously", () => {
+test("Dijkstra topology alone never creates an overview route", () => {
   const fleet = { id: "robot-c", map_id: "B_1F", coordinates: { x: 24, y: 26 } };
   const target = { map_id: "A_2F", x: 20, y: 23 };
   const plan = {
@@ -69,15 +69,12 @@ test("backend route includes persisted Fleet start, Dijkstra nodes and SLAM targ
     segments: [{ type: "local" }, { from: "B_ELEVATOR_1F", to: "B_ELEVATOR_2F", type: "elevator" }, { type: "local" }, { type: "skybridge" }, { type: "local" }],
   };
   const route = projection.projectBackendRoute(plan, fleet, target);
-  assert.deepEqual(route[0], projection.projectMapCoordinate("B_1F", 24, 26));
-  assert.equal(route[2].nodeId, "B_ELEVATOR_1F");
-  assert.equal(route.at(-2).nodeId, "A_2F");
-  assert.deepEqual(route.at(-1), projection.projectMapCoordinate("A_2F", 20, 23));
-  assert.ok(projection.routeLength(route) > 0);
+  assert.deepEqual(route, []);
 });
 
 test("persisted calibrated visual path wins only when the backend provides it", () => {
   const route = projection.projectBackendRoute({
+    visual_route_version: 2,
     node_path: ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A", "A_2F"],
     visual_path: [
       { x: 67, y: 61, node_id: "B_1F" }, { x: 76, y: 52, node_id: "B_ELEVATOR_1F" },
@@ -95,6 +92,7 @@ test("route projection rejects a missing or unknown backend topology rather than
   const target = { map_id: "A_1F", x: 66, y: 40 };
   assert.deepEqual(projection.projectBackendRoute(undefined, fleet, target), []);
   assert.deepEqual(projection.projectBackendRoute({ node_path: ["A_1F", "UNKNOWN_NODE"] }, fleet, target), []);
+  assert.deepEqual(projection.projectBackendRoute({ visual_path: [{ x: 10, y: 10 }, { x: 20, y: 20 }] }, fleet, target), []);
 });
 
 test("route motion resumes from elapsed time, ends exactly at target and keeps elevator pause for one second", () => {

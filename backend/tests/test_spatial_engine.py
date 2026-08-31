@@ -2,7 +2,13 @@ import unittest
 
 from spatial.calibration import map_pixel_to_slam
 from spatial.route_planner import plan_route
-from spatial.spatial_data import ROBOT_POSITIONS, ROBOT_ROUTE_STYLES, ROBOT_ROUTE_VISUALS
+from spatial.spatial_data import (
+    ROBOT_POSITIONS,
+    ROBOT_ROUTE_STYLES,
+    ROBOT_ROUTE_VISUALS,
+    VISUAL_ROUTE_VERSION,
+    calibrated_visual_route,
+)
 from demo_v1.service import DEMO_STAGE_PAUSES, stage_pause_seconds
 
 
@@ -41,6 +47,10 @@ class SpatialEngineTests(unittest.TestCase):
             "robot-b": {"planned": "#1686d9", "completed": "#0b61a4"},
             "robot-c": {"planned": "#ef4444", "completed": "#b91c1c"},
         })
+        route = calibrated_visual_route("robot-c", ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A", "A_2F"])
+        self.assertEqual(route["visual_route_version"], VISUAL_ROUTE_VERSION)
+        self.assertEqual(route["visual_path"], path)
+        self.assertIsNone(calibrated_visual_route("unknown-robot", ["B_1F"]))
 
     def test_realistic_stage_pacing_uses_longer_cross_building_navigation(self):
         self.assertEqual(DEMO_STAGE_PAUSES, {

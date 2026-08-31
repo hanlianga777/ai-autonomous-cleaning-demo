@@ -23,6 +23,7 @@ export type RouteSegment = { from?: string; to?: string; type?: string; cost?: n
 export type NavigationPlan = {
   node_path?: string[];
   display_anchors?: string[];
+  visual_route_version?: number;
   visual_path?: CanvasPoint[];
   visual_style?: { planned?: string; completed?: string };
   segments?: RouteSegment[];
@@ -167,34 +168,23 @@ export function compactRoutePoints(points: CanvasPoint[]): CanvasPoint[] {
 }
 
 /**
- * Add backend fleet start and Camera→SLAM target to the actual Dijkstra node
- * path. There is deliberately no scenario/demo branch in this projection.
+ * The overview route is a versioned, persisted backend snapshot. The Dijkstra
+ * path remains operational metadata and must never be converted into a second
+ * display route, because that would visually invent branches.
  */
 export function projectBackendRoute(
   plan: NavigationPlan | null | undefined,
-  fleetRobot: FleetPosition | null | undefined,
-  target: EventTarget | null | undefined,
+  _fleetRobot: FleetPosition | null | undefined,
+  _target: EventTarget | null | undefined,
 ): CanvasPoint[] {
   const visualPath = plan?.visual_path;
-  if (Array.isArray(visualPath) && visualPath.length > 1 && visualPath.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))) {
+  if (plan?.visual_route_version === 2 && Array.isArray(visualPath) && visualPath.length > 1 && visualPath.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))) {
     return compactRoutePoints(visualPath.map((point) => {
       const { node_id, ...canvasPoint } = point as CanvasPoint & { node_id?: string };
       return { ...canvasPoint, x: clamp(canvasPoint.x), y: clamp(canvasPoint.y), nodeId: canvasPoint.nodeId ?? node_id };
     }));
   }
-  const nodeIds = plan?.node_path;
-  // A visually plausible start→target line without a backend Dijkstra plan
-  // would misrepresent an assignment as a navigable route.
-  if (!fleetRobot || !target || !Array.isArray(nodeIds) || !nodeIds.length) return [];
-  const topologyPoints = nodeIds.map(projectTopologyNode);
-  // Never silently skip unknown planner nodes: reject the whole route until
-  // the backend can provide a projection that preserves its exact topology.
-  if (topologyPoints.some((point) => point === null)) return [];
-  const points: CanvasPoint[] = [];
-  points.push(projectMapCoordinate(fleetRobot.map_id, fleetRobot.coordinates.x, fleetRobot.coordinates.y));
-  points.push(...topologyPoints as CanvasPoint[]);
-  points.push(projectMapCoordinate(target.map_id, target.x, target.y));
-  return compactRoutePoints(points);
+  return [];
 }
 
 export function distanceBetween(start: CanvasPoint, end: CanvasPoint): number {
