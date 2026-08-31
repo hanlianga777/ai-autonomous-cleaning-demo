@@ -15,5 +15,5 @@ test("Advanced placeholder has an accessible, minimal enlargement affordance", (
   assert.match(source, /onClick=\{\(\) => setExpanded\(0\)\}/);
   assert.match(source, /role="dialog" aria-modal="true" aria-label="技术图片放大预览"/);
   assert.match(source, /approvedAdvancedAssets\.slice\(0, 2\)/);
-  assert.match(source, /approvedAdvancedAssets\.length === 1 \? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"/);
+  assert.match(source, /className="grid grid-cols-1 gap-4" aria-label="技术讲解图片"/);
 });

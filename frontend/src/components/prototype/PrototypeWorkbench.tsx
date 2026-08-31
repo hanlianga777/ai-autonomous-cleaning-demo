@@ -1,15 +1,15 @@
-import { BarChart3, CircleDot, ClipboardList, LayoutDashboard, Settings2 } from "lucide-react";
+import { BarChart3, ClipboardList, LayoutDashboard, Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CameraMonitorGrid } from "./CameraMonitorGrid";
 import { AnalyticsView } from "./AnalyticsView";
 import { AdvancedView } from "./AdvancedView";
 import { EventArchiveView } from "./EventArchiveView";
 import { EventDetailPanel } from "./EventDetailPanel";
-import { scenarios, stageCopy } from "./data";
+import { scenarios } from "./data";
 import { SpatialDispatchView } from "./SpatialDispatchView";
 import { PanelBoundary } from "./PanelBoundary";
 import { displayStates, fromStoredEvent } from "./eventViewModel";
-import { canApplySnapshot, canStartDemo, isEventPaused, isTerminalEvent, loadEventSnapshot, operationsOwnsEvent } from "./runtimeSession";
+import { canApplySnapshot, canStartDemo, isTerminalEvent, loadEventSnapshot, operationsOwnsEvent } from "./runtimeSession";
 import { FloatingRobotOperationsAgent } from "@/components/robot-operations/RobotOperationsPanel";
 import { RobotOperationsProvider } from "@/components/robot-operations/RobotOperationsProvider";
 import { archivePageContext } from "@/components/robot-operations/robotOperationsModel";
@@ -168,7 +168,6 @@ export function PrototypeWorkbench() {
       applyStageResponse(result);
     } catch (error) { setEvent((current) => current && ({ ...current, processing: false, inFlightState: undefined, liveResult: { ...current.liveResult, reason: error instanceof Error ? error.message : "人工验收服务不可用" } })); }
   };
-  const state = event ? currentDisplayState(event) : "IDLE";
   const syncSavedState = async () => {
     const id = String(event?.liveResult?.event_id ?? readUiStorage("cleanops.current-event") ?? "");
     if (!id) return;
@@ -185,7 +184,7 @@ export function PrototypeWorkbench() {
   const spatialEvent = runtimeReady ? event : null;
   return <RobotOperationsProvider><div className="min-h-screen bg-[#f6f7f8] text-slate-900">
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-[9px] font-bold text-white">CO</div><div><p className="text-sm font-semibold">CleanOps</p><p className="text-[10px] text-slate-400">园区运营</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="AI机器人调度大脑" active={view === "workbench"} onClick={() => navigate("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => navigate("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => navigate("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => navigate("advanced")} /></nav></aside>
-<div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "AI机器人调度大脑" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p>{view === "workbench" && event && <span className={`hidden items-center gap-1.5 text-[12px] md:flex ${event ? "text-slate-700" : "text-slate-500"}`}><CircleDot size={12} className={event?.processing ? "animate-pulse text-rose-500" : "text-emerald-500"} />{stageCopy[state].title}</span>}</div></header>
+<div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "AI机器人调度大脑" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p></div></header>
       {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={spatialEvent} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={operationsOwnsEvent(event) ? undefined : completeManual} /></div></div></main>}
       {view === "events" && <EventArchiveView onAgentContextChange={setArchiveAgentContext} />}{view === "analytics" && <AnalyticsView />}{view === "advanced" && <AdvancedView event={event} runtimeMode={runtimeMode} onRuntimeModeChange={setRuntimeMode} />}
     </div>
@@ -207,8 +206,6 @@ function stageIndexFor(steps: ActiveEvent["scenario"]["steps"], state: string): 
   const index = steps.indexOf(target);
   return index >= 0 ? index : Math.min(stateIndex(state), steps.length - 1);
 }
-
-function currentDisplayState(event: ActiveEvent) { return isEventPaused(event) ? "PAUSED" : event.inFlightState ?? displayStates[event.backendState ?? ""] ?? "DISCOVERED"; }
 
 function NavItem({ icon: Icon, label, active = false, onClick }: { icon: typeof LayoutDashboard; label: string; active?: boolean; onClick: () => void }) {
   return <button type="button" onClick={onClick} className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors ${active ? "bg-slate-900 font-medium text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={16} strokeWidth={1.7} />{label}</button>;

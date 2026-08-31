@@ -33,7 +33,7 @@ export function AdvancedView(_: AdvancedViewProps) {
           <strong className="mt-4 block text-[16px] text-slate-700">PENDING USER ASSET</strong>
           <span className="mt-2 block text-[13px] leading-6 text-slate-500">等待用户提供最终技术讲解图片。收到后将在此居中展示，点击可放大。</span>
         </span>
-      </button> : <section className={`grid gap-4 ${approvedAdvancedAssets.length === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`} aria-label="技术讲解图片">
+      </button> : <section className="grid grid-cols-1 gap-4" aria-label="技术讲解图片">
         {approvedAdvancedAssets.slice(0, 2).map((asset, index) => <button key={asset.src} type="button" onClick={() => setExpanded(index)} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-left"><img src={asset.src} alt={asset.alt} className="min-h-[430px] w-full object-contain" /></button>)}
       </section>}
 
