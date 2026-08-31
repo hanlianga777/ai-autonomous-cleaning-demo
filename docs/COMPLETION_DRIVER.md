@@ -6,20 +6,22 @@ This is a non-normative progress ledger. It does not create requirements or repl
 ## Current ledger
 
 - Total Matrix sub-items: **191**
-- Code/behaviour evidence re-audited this pass: **0 / 191 complete claims**
-- Corrected implementation batches pushed: **3**
-- Remaining verification: **all 191 rows require evidence re-audit; selected runtime/UI rows also require mandatory runtime acceptance**
+- Code/behaviour evidence re-audited this pass: **selected implementation-correction rows only; the remaining matrix is still not a completion claim**
+- Corrected implementation batches pushed: **5**
+- Remaining verification: **broader matrix evidence re-audit and user visual acceptance remain open**
 - Final state target: **not yet established**
 
 ## Resume state
 
-- LAST_COMPLETED: implementation-correction batch `75bb5db` (customer presentation and Analytics).
-- CURRENT_IN_PROGRESS: mandatory managed-runtime acceptance for SHOW-BASE-01,
-  DEMO-CONTRACT-01, OPS-CONTINUITY-01 and OPS-AUTO-01; broader matrix evidence re-audit remains open.
-- NEXT_ITEM: run fresh Show Session and the four actual runtime flows, including page-switch continuity.
-- TEST_STATUS: current branch has frontend **66 PASS**, frontend build **PASS**,
-  backend autonomous runtime **4 PASS**, and Robot Operations plus autonomous runtime **28 PASS**.
-  These are code-level evidence only, not acceptance evidence for all 191 rows.
+- LAST_COMPLETED: managed LIVE runtime correction and calibrated Analytics projection batch.
+- CURRENT_IN_PROGRESS: broader matrix evidence re-audit and user-side visual acceptance; the automated
+  managed-runtime flows below are recorded as implementation evidence only.
+- NEXT_ITEM: user visual inspection of a fresh Show Session, Workbench/Analytics page switch, and customer presentation.
+- TEST_STATUS: current branch has frontend **67 PASS**, frontend build **PASS**,
+  backend Robot Operations plus autonomous runtime **29 PASS**, and the full backend suite was re-run.
+  Managed LIVE evidence: Demo01 closed after an Analytics read, Demo02 closed after Multi-view,
+  Demo03 closed with its persisted cross-building route, Demo04 reached HUMAN_FALLBACK then closed after one manual completion,
+  and a one-sentence delivery instruction progressed autonomously to CLOSED. These are not user acceptance.
 - VISUAL_STATUS: user visual acceptance is pending. No requirement is marked
   `USER_ACCEPTED`; no screenshot limitation is allowed to convert an unverified
   implementation into a completion claim.
