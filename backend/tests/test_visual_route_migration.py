@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from database import connection
-from spatial.spatial_data import VISUAL_ROUTE_VERSION, robot_visual_standby
+from spatial.spatial_data import VISUAL_ROUTE_VERSION, robot_visual_endpoint, robot_visual_standby
 
 
 class VisualRouteMigrationTests(unittest.TestCase):
@@ -35,12 +35,12 @@ class VisualRouteMigrationTests(unittest.TestCase):
         stored = connection.get_event(event_id)["demo_v1"]["navigation_plan"]
         self.assertEqual(transition, stored)
         self.assertEqual(transition["visual_route_version"], VISUAL_ROUTE_VERSION)
-        self.assertEqual(transition["visual_style"]["planned"], "#ef4444")
+        self.assertEqual(transition["visual_style"], {"route": "#b91c1c", "opacity": 0.45, "stroke_width": 5, "dasharray": "7 5"})
         self.assertEqual([point["node_id"] for point in transition["visual_path"]], ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "SKYBRIDGE_B", "A_2F"])
         self.assertEqual(transition["node_path"], legacy_plan["node_path"])
         self.assertEqual(transition["segments"], legacy_plan["segments"])
 
-    def test_assigned_snapshot_gets_a_v3_route_preview_and_standby_positions(self) -> None:
+    def test_assigned_snapshot_gets_a_v4_route_preview_and_standby_positions(self) -> None:
         event_id = "integrated-demo01-assigned"
         connection.save_event({
             "event_id": event_id,
@@ -57,7 +57,27 @@ class VisualRouteMigrationTests(unittest.TestCase):
         self.assertEqual(preview["visual_path"][0], robot_visual_standby("robot-a"))
         fleet = {robot["id"]: robot for robot in connection.get_fleet_state()}
         self.assertEqual(fleet["robot-a"]["overview_position"], robot_visual_standby("robot-a"))
+        self.assertEqual(fleet["robot-a"]["overview_position_version"], VISUAL_ROUTE_VERSION)
         self.assertEqual(fleet["robot-d"]["overview_position"], {"x": 84.0, "y": 81.0, "label": "园区道路"})
+
+    def test_completed_legacy_navigation_migrates_to_the_visual_terminal(self) -> None:
+        event_id = "integrated-demo02-arrived"
+        connection.save_event({
+            "event_id": event_id,
+            "state": "CLOSED",
+            "assignment_decision": {"selected_robot_id": "robot-b"},
+            "demo_v1": {},
+        })
+        connection.record_transition(event_id, "ARRIVED", {"source": "legacy"})
+        legacy_fleet = connection.get_fleet_state()
+        next(robot for robot in legacy_fleet if robot["id"] == "robot-b").pop("overview_position_version", None)
+        connection.save_fleet_state(legacy_fleet)
+
+        connection.initialize_database()
+
+        fleet = {robot["id"]: robot for robot in connection.get_fleet_state()}
+        self.assertEqual(fleet["robot-b"]["overview_position"], robot_visual_endpoint("robot-b"))
+        self.assertEqual(fleet["robot-b"]["overview_position_version"], VISUAL_ROUTE_VERSION)
 
 
 if __name__ == "__main__":

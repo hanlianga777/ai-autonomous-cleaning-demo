@@ -7,8 +7,8 @@ const source = await readFile(resolve(import.meta.dirname, "../src/components/pr
 
 test("map keeps business fleet detail in hover and has no duplicate navigation status card", () => {
   assert.match(source, /group-hover:block/);
-  assert.match(source, /服务范围：/);
-  assert.match(source, /适用范围：/);
+  assert.match(source, /function FleetSummary/);
+  assert.match(source, /<FleetSummary robot=\{robot\} translucent \/>/);
   assert.doesNotMatch(source, /Navigation size=\{11\}|selectedRobot && isNavigating && <div className="absolute right/);
 });
 
@@ -18,12 +18,12 @@ test("map projection remains driven by persisted backend route and fleet state",
   assert.match(source, /<RouteLayer points=\{routePoints\}/);
 });
 
-test("map has a high-contrast route and no obstructing status bubbles", () => {
-  assert.match(source, /style\?\.planned/);
-  assert.match(source, /style\?\.completed/);
-  assert.match(source, /strokeWidth="3"/);
-  assert.match(source, /strokeWidth="5"/);
-  assert.match(source, /strokeDasharray="7 5"/);
+test("map has one terminal-style dashed route and no obstructing status bubbles", () => {
+  assert.match(source, /style\?\.route/);
+  assert.match(source, /style\?\.opacity/);
+  assert.match(source, /style\?\.stroke_width/);
+  assert.match(source, /strokeDasharray=\{style\?\.dasharray \?\? "7 5"\}/);
+  assert.doesNotMatch(source, /style\?\.planned|style\?\.completed/);
   assert.doesNotMatch(source, /routeArrowPoints|pointAtRouteDistance/);
   assert.doesNotMatch(source, /定位完成后显示前往现场的路线|等待固定摄像头发现事件/);
 });
@@ -37,6 +37,13 @@ test("every map robot has a bound label bubble and indoor cleaners are transluce
   assert.match(source, /w-\[104px\].*bg-white\/55.*scale-\[0\.92\].*\{robot\.name\}/);
   assert.match(source, /robot\.id === "robot-b" \|\| robot\.id === "robot-c"/);
   assert.match(source, /isIndoor \? "opacity-60" : "opacity-100"/);
+});
+
+test("map robot hover reuses the aligned fleet card and opens inward", () => {
+  assert.match(source, /grid-cols-\[32px_minmax\(0,1fr\)_auto\]/);
+  assert.match(source, /FLEET_LIST_ASSET_OFFSETS/);
+  assert.match(source, /tabIndex=\{0\}/);
+  assert.match(source, /expandInward/);
 });
 
 test("event marker uses the visual route endpoint rather than the business SLAM coordinate", () => {

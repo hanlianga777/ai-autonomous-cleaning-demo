@@ -76,7 +76,7 @@ ROBOT_POSITIONS = {
 ROBOT_ROUTE_VISUALS = {
     "robot-a": [
         {"x": 68.4, "y": 75.3, "node_id": "OUTDOOR", "label": "B栋侧道路待命点", "progress_label": "已从 B 栋侧道路待命点出发"},
-        {"x": 34.0, "y": 65.0, "node_id": "OUTDOOR", "label": "A栋侧道路终点", "progress_label": "已抵达 A 栋侧道路终点"},
+        {"x": 34.0, "y": 64.1, "node_id": "OUTDOOR", "label": "A栋侧道路终点", "progress_label": "已抵达 A 栋侧道路终点"},
     ],
     "robot-b": [
         {"x": 16.0, "y": 44.1, "node_id": "A_1F", "label": "A栋1F内部起点", "progress_label": "已从 A 栋 1F 内侧清洁通道出发"},
@@ -87,22 +87,28 @@ ROBOT_ROUTE_VISUALS = {
         {"x": 70.0, "y": 60.1, "node_id": "B_ELEVATOR_1F", "label": "B栋1F电梯口", "progress_label": "已到达 B 栋 1F 电梯口"},
         {"x": 70.0, "y": 38.5, "node_id": "B_ELEVATOR_2F", "label": "B栋2F电梯口", "progress_label": "已到达 B 栋 2F 电梯口"},
         {"x": 64.0, "y": 36.5, "node_id": "SKYBRIDGE_B", "label": "B栋2F连廊入口", "progress_label": "已到达 B 栋 2F 连廊入口"},
-        {"x": 41.0, "y": 31.4, "node_id": "A_2F", "label": "A栋2F连廊入口", "progress_label": "已抵达 A 栋 2F 连廊入口"},
+        {"x": 41.0, "y": 27.4, "node_id": "A_2F", "label": "A栋2F连廊入口", "progress_label": "已抵达 A 栋 2F 连廊入口"},
     ],
 }
 
 ROBOT_ROUTE_STYLES = {
-    "robot-a": {"planned": "#ef4444", "completed": "#b91c1c"},
-    "robot-b": {"planned": "#ef4444", "completed": "#b91c1c"},
-    "robot-c": {"planned": "#ef4444", "completed": "#b91c1c"},
+    "robot-a": {"route": "#b91c1c", "opacity": 0.45, "stroke_width": 5, "dasharray": "7 5"},
+    "robot-b": {"route": "#b91c1c", "opacity": 0.45, "stroke_width": 5, "dasharray": "7 5"},
+    "robot-c": {"route": "#b91c1c", "opacity": 0.45, "stroke_width": 5, "dasharray": "7 5"},
 }
-VISUAL_ROUTE_VERSION = 3
+VISUAL_ROUTE_VERSION = 4
 
 
 def robot_visual_standby(robot_id: str) -> dict | None:
     """Return the fixed white-model standby position without changing fleet facts."""
     path = ROBOT_ROUTE_VISUALS.get(robot_id, [])
     return deepcopy(path[0]) if path else None
+
+
+def robot_visual_endpoint(robot_id: str) -> dict | None:
+    """Return the approved overview terminal position for a cleaning robot."""
+    path = ROBOT_ROUTE_VISUALS.get(robot_id, [])
+    return deepcopy(path[-1]) if path else None
 
 
 def calibrated_visual_route(robot_id: str, _node_path: list[str] | tuple[str, ...] | None) -> dict | None:

@@ -42,7 +42,7 @@ from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
-from spatial.spatial_data import CAMERAS, MAPS, calibrated_visual_route
+from spatial.spatial_data import CAMERAS, MAPS, VISUAL_ROUTE_VERSION, calibrated_visual_route, robot_visual_endpoint
 from demo_v1.replay import evidence_key, load_replay_bundle, save_live_bundle, validate_response
 from demo_v1.perception_records import (
     PIPELINE_SCHEMA, RecordedToolTurns, load_perception_record,
@@ -738,6 +738,7 @@ def complete_navigation(event_id: str) -> dict[str, Any]:
         str(decision["selected_robot_id"]), status="arrived", map_id=target["map_id"],
         coordinates={"x": target["x"], "y": target["y"]}, building=target["building"], floor=target["floor"],
         zone=target["zone"], location=f"{target['building']} 栋 {target['floor']} · {target['zone']}", active_event_id=event_id,
+        overview_position=robot_visual_endpoint(str(decision["selected_robot_id"])), overview_position_version=VISUAL_ROUTE_VERSION,
     )
     return _save_stage(stored, "ARRIVED", {"navigation_plan": stored["demo_v1"].get("navigation_plan"), "fleet_robot": robot}, fleet_snapshot=get_fleet_state(), reason="机器人已到达目标区域。")
 

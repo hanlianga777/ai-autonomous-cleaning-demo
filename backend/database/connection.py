@@ -11,7 +11,7 @@ from pathlib import Path
 
 from data.mock_data import PARK, ROBOTS
 from observability.context import new_trace_id, CURRENT_TRACE
-from spatial.spatial_data import ROBOT_POSITIONS, VISUAL_ROUTE_VERSION, calibrated_visual_route, robot_visual_standby
+from spatial.spatial_data import ROBOT_POSITIONS, VISUAL_ROUTE_VERSION, calibrated_visual_route, robot_visual_endpoint, robot_visual_standby
 
 DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_demo.db"
 _TRANSACTION: ContextVar[sqlite3.Connection | None] = ContextVar("runtime_transaction", default=None)
@@ -35,12 +35,15 @@ def _baseline_fleet() -> list[dict]:
         robot["map_id"] = {"robot-a": "OUTDOOR", "robot-b": "A_1F", "robot-c": "B_1F"}[robot["id"]]
         robot["coordinates"] = deepcopy(ROBOT_POSITIONS[robot["id"]] | {})
         robot["coordinates"].pop("map_id")
+        robot["overview_position"] = robot_visual_standby(robot["id"])
+        robot["overview_position_version"] = VISUAL_ROUTE_VERSION
         robot["source"] = "POC_SIMULATION"
     fleet.append({
         "id": "robot-d", "code": "R-D04", "status": "idle", "battery": 86,
         "location": "A 栋 1F · 配送待命点", "zone": "A1 Delivery Bay", "building": "A", "floor": "1F",
         "last_seen": "刚刚", "capabilities": ["楼宇配送"], "map_id": "A_1F",
-        "coordinates": {"x": 72, "y": 30}, "source": "POC_SIMULATION", **ROBOT_PRESENTATION["robot-d"],
+        "coordinates": {"x": 72, "y": 30}, "overview_position": {"x": 84.0, "y": 81.0, "label": "园区道路"},
+        "overview_position_version": VISUAL_ROUTE_VERSION, "source": "POC_SIMULATION", **ROBOT_PRESENTATION["robot-d"],
     })
     return fleet
 
@@ -224,18 +227,33 @@ def _backfill_visual_routes(connection: sqlite3.Connection) -> None:
 
 
 def _backfill_fleet_visual_positions(connection: sqlite3.Connection) -> None:
+    """Migrate only stale overview points, preserving completed route terminals."""
     row = connection.execute("SELECT payload FROM system_snapshots WHERE snapshot_key = 'fleet_state'").fetchone()
     if row is None:
         return
     fleet = json.loads(row["payload"])
+    latest_event_by_robot: dict[str, str] = {}
+    for event_row in connection.execute("SELECT event_id, payload FROM cleaning_events ORDER BY updated_at DESC"):
+        event = json.loads(event_row["payload"])
+        robot_id = str((event.get("assignment_decision") or {}).get("selected_robot_id", ""))
+        if robot_id and robot_id not in latest_event_by_robot:
+            latest_event_by_robot[robot_id] = event_row["event_id"]
     changed = False
     for robot in fleet:
-        standby = robot_visual_standby(str(robot.get("id", "")))
-        if standby is not None and robot.get("overview_position") != standby:
-            robot["overview_position"] = standby
-            changed = True
-        if robot.get("id") == "robot-d" and robot.get("overview_position") != {"x": 84.0, "y": 81.0, "label": "园区道路"}:
-            robot["overview_position"] = {"x": 84.0, "y": 81.0, "label": "园区道路"}
+        robot_id = str(robot.get("id", ""))
+        if robot_id == "robot-d":
+            position = {"x": 84.0, "y": 81.0, "label": "园区道路"}
+        elif robot.get("overview_position_version") == VISUAL_ROUTE_VERSION and robot.get("overview_position"):
+            continue
+        else:
+            latest_event_id = latest_event_by_robot.get(robot_id)
+            arrived = latest_event_id is not None and connection.execute(
+                "SELECT 1 FROM event_transitions WHERE event_id = ? AND state = 'ARRIVED' LIMIT 1", (latest_event_id,)
+            ).fetchone() is not None
+            position = robot_visual_endpoint(robot_id) if arrived else robot_visual_standby(robot_id)
+        if position is not None and (robot.get("overview_position") != position or robot.get("overview_position_version") != VISUAL_ROUTE_VERSION):
+            robot["overview_position"] = position
+            robot["overview_position_version"] = VISUAL_ROUTE_VERSION
             changed = True
     if changed:
         connection.execute(

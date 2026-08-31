@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 from database import connection
 from database.connection import get_event, get_fleet_state, get_transitions, reset_fleet_state
+from spatial.spatial_data import VISUAL_ROUTE_VERSION, robot_visual_endpoint
 from demo_v1.service import (
     assign_event,
     cloud_review,
@@ -223,6 +224,8 @@ class DemoV1Tests(unittest.TestCase):
         self.assertEqual(robot["status"], "idle")
         self.assertEqual(robot["map_id"], "OUTDOOR")
         self.assertNotEqual(robot["coordinates"], {"x": 24, "y": 40})
+        self.assertEqual(robot["overview_position"], robot_visual_endpoint("robot-a"))
+        self.assertEqual(robot["overview_position_version"], VISUAL_ROUTE_VERSION)
 
 
 if __name__ == "__main__":

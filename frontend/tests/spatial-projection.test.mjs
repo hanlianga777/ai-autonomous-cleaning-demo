@@ -74,7 +74,7 @@ test("Dijkstra topology alone never creates an overview route", () => {
 
 test("persisted calibrated visual path wins only when the backend provides it", () => {
   const route = projection.projectBackendRoute({
-    visual_route_version: 3,
+    visual_route_version: 4,
     node_path: ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A", "A_2F"],
     visual_path: [
       { x: 67, y: 61, node_id: "B_1F", progress_label: "已从 B 栋 1F 出发" }, { x: 76, y: 52, node_id: "B_ELEVATOR_1F" },

@@ -42,6 +42,9 @@ const statusCopy: Record<string, string> = {
 const ROBOT_ASSET_OFFSETS: Record<string, { x: number; scale: number }> = {
   "robot-a": { x: -1, scale: 1.2 }, "robot-b": { x: 0, scale: 1.15 }, "robot-c": { x: 1, scale: 1.18 }, "robot-d": { x: 0, scale: 1.12 },
 };
+const FLEET_LIST_ASSET_OFFSETS: Record<string, { x: number; scale: number }> = {
+  "robot-a": { x: 2, scale: 1.2 }, "robot-b": { x: 0, scale: 1.15 }, "robot-c": { x: -2, scale: 1.18 }, "robot-d": { x: 0, scale: 1.12 },
+};
 
 function fleetFromEvent(event: ActiveEvent | null, fallback: FleetRobot[]): FleetRobot[] {
   const snapshot = event?.liveResult?.fleet_snapshot;
@@ -50,23 +53,25 @@ function fleetFromEvent(event: ActiveEvent | null, fallback: FleetRobot[]): Flee
   return fallback.length ? fallback : Array.isArray(snapshot) ? snapshot as FleetRobot[] : [];
 }
 
-function RouteLayer({ points, travelledDistance, terminal, style }: { points: CanvasPoint[]; travelledDistance: number; terminal: boolean; style?: NavigationPlan["visual_style"] }) {
+function RouteLayer({ points, style }: { points: CanvasPoint[]; style?: NavigationPlan["visual_style"] }) {
   if (points.length < 2) return null;
   const fullPath = svgPath(points);
-  const completedPath = svgPath(points, travelledDistance);
-  const planned = style?.planned ?? "#ef4444";
-  const completed = style?.completed ?? "#b91c1c";
-  return <svg className={`pointer-events-none absolute inset-0 z-10 h-full w-full ${terminal ? "opacity-45" : "opacity-100"}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="园区规划路线">
-    <path d={fullPath} fill="none" stroke={planned} strokeWidth="3" vectorEffect="non-scaling-stroke" />
-    {travelledDistance > 0 && <path d={completedPath} fill="none" stroke={completed} strokeWidth="5" strokeDasharray="7 5" vectorEffect="non-scaling-stroke" />}
+  return <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="园区规划路线">
+    <path d={fullPath} fill="none" stroke={style?.route ?? "#b91c1c"} strokeOpacity={style?.opacity ?? 0.45} strokeWidth={style?.stroke_width ?? 5} strokeDasharray={style?.dasharray ?? "7 5"} vectorEffect="non-scaling-stroke" />
   </svg>;
 }
 
-function FleetAssetCard({ robot, active }: { robot: FleetRobot; active: boolean }) {
+function FleetSummary({ robot, translucent = false }: { robot: FleetRobot; translucent?: boolean }) {
   const status = statusCopy[robot.status] ?? robot.status;
-  const asset = ROBOT_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
-  return <article className={`group relative border px-2 py-2 transition-colors ${active ? "border-slate-500 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-    <p className="text-[12px] font-semibold leading-4 text-slate-800">{robot.name}</p><div className="mt-1 flex items-center gap-1.5"><span className="flex h-7 w-8 shrink-0 items-center justify-center overflow-visible"><img src={`/visual-assets/robots/${robot.id}.png`} alt="" className="h-7 w-8 object-contain" style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><p className="flex-1 text-[12px] text-slate-500">{status}</p><span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-600"><BatteryCharging size={11} strokeWidth={1.7} />{robot.battery}%</span></div>
+  const asset = FLEET_LIST_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
+  return <div className={translucent ? "border border-white/70 bg-white/55 px-2 py-2 shadow-lg backdrop-blur-sm" : "px-2 py-2"}>
+    <p className="text-[12px] font-semibold leading-4 text-slate-800">{robot.name}</p><div className="mt-1 grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-1.5"><span className="flex h-7 w-8 shrink-0 items-center justify-center overflow-visible"><img src={`/visual-assets/robots/${robot.id}.png`} alt="" className="h-7 w-8 object-contain" style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><p className="min-w-0 text-[12px] text-slate-500">{status}</p><span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-600"><BatteryCharging size={11} strokeWidth={1.7} />{robot.battery}%</span></div>
+  </div>;
+}
+
+function FleetAssetCard({ robot, active }: { robot: FleetRobot; active: boolean }) {
+  return <article className={`group relative border transition-colors ${active ? "border-slate-500 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+    <FleetSummary robot={robot} />
     <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-52 border border-slate-300 bg-white p-3 text-[12px] leading-5 text-slate-600 shadow-lg group-hover:block"><p className="font-semibold text-slate-800">{robot.name}</p><p>{robot.location}</p><p className="mt-1 border-t border-slate-100 pt-1"><span className="text-slate-400">服务范围：</span>{robot.role ?? robot.zone ?? "园区服务区域"}</p><p><span className="text-slate-400">适用范围：</span>{robot.product_capability ?? robot.capabilities?.join(" / ") ?? "未配置"}</p></div>
   </article>;
 }
@@ -74,7 +79,8 @@ function FleetAssetCard({ robot, active }: { robot: FleetRobot; active: boolean 
 function RobotMarker({ robot, point, active }: { robot: FleetRobot; point: CanvasPoint; active: boolean }) {
   const asset = ROBOT_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
   const isIndoor = robot.id === "robot-b" || robot.id === "robot-c";
-  return <div className="absolute z-30 -translate-x-1/2 -translate-y-1/2" style={{ left: `${point.x}%`, top: `${point.y}%` }}><div className="relative flex flex-col items-center"><span className="pointer-events-none absolute bottom-[calc(100%-1px)] left-1/2 flex h-4 w-[104px] -translate-x-1/2 items-center justify-center whitespace-nowrap border border-white/80 bg-white/55 px-1 text-xs font-normal text-slate-700 shadow-sm backdrop-blur-[1px] scale-[0.92]">{robot.name}</span><span className="flex h-8 w-11 items-center justify-center"><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className={`h-8 w-11 object-contain drop-shadow-sm ${isIndoor ? "opacity-60" : "opacity-100"}`} style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><span className={`absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${active ? "bg-[#b91c1c]" : "bg-slate-600"}`} /></div></div>;
+  const expandInward = point.x > 68;
+  return <div className="group absolute z-30 -translate-x-1/2 -translate-y-1/2 outline-none" style={{ left: `${point.x}%`, top: `${point.y}%` }} tabIndex={0} aria-label={`${robot.name} 地图机器人`}><div className="relative flex flex-col items-center"><span className="pointer-events-none absolute bottom-[calc(100%-1px)] left-1/2 flex h-4 w-[104px] -translate-x-1/2 items-center justify-center whitespace-nowrap border border-white/80 bg-white/55 px-1 text-xs font-normal text-slate-700 shadow-sm backdrop-blur-[1px] scale-[0.92]">{robot.name}</span><span className="flex h-8 w-11 items-center justify-center"><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className={`h-8 w-11 object-contain drop-shadow-sm ${isIndoor ? "opacity-60" : "opacity-100"}`} style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><span className={`absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${active ? "bg-[#b91c1c]" : "bg-slate-600"}`} /></div><div className={`pointer-events-none absolute top-1/2 z-50 hidden w-[136px] -translate-y-1/2 group-hover:block group-focus:block ${expandInward ? "right-full mr-3" : "left-full ml-3"}`}><FleetSummary robot={robot} translucent /></div></div>;
 }
 
 function idlePresentationPosition(robot: FleetRobot): CanvasPoint {
@@ -85,7 +91,7 @@ function idlePresentationPosition(robot: FleetRobot): CanvasPoint {
 
 export function SpatialDispatchView({ event, presentation }: SpatialDispatchViewProps) {
   const [apiFleet, setApiFleet] = useState<FleetRobot[]>([]);
-  const { selectedRobotId, plan, routePoints, routeReady, isNavigating, paused, displayedTravel, robotPosition, isElevatorPause } = presentation;
+  const { selectedRobotId, plan, routePoints, routeReady, isNavigating, paused, robotPosition, isElevatorPause } = presentation;
 
   useEffect(() => {
     let active = true;
@@ -112,7 +118,7 @@ export function SpatialDispatchView({ event, presentation }: SpatialDispatchView
     <aside className="z-40 overflow-visible border-r border-slate-200 bg-[#fbfcfd] p-2" aria-label="机器人状态"><div className="mb-2 border-b border-slate-200 pb-2"><p className="text-[12px] font-semibold text-slate-700">园区空间调度</p><p className="mt-0.5 text-[12px] text-slate-400">当前机器人状态</p></div><div className="space-y-1.5">{displayedFleet.map((robot) => <FleetAssetCard key={robot.id} robot={robot} active={robot.id === selectedRobotId || Boolean(robot.active_task_id)} />)}{!displayedFleet.length && <p className="py-4 text-center text-[12px] text-slate-400">机器人信息暂不可用</p>}</div></aside>
     <MapCanvas imageSrc="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区空间白模" className="min-h-[248px] bg-[#eef2f5]">
       <>
-        <RouteLayer points={routePoints} travelledDistance={displayedTravel} terminal={!isNavigating && routeReady} style={plan?.visual_style} />
+        <RouteLayer points={routePoints} style={plan?.visual_style} />
         {routeReady && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2 opacity-70" style={{ left: `${routePoints.at(-1)?.x}%`, top: `${routePoints.at(-1)?.y}%` }} aria-label="已定位事件位置"><span className="block h-3 w-3 rounded-full border border-rose-500 bg-rose-100/80" /><span className="absolute left-1/2 top-4 -translate-x-1/2 whitespace-nowrap text-xs font-normal text-rose-600 scale-[0.92]">事件位置</span></div>}
         {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId ? (robotPosition ?? idlePresentationPosition(robot)) : idlePresentationPosition(robot); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
         {isNavigating && !paused && isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white/80 px-2 py-1 text-xs font-normal text-slate-700 shadow-sm" style={{ left: `${robotPosition?.x ?? 50}%`, top: `${robotPosition?.y ?? 50}%` }}>乘梯中</div>}
