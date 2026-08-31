@@ -56,7 +56,7 @@ export function navigationElapsedMs(startedAt: number, now: number, paused: bool
 // are percentages *inside the image plane*, never percentages of a parent UI
 // card. Backend map/node data selects which anchor is used.
 export const CAMPUS_TOPOLOGY_ANCHORS: Record<string, CanvasPoint> = {
-  OUTDOOR: { x: 25, y: 78, label: "园区道路", nodeId: "OUTDOOR" },
+  OUTDOOR: { x: 50, y: 78, label: "园区道路", nodeId: "OUTDOOR" },
   A_B1: { x: 33, y: 66, label: "A栋 B1", nodeId: "A_B1" },
   A_1F: { x: 35, y: 52, label: "A栋 1F", nodeId: "A_1F" },
   A_2F: { x: 35, y: 28, label: "A栋 2F", nodeId: "A_2F" },
@@ -71,6 +71,17 @@ export const CAMPUS_TOPOLOGY_ANCHORS: Record<string, CanvasPoint> = {
 };
 
 const FALLBACK_ANCHOR: CanvasPoint = { x: 50, y: 50, label: "园区位置" };
+
+/** Visible road/building planes in the white-model image. The runtime map ID
+ * and local coordinates remain authoritative; this only makes their movement
+ * legible on the shared campus overview. */
+const CAMPUS_MAP_FRAMES: Record<string, { left: number; top: number; width: number; height: number; reverseX?: boolean }> = {
+  OUTDOOR: { left: 7, top: 69.5, width: 86, height: 17, reverseX: true },
+  A_1F: { left: 21.5, top: 43, width: 27, height: 18 },
+  A_2F: { left: 21.5, top: 19.5, width: 27, height: 17 },
+  B_1F: { left: 60.5, top: 48.5, width: 27, height: 17 },
+  B_2F: { left: 60.5, top: 25.5, width: 27, height: 17 },
+};
 
 // These five positions are calibrated to the visible building/road surfaces
 // in campus-white-model.png.  They are a presentation transform for the
@@ -109,6 +120,17 @@ export function calculateContainedFrame(
 
 /** Project a Phase 2 local map coordinate onto its campus white-model anchor. */
 export function projectMapCoordinate(mapId: string, x: number, y: number): CanvasPoint {
+  const frame = CAMPUS_MAP_FRAMES[mapId];
+  if (frame) {
+    const normalizedX = Math.min(1, Math.max(0, x / 100));
+    const normalizedY = Math.min(1, Math.max(0, y / 60));
+    return {
+      x: clamp(frame.left + (frame.reverseX ? 1 - normalizedX : normalizedX) * frame.width),
+      y: clamp(frame.top + normalizedY * frame.height),
+      label: CAMPUS_TOPOLOGY_ANCHORS[mapId]?.label ?? FALLBACK_ANCHOR.label,
+      nodeId: CAMPUS_TOPOLOGY_ANCHORS[mapId]?.nodeId,
+    };
+  }
   const anchor = CAMPUS_TOPOLOGY_ANCHORS[mapId] ?? FALLBACK_ANCHOR;
   // The current six Phase 2 maps are all explicitly 100 × 60 metres in
   // backend/spatial/spatial_data.py. This remains an overview projection, not
@@ -209,7 +231,7 @@ export function buildMotionPlan(points: CanvasPoint[], segments: RouteSegment[] 
     : null;
   // This duration is a labelled PoC visualisation pacing, derived from route
   // length—not device telemetry or a scheduler estimate.
-  const travelDurationMs = totalDistance ? Math.max(2400, Math.round(totalDistance * 105)) : 0;
+  const travelDurationMs = totalDistance ? Math.max(6000, Math.round(totalDistance * 220)) : 0;
   return {
     points,
     totalDistance,

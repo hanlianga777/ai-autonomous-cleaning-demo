@@ -232,6 +232,23 @@ def start_autonomous_progression(event_id: str) -> None:
             "ARRIVED": complete_cleaning,
             "CLEANING_COMPLETED": verify_event,
         }
+        def stage_pause_seconds(stored: dict[str, Any]) -> float:
+            state = str(stored.get("state"))
+            if state == "NAVIGATING":
+                segments = (stored.get("demo_v1") or {}).get("navigation_plan", {}).get("segments", [])
+                if any(segment.get("type") == "skybridge" for segment in segments):
+                    return 11.0
+                if any(segment.get("type") == "elevator" for segment in segments):
+                    return 8.0
+                return 6.5
+            return {
+                "DETECTED": 0.9,
+                "CLOUD_REVIEW": 0.8,
+                "LOCATED": 2.2,
+                "ASSIGNED": 1.0,
+                "ARRIVED": 1.8,
+                "CLEANING_COMPLETED": 1.6,
+            }.get(state, 0.25)
         try:
             while True:
                 stored = get_event(event_id)
@@ -240,12 +257,11 @@ def start_autonomous_progression(event_id: str) -> None:
                 handler = handlers.get(str(stored.get("state")))
                 if handler is None:
                     return
-                # Keep state changes observable in the business timeline and
-                # allow planned navigation to be seen before arrival.
-                if stored.get("state") == "NAVIGATING":
-                    sleep(2.0)
+                # Cloud latency remains real. Deterministic stages use paced
+                # holds so the interview visualisation can show each business
+                # decision and the factual route before the next commit.
+                sleep(stage_pause_seconds(stored))
                 handler(event_id)
-                sleep(0.25)
         except (ValueError, RealInferenceError):
             # The stage itself has already recorded HUMAN_REVIEW when that is
             # appropriate. Never fabricate a fallback or silently replay.

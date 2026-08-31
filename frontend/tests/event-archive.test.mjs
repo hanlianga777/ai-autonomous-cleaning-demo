@@ -14,6 +14,9 @@ test("selection URL restores event ID but does not invent a first list selection
   assert.equal(archive.parseArchiveSelection("/events?category=all"), null);
   assert.equal(archive.archiveUrlWithSelection("/events?event=old&map_id=A_1F", "evt-123"), "/events?event=evt-123&map_id=A_1F");
   assert.equal(archive.archiveUrlWithSelection("/events?event=old&map_id=A_1F", null), "/events?map_id=A_1F");
+  assert.equal(archive.archiveDemoEntryUrl("evt-123"), "/events?event=evt-123&entry=demo");
+  assert.equal(archive.isDemoEntry("/events?event=evt-123&entry=demo"), true);
+  assert.equal(archive.isDemoEntry("/events?event=evt-123"), false);
 });
 
 test("archive API query retains only meaningful filters and resets non-negative pagination", () => {

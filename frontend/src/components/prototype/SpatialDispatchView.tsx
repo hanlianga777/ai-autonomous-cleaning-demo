@@ -51,6 +51,9 @@ const statusCopy: Record<string, string> = {
   cleaning: "清洁中", verifying: "验收中", charging: "充电中", paused: "已暂停",
 };
 const EMPTY_ROUTE_SEGMENTS: RouteSegment[] = [];
+const ROBOT_ASSET_OFFSETS: Record<string, { x: number; scale: number }> = {
+  "robot-a": { x: -1, scale: 1.2 }, "robot-b": { x: 0, scale: 1.15 }, "robot-c": { x: 1, scale: 1.18 }, "robot-d": { x: 0, scale: 1.12 },
+};
 
 function displayState(event: ActiveEvent | null): PrototypeState {
   return event?.inFlightState ?? (event ? event.scenario.steps[event.stageIndex] : "IDLE");
@@ -111,14 +114,21 @@ function RouteLayer({ points, travelledDistance, totalDistance, terminal }: { po
 
 function FleetAssetCard({ robot, active }: { robot: FleetRobot; active: boolean }) {
   const status = statusCopy[robot.status] ?? robot.status;
+  const asset = ROBOT_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
   return <article className={`group relative border px-2 py-2 transition-colors ${active ? "border-slate-500 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-    <p className="text-[12px] font-semibold leading-4 text-slate-800">{robot.name}</p><div className="mt-1 flex items-center gap-1.5"><img src={`/visual-assets/robots/${robot.id}.png`} alt="" className="h-7 w-8 shrink-0 object-contain" /><p className="flex-1 text-[12px] text-slate-500">{status}</p><span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-600"><BatteryCharging size={11} strokeWidth={1.7} />{robot.battery}%</span></div>
+    <p className="text-[12px] font-semibold leading-4 text-slate-800">{robot.name}</p><div className="mt-1 flex items-center gap-1.5"><span className="flex h-7 w-8 shrink-0 items-center justify-center overflow-visible"><img src={`/visual-assets/robots/${robot.id}.png`} alt="" className="h-7 w-8 object-contain" style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><p className="flex-1 text-[12px] text-slate-500">{status}</p><span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-600"><BatteryCharging size={11} strokeWidth={1.7} />{robot.battery}%</span></div>
     <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-52 border border-slate-300 bg-white p-3 text-[12px] leading-5 text-slate-600 shadow-lg group-hover:block"><p className="font-semibold text-slate-800">{robot.name}</p><p>{robot.location}</p><p className="mt-1 border-t border-slate-100 pt-1"><span className="text-slate-400">服务范围：</span>{robot.role ?? robot.zone ?? "园区服务区域"}</p><p><span className="text-slate-400">适用范围：</span>{robot.product_capability ?? robot.capabilities?.join(" / ") ?? "未配置"}</p></div>
   </article>;
 }
 
 function RobotMarker({ robot, point, active }: { robot: FleetRobot; point: CanvasPoint; active: boolean }) {
-  return <div className="absolute z-30 -translate-x-1/2 -translate-y-1/2" style={{ left: `${point.x}%`, top: `${point.y}%` }}><div className={`relative ${active ? "scale-110" : "opacity-80"}`}><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className="h-8 w-11 object-contain drop-shadow-sm" /><span className={`absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${active ? "bg-[#4f7798]" : "bg-slate-600"}`} /></div></div>;
+  const asset = ROBOT_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
+  return <div className="absolute z-30 -translate-x-1/2 -translate-y-1/2" style={{ left: `${point.x}%`, top: `${point.y}%` }}><div className={`relative ${active ? "scale-110" : "opacity-80"}`}><span className="flex h-8 w-11 items-center justify-center"><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className="h-8 w-11 object-contain drop-shadow-sm" style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><span className={`absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${active ? "bg-[#4f7798]" : "bg-slate-600"}`} /></div></div>;
+}
+
+function idlePresentationPosition(robot: FleetRobot): CanvasPoint {
+  if (robot.id === "robot-d" && !robot.active_task_id) return { x: 84, y: 81, label: "园区道路" };
+  return projectMapCoordinate(robot.map_id, robot.coordinates.x, robot.coordinates.y);
 }
 
 export function SpatialDispatchView({ event, onNavigationComplete }: SpatialDispatchViewProps) {
@@ -169,7 +179,7 @@ export function SpatialDispatchView({ event, onNavigationComplete }: SpatialDisp
       <>
         <RouteLayer points={routePoints} travelledDistance={displayedTravel} totalDistance={playback.totalDistance} terminal={!isNavigating && routeReady} />
         {target && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: `${projectMapCoordinate(target.map_id, target.x, target.y).x}%`, top: `${projectMapCoordinate(target.map_id, target.x, target.y).y}%` }} aria-label="已定位事件位置"><span className="block h-4 w-4 rounded-full border-2 border-rose-500 bg-rose-100/95 shadow-sm" /><span className="absolute left-1/2 top-5 -translate-x-1/2 whitespace-nowrap text-[12px] font-medium text-rose-700">事件位置</span></div>}
-        {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId && activePosition ? activePosition : projectMapCoordinate(robot.map_id, robot.coordinates.x, robot.coordinates.y); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
+        {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId && activePosition ? activePosition : idlePresentationPosition(robot); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
         {isNavigating && !paused && playback.isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white px-2 py-1 text-[12px] font-medium text-slate-700 shadow-sm" style={{ left: `${playback.point?.x ?? 50}%`, top: `${playback.point?.y ?? 50}%` }}>乘梯中</div>}
         <div className="absolute bottom-[3%] left-[3%] z-40 flex max-w-[72%] items-center gap-1.5 border border-slate-200 bg-white/95 px-2 py-1 text-[12px] text-slate-600 shadow-sm"><Route size={11} strokeWidth={1.7} className="shrink-0 text-[#4f7798]" />{routeReady ? <span>{isNavigating ? "机器人正沿规划路线前往现场" : "本次处置路线已保存"}</span> : <span>定位完成后显示前往现场的路线</span>}</div>
         {!event && <div className="absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 border border-slate-200 bg-white/95 px-3 py-1.5 text-[12px] text-slate-500 shadow-sm"><Sparkles size={12} />等待固定摄像头发现事件</div>}

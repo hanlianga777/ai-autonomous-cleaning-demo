@@ -24,13 +24,13 @@ export function CameraMonitorGrid({ event, onTrigger }: { event: ActiveEvent | n
   const liveTime = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(now);
   return <section className="flex min-h-0 flex-col border border-slate-200 bg-white" aria-label="固定摄像头监控">
     <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-1.5">
-      <div><p className="text-sm font-semibold text-slate-900">固定摄像头监控</p><p className="text-[12px] text-slate-500">园区重点区域实时画面</p></div>
+      <div><p className="text-sm font-semibold text-slate-900">固定摄像头监控</p></div>
       <div ref={menuRef} className="relative">
         <button aria-label="摄像头设置" onClick={() => setMenuOpen((open) => !open)} className="p-2 text-slate-500 hover:bg-slate-100"><MoreHorizontal size={18} /></button>
         {menuOpen && <div className="absolute right-0 top-10 z-[70] w-72 border border-slate-200 bg-white p-2 shadow-lg">
-          <div className="flex items-center gap-2 px-2 py-2 text-xs font-medium text-slate-700"><Settings2 size={14} />事件演练</div>
+          <div className="flex items-center gap-2 px-2 py-2 text-xs font-medium text-slate-700"><Settings2 size={14} />AI 清洁事件</div>
           {busy && <p className="px-2 pb-2 text-[12px] text-amber-700">请先完成当前事件，避免覆盖运行中的任务。</p>}
-          {scenarios.map((scenario, index) => <button key={scenario.id} disabled={busy} data-testid={`trigger-${scenario.id}`} onClick={() => { setMenuOpen(false); onTrigger(scenario.id); }} className="flex w-full items-center gap-2 border-t border-slate-100 px-2 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><span className="flex h-5 w-5 items-center justify-center border border-slate-300 font-mono text-[12px]">{index + 1}</span><Play size={12} />{scenario.triggerLabel}</button>)}
+          {scenarios.map((scenario, index) => <button key={scenario.id} disabled={busy} data-testid={`trigger-${scenario.id}`} onClick={() => { setMenuOpen(false); onTrigger(scenario.id); }} className="flex w-full items-center gap-2 border-t border-slate-100 px-2 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><span className="flex h-5 w-5 shrink-0 items-center justify-center border border-slate-300 font-mono text-[12px]">{index + 1}</span><Play size={12} className="shrink-0" />{scenario.triggerLabel}</button>)}
         </div>}
       </div>
     </div>

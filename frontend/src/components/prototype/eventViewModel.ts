@@ -38,7 +38,7 @@ export function fromStoredEvent(stored: RecordValue): ActiveEvent {
   const runtime = { ...snapshot, ...stored, demo_v1: undefined };
   const scene = scenarios.find((s) => s.cameraId === snapshot.asset_manifest?.assets?.find((a: RecordValue) => a.role === "before")?.camera_id);
   const cameraId = snapshot.asset_manifest?.assets?.find((a: RecordValue) => a.role === "before")?.camera_id ?? stored.camera_id ?? "未记录摄像头";
-  const base = scene ?? { id: "outdoor" as const, triggerLabel: "历史事件", cameraId, eventTitle: "历史清洁事件", category: customerTerm(stored.task_profile?.object_type), confidence: 0, qwenConfidence: 0, qwenSummary: "", steps: [] };
+  const base = scene ?? { id: "outdoor" as const, demoCode: "Demo01" as const, triggerLabel: "历史事件", presentationFocus: "已保存的处置记录", cameraId, eventTitle: "历史清洁事件", category: customerTerm(stored.task_profile?.object_type), confidence: 0, qwenConfidence: 0, qwenSummary: "", steps: [] };
   const steps = Array.isArray(stored.transitions) ? stored.transitions.map((t: RecordValue) => displayStates[t.state]).filter(Boolean) : [displayStates[stored.state] ?? "HUMAN_REVIEW"];
   return { scenario: { ...base, steps }, stageIndex: Math.max(0, steps.length - 1), startedAt: stored.created_at ?? "", backendState: stored.state, liveResult: runtime };
 }
@@ -95,7 +95,7 @@ export function monitorViews(event: ActiveEvent | null): Array<{ camera: Camera;
   });
 }
 
-const terms: Record<string, string> = { small_litter: "其他小型垃圾", "地面纸巾": "其他小型垃圾", "大型纸箱": "大件物品", liquid: "液体污渍", can: "易拉罐", large_object: "大件物品", leaf: "树叶", unknown: "尚未明确", low: "轻度", medium: "中度", high: "重度", tile: "瓷砖", polished_tile: "抛光瓷砖", ceramic_tile: "瓷砖", granite: "花岗岩", asphalt: "沥青", carpet: "地毯", epoxy: "环氧地坪", reflection: "反光", floor_reflection: "地面反光", glare: "眩光", low_lighting: "光照较弱", none: "无", indoor: "室内", outdoor: "园区室外", OUTDOOR: "园区室外", A_1F: "A栋1F", A_2F: "A栋2F", B_1F: "B栋1F", B_2F: "B栋2F" };
+const terms: Record<string, string> = { small_litter: "其他小型垃圾", "地面纸巾": "其他小型垃圾", "大型纸箱": "大件物品", liquid: "液体污渍", can: "易拉罐", large_object: "大件物品", leaf: "树叶", unknown: "尚未明确", low: "轻度", medium: "中度", high: "重度", tile: "瓷砖", polished_tile: "抛光瓷砖", ceramic_tile: "瓷砖", granite: "花岗岩", asphalt: "沥青", carpet: "地毯", epoxy: "环氧地坪", reflection: "反光", floor_reflection: "地面反光", glare: "眩光", low_lighting: "光照较弱", none: "无", outdoor: "园区室外", OUTDOOR: "园区室外", A_1F: "A栋1F", A_2F: "A栋2F", B_1F: "B栋1F", B_2F: "B栋2F", a_indoor: "A栋室内", indoor: "楼宇室内", road_sweeping: "道路清扫", dry_debris: "干垃圾清洁", wet_cleaning: "湿洗", strong_suction: "强吸力", scrubbing: "刷洗", heavy_stain: "重污渍清洁", light_cleaning: "轻度清洁", "East Road": "东侧道路", "Main Lobby": "主大堂", "East Corridor": "东侧走廊" };
 export function customerTerm(value: unknown): string {
   const text = String(value ?? "");
   const aliases: Record<string, string> = { carpeted_floor: "地毯", tiled_floor: "瓷砖", tile_floor: "瓷砖", concrete: "混凝土", concrete_floor: "混凝土", wet_floor: "湿润地面", smooth_floor: "光滑地面", proximity_to_recycling_bin: "靠近回收箱", potential_obstruction_in_corridor: "可能阻挡通道", occlusion: "局部遮挡", perspective: "视角偏差", insufficient_view: "视野不足", lens_contamination: "镜头污染", "East Corridor": "东侧走廊", "West Lobby": "西侧大堂", "Main Lobby": "主大堂", "Skybridge Entrance": "连廊入口", "Outdoor East Road": "园区东侧道路", "No robot passes hard constraints; create manual work order.": "没有机器人满足处置硬约束，已创建人工工单。" };

@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, LayoutDashboard, Settings2 } from "lucide-react";
+import { BarChart3, Bot, ClipboardList, LayoutDashboard, Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CameraMonitorGrid } from "./CameraMonitorGrid";
 import { AnalyticsView } from "./AnalyticsView";
@@ -9,6 +9,7 @@ import { scenarios } from "./data";
 import { SpatialDispatchView } from "./SpatialDispatchView";
 import { PanelBoundary } from "./PanelBoundary";
 import { displayStates, fromStoredEvent } from "./eventViewModel";
+import { archiveDemoEntryUrl } from "./eventArchiveModel";
 import { canApplySnapshot, canStartDemo, isTerminalEvent, loadEventSnapshot, operationsOwnsEvent } from "./runtimeSession";
 import { FloatingRobotOperationsAgent } from "@/components/robot-operations/RobotOperationsPanel";
 import { RobotOperationsProvider } from "@/components/robot-operations/RobotOperationsProvider";
@@ -57,10 +58,10 @@ export function PrototypeWorkbench() {
   const [syncNotice, setSyncNotice] = useState("");
   const [archiveAgentContext, setArchiveAgentContext] = useState<Record<string, unknown>>(() => archivePageContext(null, null, {}));
 
-  const navigate = (next: WorkbenchView) => {
+  const navigate = (next: WorkbenchView, eventId?: string) => {
     setRuntimeReady(false);
     if (next === "workbench") { setRestoring(true); setWorkbenchEntry((entry) => entry + 1); }
-    window.history.pushState({}, "", next === "workbench" ? "/prototype" : `/${next}`);
+    window.history.pushState({}, "", eventId && next === "events" ? archiveDemoEntryUrl(eventId) : next === "workbench" ? "/prototype" : `/${next}`);
     setView(next);
   };
   useEffect(() => {
@@ -183,10 +184,10 @@ export function PrototypeWorkbench() {
     : workbenchAgentPageContext(event, runtimeMode);
   const spatialEvent = runtimeReady ? event : null;
   return <RobotOperationsProvider><div className="min-h-screen bg-[#f6f7f8] text-slate-900">
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-[9px] font-bold text-white">CO</div><div><p className="text-sm font-semibold">CleanOps</p><p className="text-[10px] text-slate-400">园区运营</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="AI机器人调度大脑" active={view === "workbench"} onClick={() => navigate("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => navigate("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => navigate("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => navigate("advanced")} /></nav></aside>
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[200px] border-r border-slate-200 bg-white lg:flex lg:flex-col"><div className="flex h-[54px] items-center gap-2.5 border-b border-slate-200 px-4"><div className="flex h-7 w-7 items-center justify-center bg-slate-900 text-white"><Bot size={16} /></div><div><p className="text-sm font-semibold">AI Cleaning</p><p className="text-[10px] text-slate-400">园区运营</p></div></div><nav className="space-y-1 px-2.5 py-4"><NavItem icon={LayoutDashboard} label="AI机器人调度大脑" active={view === "workbench"} onClick={() => navigate("workbench")} /><NavItem icon={ClipboardList} label="事件中心" active={view === "events"} onClick={() => navigate("events")} /><NavItem icon={BarChart3} label="运营分析" active={view === "analytics"} onClick={() => navigate("analytics")} /><NavItem icon={Settings2} label="高级模式" active={view === "advanced"} onClick={() => navigate("advanced")} /></nav></aside>
 <div className="lg:ml-[200px]"><header className="flex h-[54px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-5"><div className="flex items-center gap-2"><p className="text-sm font-semibold">{view === "workbench" ? "AI机器人调度大脑" : view === "events" ? "事件中心" : view === "analytics" ? "运营分析" : "高级模式"}</p></div></header>
-      {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={spatialEvent} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={operationsOwnsEvent(event) ? undefined : completeManual} /></div></div></main>}
-      {view === "events" && <EventArchiveView onAgentContextChange={setArchiveAgentContext} />}{view === "analytics" && <AnalyticsView />}{view === "advanced" && <AdvancedView event={event} runtimeMode={runtimeMode} onRuntimeModeChange={setRuntimeMode} />}
+      {view === "workbench" && <main className="h-[calc(100vh-54px)] min-h-[626px] p-2.5 lg:p-3"><div className="grid h-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,72fr)_minmax(320px,28fr)]"><div className="grid min-h-0 grid-rows-[minmax(180px,31fr)_minmax(360px,69fr)] gap-3"><CameraMonitorGrid event={event} onTrigger={trigger} /><PanelBoundary name="空间调度视图"><SpatialDispatchView event={spatialEvent} /></PanelBoundary></div><div className="flex min-h-0 flex-col">{(restoring || syncNotice) && <div role="status" className="shrink-0 border border-amber-200 bg-amber-50 p-2 text-[11px] leading-5 text-amber-900">{restoring ? "正在恢复事件记录…" : syncNotice}{!restoring && <button onClick={() => void syncSavedState()} className="ml-2 border border-amber-300 bg-white px-2">同步已保存状态</button>}</div>}<EventDetailPanel event={event} onCompleteManual={operationsOwnsEvent(event) ? undefined : completeManual} onViewArchive={(eventId) => navigate("events", eventId)} /></div></div></main>}
+      {view === "events" && <EventArchiveView onAgentContextChange={setArchiveAgentContext} />}{view === "analytics" && <AnalyticsView event={event} onViewArchive={(eventId) => navigate("events", eventId)} />}{view === "advanced" && <AdvancedView event={event} runtimeMode={runtimeMode} onRuntimeModeChange={setRuntimeMode} />}
     </div>
     {(view === "workbench" || view === "events") && <FloatingRobotOperationsAgent pageContext={agentPageContext} />}
   </div></RobotOperationsProvider>;

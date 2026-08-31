@@ -34,7 +34,9 @@ export type Camera = {
 
 export type DemoScenario = {
   id: "outdoor" | "liquid" | "can" | "oversized";
+  demoCode: "Demo01" | "Demo02" | "Demo03" | "Demo04";
   triggerLabel: string;
+  presentationFocus: string;
   cameraId: string;
   eventTitle: string;
   category: string;

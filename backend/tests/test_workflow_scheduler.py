@@ -26,6 +26,12 @@ class WorkflowSchedulerTests(unittest.TestCase):
         self.assertEqual(result["state"], "CLOSED")
         self.assertEqual(result["assignment_decision"]["selected_robot_id"], "robot-b")
         self.assertEqual(result["verification"]["result"], "PASS")
+        candidate = next(item for item in result["assignment_decision"]["candidates"] if item["robot_id"] == "robot-b")
+        self.assertIsInstance(candidate["battery"], int)
+        self.assertIn("wet_cleaning", candidate["capabilities"])
+        self.assertIn("tile", candidate["surfaces"])
+        self.assertEqual(candidate["service_scope"], "a_indoor")
+        self.assertTrue(candidate["current_location"])
 
     def test_large_object_uses_human_fallback(self):
         from workflow.engine import create_mock_event, run_event

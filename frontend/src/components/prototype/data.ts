@@ -41,19 +41,19 @@ const standard: PrototypeState[] = ["DISCOVERED", "EDGE_DETECTED", "CLOUD_REVIEW
 
 export const scenarios: DemoScenario[] = [
   {
-    id: "outdoor", triggerLabel: "园区道路 · 小型垃圾", cameraId: "CAM-OUT-01", eventTitle: "园区东侧道路发现小型垃圾", category: "其他小型垃圾", confidence: 81, qwenConfidence: 0,
+    id: "outdoor", demoCode: "Demo01", triggerLabel: "园区道路 · 小型垃圾", presentationFocus: "室外小型垃圾的自动闭环", cameraId: "CAM-OUT-01", eventTitle: "园区东侧道路发现小型垃圾", category: "其他小型垃圾", confidence: 81, qwenConfidence: 0,
     qwenSummary: "多为轻质纸屑，室外清扫能力可覆盖。", afterImage: asset("CAM-OUT-01", "event-outdoor-tissue-001", "after.png"), steps: standard,
   },
   {
-    id: "liquid", triggerLabel: "A栋1F大堂 · 液体污渍", cameraId: "CAM-A1-01", eventTitle: "A栋1F大堂发现液体污渍", category: "液体污渍", confidence: 58, qwenConfidence: 0,
+    id: "liquid", demoCode: "Demo02", triggerLabel: "A栋1F大堂 · 液体污渍", presentationFocus: "多视角取证排除反光歧义", cameraId: "CAM-A1-01", eventTitle: "A栋1F大堂发现液体污渍", category: "液体污渍", confidence: 58, qwenConfidence: 0,
     qwenSummary: "跨视角证据排除了反光、镜头污渍与光照干扰，确认为需立即处理的液体污渍。", afterImage: asset("CAM-A1-01", "event-beverage-spill-002", "after.png"), steps: ["DISCOVERED", "EDGE_DETECTED", "MULTI_VIEW", "CLOUD_REVIEW", "LOCATING", "ROBOT_ASSIGNED", "NAVIGATING", "CLEANING", "VERIFYING", "CLOSED"],
   },
   {
-    id: "can", triggerLabel: "A栋2F连廊区域 · 易拉罐", cameraId: "CAM-A2-08", eventTitle: "A栋2F连廊区域发现易拉罐", category: "易拉罐", confidence: 84, qwenConfidence: 0,
+    id: "can", demoCode: "Demo03", triggerLabel: "A栋2F连廊区域 · 易拉罐", presentationFocus: "跨楼、电梯与连廊的路线调度", cameraId: "CAM-A2-08", eventTitle: "A栋2F连廊区域发现易拉罐", category: "易拉罐", confidence: 84, qwenConfidence: 0,
     qwenSummary: "室内小型固体垃圾，蜗小白 SC50 的拾取与地面清洁能力满足要求。", afterImage: asset("CAM-A2-08", "event-indoor-can-003", "after.png"), steps: ["DISCOVERED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATING", "ROBOT_ASSIGNED", "NAVIGATING", "CLEANING", "VERIFYING", "CLOSED"],
   },
   {
-    id: "oversized", triggerLabel: "A栋公共区域 · 大件物品", cameraId: "CAM-A2-11", eventTitle: "A栋2F公共区域发现大件物品", category: "大件物品", confidence: 82, qwenConfidence: 0,
+    id: "oversized", demoCode: "Demo04", triggerLabel: "A栋公共区域 · 大件物品", presentationFocus: "能力不足时转人工，仍保留验收闭环", cameraId: "CAM-A2-11", eventTitle: "A栋2F公共区域发现大件物品", category: "大件物品", confidence: 82, qwenConfidence: 0,
     qwenSummary: "废弃待清运的大件物品；由云端判断处置需求。", afterImage: asset("CAM-A2-11", "event-oversized-box-004", "after.png"), steps: ["DISCOVERED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATING", "HUMAN_FALLBACK", "VERIFYING", "CLOSED"],
   },
 ];

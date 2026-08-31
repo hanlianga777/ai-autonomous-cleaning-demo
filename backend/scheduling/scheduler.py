@@ -24,8 +24,13 @@ def _score(task: dict, candidate: dict) -> dict[str, float]:
 def make_assignment_decision(task: dict, evaluations: list[dict]) -> dict:
     candidates = []
     for evaluation in evaluations:
-        robot = evaluation["robot"]
-        entry = {"robot_id": robot["id"], "robot_name": robot["short_name"], "eligible": evaluation["eligible"], "reject_reasons": evaluation["reject_reasons"], "score_components": {}, "final_score": None, "route": evaluation["route"]}
+        robot, profile = evaluation["robot"], evaluation["profile"]
+        position = robot.get("coordinates") or {}
+        entry = {
+            "robot_id": robot["id"], "robot_name": robot["short_name"], "eligible": evaluation["eligible"], "reject_reasons": evaluation["reject_reasons"], "score_components": {}, "final_score": None, "route": evaluation["route"],
+            "battery": robot.get("battery"), "capabilities": sorted(profile["capabilities"]), "surfaces": sorted(profile["surfaces"]), "service_scope": profile["service_scope"],
+            "map_id": robot.get("map_id"), "current_location": robot.get("location") or f"{robot.get('building', '')}栋 {robot.get('floor', '')} · X {position.get('x', '—')} / Y {position.get('y', '—')}",
+        }
         if evaluation["eligible"]:
             components = _score(task, evaluation)
             entry["score_components"] = components

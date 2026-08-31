@@ -162,6 +162,19 @@ export function archiveUrlWithSelection(url: string, eventId: string | null): st
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
 
+/** A workbench handoff marks context in the URL only; it is never sent to the API. */
+export function archiveDemoEntryUrl(eventId: string): string {
+  const params = new URLSearchParams({ event: eventId, entry: "demo" });
+  return `/events?${params.toString()}`;
+}
+
+export function isDemoEntry(url: string): boolean {
+  try {
+    const params = new URL(url, "http://event-center.local").searchParams;
+    return params.get("entry") === "demo" && Boolean(params.get("event")?.trim());
+  } catch { return false; }
+}
+
 export function archiveFilterKey(filters: ArchiveFilters): string {
   return archiveQuery({ ...filters, offset: 0 }).toString();
 }
