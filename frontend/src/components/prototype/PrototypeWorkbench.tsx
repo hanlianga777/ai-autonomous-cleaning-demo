@@ -1,5 +1,5 @@
 import { BarChart3, CircleDot, ClipboardList, LayoutDashboard, Settings2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { CameraMonitorGrid } from "./CameraMonitorGrid";
 import { AnalyticsView } from "./AnalyticsView";
 import { AdvancedView } from "./AdvancedView";
@@ -9,7 +9,7 @@ import { scenarios, stageCopy } from "./data";
 import { SpatialDispatchView } from "./SpatialDispatchView";
 import { PanelBoundary } from "./PanelBoundary";
 import { displayStates, fromStoredEvent } from "./eventViewModel";
-import { canApplySnapshot, canAutoAdvance, canStartDemo, claimStage, isEventPaused, isTerminalEvent, loadEventSnapshot, operationsOwnsEvent, readRequestKeys } from "./runtimeSession";
+import { canApplySnapshot, canStartDemo, isEventPaused, isTerminalEvent, loadEventSnapshot, operationsOwnsEvent } from "./runtimeSession";
 import { FloatingRobotOperationsAgent } from "@/components/robot-operations/RobotOperationsPanel";
 import { RobotOperationsProvider } from "@/components/robot-operations/RobotOperationsProvider";
 import { archivePageContext } from "@/components/robot-operations/robotOperationsModel";
@@ -56,7 +56,6 @@ export function PrototypeWorkbench() {
   const [workbenchEntry, setWorkbenchEntry] = useState(0);
   const [syncNotice, setSyncNotice] = useState("");
   const [archiveAgentContext, setArchiveAgentContext] = useState<Record<string, unknown>>(() => archivePageContext(null, null, {}));
-  const submittedStages = useRef(new Set<string>(readStageRequests()));
 
   const navigate = (next: WorkbenchView) => {
     setRuntimeReady(false);
@@ -76,20 +75,38 @@ export function PrototypeWorkbench() {
     return () => { window.removeEventListener("popstate", restoreRoute); window.removeEventListener("cleanops:navigate", restoreRoute); };
   }, []);
 
-  // Re-entering Workbench must refresh ownership/control before any stage can
-  // run: the shared Agent may have changed the event while this page was hidden.
+  // A launcher creates a server-authoritative Show Session.  Browser storage
+  // belongs only to that session: a fresh show is always IDLE, never an
+  // accidental restoration of a prior local event.
   useEffect(() => {
     if (view !== "workbench") return;
     const controller = new AbortController();
-    const eventId = readUiStorage("cleanops.current-event");
     setRestoring(true);
     setRuntimeReady(false);
-    if (!eventId) { setRestoring(false); setRuntimeReady(true); return; }
-    loadEventSnapshot(eventId, controller.signal)
-      .then((saved) => {
-        if (controller.signal.aborted) return;
-        setEvent(saved);
+    const restore = async () => {
+      const response = await fetch("/api/robot-operations/show-session", { signal: controller.signal });
+      if (!response.ok) throw new Error("无法确认当前 Show Session");
+      const payload = await response.json() as { show_session?: { id?: string } | null };
+      const showId = payload.show_session?.id;
+      const storedShowId = readUiStorage("cleanops.workbench-show-session.v1");
+      if (!showId || storedShowId !== showId) {
+        removeUiStorage("cleanops.current-event");
+        removeUiStorage("cleanops.stage-requests");
+        if (showId) writeUiStorage("cleanops.workbench-show-session.v1", showId);
+        setEvent(null);
         setSyncNotice("");
+        return;
+      }
+      const eventId = readUiStorage("cleanops.current-event");
+      if (!eventId) { setEvent(null); setSyncNotice(""); return; }
+      const saved = await loadEventSnapshot(eventId, controller.signal);
+      if (controller.signal.aborted) return;
+      setEvent(saved);
+      setSyncNotice("");
+    };
+    restore()
+      .then((saved) => {
+        void saved;
         setRuntimeReady(true);
       })
       .catch((error) => { if (!controller.signal.aborted) setSyncNotice(`${error.message} 自动推进已停止，请同步已保存状态。`); })
@@ -107,27 +124,8 @@ export function PrototypeWorkbench() {
     });
   };
 
-  const callStage = async (action: string, inFlightState?: ActiveEvent["inFlightState"]) => {
-    const eventId = String(event?.liveResult?.event_id ?? "");
-    if (view !== "workbench" || restoring || !runtimeReady || !eventId || !canAutoAdvance(event)) return;
-    // One request per durable stage. A transport failure must not cause an
-    // effect-driven retry storm or repeat an already completed cloud call.
-    if (!claimStage(submittedStages.current, eventId, action)) return;
-    saveStageRequests(submittedStages.current);
-    if (inFlightState) setEvent((current) => current && ({ ...current, inFlightState, processing: true, stageIndex: stageIndexFor(current.scenario.steps, inFlightState) }));
-    else setEvent((current) => current && ({ ...current, processing: true }));
-    try {
-      const response = await fetch(`/api/demo-v1/events/${encodeURIComponent(eventId)}/${action}`, { method: "POST" });
-      const result = await response.json() as Record<string, unknown>;
-      if (!response.ok) throw new Error(String(result.detail ?? "阶段执行失败"));
-      applyStageResponse(result);
-    } catch (error) {
-      setSyncNotice("阶段请求结果尚不确定，已停止重复提交。可读取已保存状态；不会自动重发云端请求。");
-      setEvent((current) => current && ({ ...current, processing: false, inFlightState: undefined, liveResult: { ...current.liveResult, reason: error instanceof Error ? error.message : "阶段服务暂不可用" } }));
-    }
-  };
-
-  // A reload during a cloud call observes SQLite instead of sending it again.
+  // The browser polls only the backend projection. It never advances a stage;
+  // the authoritative runtime continues while this page is hidden or unmounted.
   useEffect(() => {
     const eventId = String(event?.liveResult?.event_id ?? "");
     if (view !== "workbench" || restoring || !runtimeReady || !eventId || isTerminalEvent(event)) return;
@@ -197,8 +195,7 @@ export function PrototypeWorkbench() {
 
 function readUiStorage(key: string): string | null { try { return localStorage.getItem(key); } catch { return null; } }
 function writeUiStorage(key: string, value: string) { try { localStorage.setItem(key, value); } catch { /* Private mode may disallow UI persistence. */ } }
-function readStageRequests(): string[] { try { return [...readRequestKeys(sessionStorage.getItem("cleanops.stage-requests"))]; } catch { return []; } }
-function saveStageRequests(keys: Set<string>) { try { sessionStorage.setItem("cleanops.stage-requests", JSON.stringify([...keys])); } catch { /* In-memory guard remains active. */ } }
+function removeUiStorage(key: string) { try { localStorage.removeItem(key); sessionStorage.removeItem(key); } catch { /* Private mode may disallow UI persistence. */ } }
 
 function stateIndex(state: string): number {
   return { DETECTED: 0, EDGE_DETECTED: 1, MULTI_VIEW: 2, CLOUD_REVIEW: 3, LOCATED: 4, ASSIGNED: 5, NAVIGATING: 6, ARRIVED: 7, CLEANING_COMPLETED: 8, VERIFYING: 9, CLOSED: 10, HUMAN_FALLBACK: 11, HUMAN_REVIEW: 12 }[state] ?? 0;
