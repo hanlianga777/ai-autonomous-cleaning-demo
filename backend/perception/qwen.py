@@ -57,7 +57,7 @@ def _request_qwen(content: list[dict[str, Any]], model: str, *, messages: list[d
         message = body["choices"][0]["message"]
         if not isinstance(message, dict):
             raise TypeError("Invalid model message")
-    except (HTTPError, URLError, KeyError, IndexError, TypeError, TimeoutError, json.JSONDecodeError) as error:
+    except (HTTPError, URLError, OSError, KeyError, IndexError, TypeError, TimeoutError, json.JSONDecodeError) as error:
         raise RealInferenceError(f"Qwen-VL request failed: {error}") from error
     elapsed = round((perf_counter() - started) * 1000)
     if tools is not None:

@@ -13,6 +13,7 @@ from database import connection
 from database.connection import get_event, reset_fleet_state
 from demo_v1 import service
 from perception import qwen
+from perception.yolo import RealInferenceError
 
 
 def wait_for(event_id: str, expected: set[str], timeout: float = 4.0) -> dict:
@@ -116,3 +117,11 @@ class AutonomousRuntimeTests(unittest.TestCase):
             closed = service.complete_demo04_manual(event_id)
         self.assertEqual(closed["state"], "CLOSED")
         self.assertEqual(get_event(event_id)["state"], "CLOSED")
+
+    def test_transport_disconnect_is_a_retryable_controlled_failure(self) -> None:
+        """A provider connection reset must not strand a backend event mid-stage."""
+        with patch.dict(os.environ, {"DASHSCOPE_API_KEY": "test-key"}), \
+             patch.object(qwen, "urlopen", side_effect=OSError("connection reset by peer")):
+            with self.assertRaises(RealInferenceError) as raised:
+                qwen._request_qwen([], "test-vlm")
+        self.assertIn("Qwen-VL request failed", str(raised.exception))
