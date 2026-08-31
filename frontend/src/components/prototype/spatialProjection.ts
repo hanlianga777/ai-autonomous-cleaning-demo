@@ -16,6 +16,8 @@ export type FleetPosition = {
 
 export type EventTarget = { map_id: string; x: number; y: number };
 
+export type AnalyticsHeatmapPoint = EventTarget & { zone_id?: string };
+
 export type RouteSegment = { from?: string; to?: string; type?: string; cost?: number };
 
 export type NavigationPlan = {
@@ -70,6 +72,18 @@ export const CAMPUS_TOPOLOGY_ANCHORS: Record<string, CanvasPoint> = {
 
 const FALLBACK_ANCHOR: CanvasPoint = { x: 50, y: 50, label: "园区位置" };
 
+// These five positions are calibrated to the visible building/road surfaces
+// in campus-white-model.png.  They are a presentation transform for the
+// canonical backend zones (not a second location source): every key retains
+// the exact map_id + x/y + zone_id returned by Analytics.
+export const ANALYTICS_ZONE_PROJECTIONS: Record<string, CanvasPoint> = {
+  "a1-east-entrance": { x: 40.0, y: 57.5, label: "A 栋 1F · 东入口" },
+  "a1-main-lobby": { x: 31.5, y: 48.5, label: "A 栋 1F · 主大堂" },
+  "b1-west-lobby": { x: 66.5, y: 58.5, label: "B 栋 1F · 西侧大堂" },
+  "outdoor-east-road": { x: 87.0, y: 76.0, label: "园区室外 · 东入口道路" },
+  "a2-corridor": { x: 29.0, y: 30.0, label: "A 栋 2F · 北侧走廊" },
+};
+
 function clamp(value: number, minimum = 2, maximum = 98): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
@@ -105,6 +119,18 @@ export function projectMapCoordinate(mapId: string, x: number, y: number): Canva
     label: anchor.label,
     nodeId: anchor.nodeId,
   };
+}
+
+/**
+ * Project a factual Analytics aggregation onto its matching white-model area.
+ * Canonical zones use the verified calibration above; other legitimate
+ * runtime rows retain the general map projection rather than being invented
+ * or silently dropped from the density layer.
+ */
+export function projectAnalyticsHeatmapPoint(point: AnalyticsHeatmapPoint): CanvasPoint {
+  const calibrated = point.zone_id ? ANALYTICS_ZONE_PROJECTIONS[point.zone_id] : undefined;
+  if (calibrated) return { ...calibrated };
+  return projectMapCoordinate(point.map_id, point.x, point.y);
 }
 
 export function projectTopologyNode(nodeId: string): CanvasPoint | null {

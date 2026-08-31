@@ -5,7 +5,7 @@ import { AnalyticsChart } from "@/components/analytics/AnalyticsChart";
 import { MapCanvas } from "./MapCanvas";
 import { eventTypeLabel } from "./eventArchiveModel";
 import { customerTerm } from "./eventViewModel";
-import { projectMapCoordinate } from "./spatialProjection";
+import { projectAnalyticsHeatmapPoint } from "./spatialProjection";
 import { AnalyticsAdviceCards, AnalyticsAgentChat } from "@/components/robot-operations/RobotOperationsPanel";
 import {
   DEFAULT_ANALYTICS_FILTERS, analyticsQuery, formatMetric, hotspotDrilldownUrl,
@@ -51,7 +51,7 @@ export function AnalyticsView() {
   }, [filters]);
 
   useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => controller.abort(); }, [load]);
-  const projectedHeatmap = useMemo(() => (overview?.heatmap ?? []).map((point, index) => ({ point, index, position: projectMapCoordinate(point.map_id, point.x, point.y) })), [overview]);
+  const projectedHeatmap = useMemo(() => (overview?.heatmap ?? []).map((point, index) => ({ point, index, position: projectAnalyticsHeatmapPoint(point) })), [overview]);
   const coordinateGroups = useMemo(() => {
     const grouped = new Map<string, typeof projectedHeatmap>();
     projectedHeatmap.forEach((entry, index) => {

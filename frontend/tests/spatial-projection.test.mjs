@@ -46,6 +46,21 @@ test("robot and event at the same Phase 2 coordinate share one projection", () =
   assert.ok(moved.x > marker.x && moved.y > marker.y);
 });
 
+test("five canonical analytics zones land in their verified campus white-model areas", () => {
+  const zones = [
+    ["a1-east-entrance", "A_1F", 43, 25, { minX: 37, maxX: 43, minY: 54, maxY: 61 }],
+    ["a1-main-lobby", "A_1F", 29.5, 27, { minX: 27, maxX: 36, minY: 44, maxY: 53 }],
+    ["b1-west-lobby", "B_1F", 18, 21, { minX: 62, maxX: 70, minY: 54, maxY: 63 }],
+    ["outdoor-east-road", "OUTDOOR", 58, 18, { minX: 82, maxX: 92, minY: 72, maxY: 81 }],
+    ["a2-corridor", "A_2F", 16, 18, { minX: 25, maxX: 34, minY: 26, maxY: 35 }],
+  ];
+  for (const [zone_id, map_id, x, y, bounds] of zones) {
+    const projected = projection.projectAnalyticsHeatmapPoint({ zone_id, map_id, x, y });
+    assert.ok(projected.x >= bounds.minX && projected.x <= bounds.maxX, `${zone_id} x is inside its visual area`);
+    assert.ok(projected.y >= bounds.minY && projected.y <= bounds.maxY, `${zone_id} y is inside its visual area`);
+  }
+});
+
 test("backend route includes persisted Fleet start, Dijkstra nodes and SLAM target continuously", () => {
   const fleet = { id: "robot-c", map_id: "B_1F", coordinates: { x: 24, y: 26 } };
   const target = { map_id: "A_2F", x: 20, y: 23 };

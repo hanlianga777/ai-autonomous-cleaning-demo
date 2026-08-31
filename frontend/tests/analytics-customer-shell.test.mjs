@@ -16,6 +16,8 @@ test("analytics is a fixed customer operating view without a filter form or dupl
 });
 
 test("analytics hotspot labels and the fixed Chat are customer-facing", () => {
+  assert.match(source, /projectAnalyticsHeatmapPoint\(point\)/);
+  assert.doesNotMatch(source, /projectMapCoordinate\(point\.map_id/);
   assert.match(source, /title=\{`\$\{mapLabel\(key\)\}：\$\{count\} 条事件`\}/);
   assert.match(source, /hotspotIndex < 3 \? "animate-pulse"/);
   assert.match(source, /border-0 bg-transparent/);
