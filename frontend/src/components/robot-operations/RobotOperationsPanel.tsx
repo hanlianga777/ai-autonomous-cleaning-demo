@@ -1,18 +1,48 @@
-import { Bot, LoaderCircle, MessageCircle, Send, X } from "lucide-react";
+import { ArrowUpRight, Bot, LoaderCircle, MessageCircle, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useRobotOperations } from "./RobotOperationsProvider";
 import { FLOATING_BALL_SIZE, FLOATING_CHAT_SIZE, FLOATING_EXPANDED_KEY, FLOATING_POSITION_KEY, clampFloatingPosition, customerAgentMessage, defaultFloatingPosition, parseStoredPosition, readStorage, writeStorage, type AdviceItem } from "./robotOperationsModel";
 
 type PageContext = Record<string, unknown>;
 
-function Messages({ compact = false }: { compact?: boolean }) {
+const QUICK_PROMPTS = [
+  "当前有哪些事件需要优先处理？",
+  "过去 30 天哪些区域问题较多？",
+  "三台清洁机器人现在是什么状态？",
+  "A栋1F液体污渍如何改善？",
+];
+
+function conciseCustomerReply(content: string): string {
+  const source = customerAgentMessage(content).replace(/^本轮未执行任务写操作。\s*/, "").trim();
+  const total = source.match(/当前共有\s*(\d+)\s*条事件/);
+  const pending = source.match(/需人工介入\/待处理[^。\n]*?共\s*(\d+)\s*条/);
+  const location = source.match(/位于\s*([^，。；\n]+?)(?:，|。|；|\s已)/);
+  if (total && pending) return `当前情况：共有 ${total[1]} 条事件，其中 ${pending[1]} 条需要人工关注。\n\n建议：优先复核${location?.[1] ?? "未闭环点位"}，确认后再安排后续处理。`;
+  const sentences = source.split(/(?<=[。！？])\s*/).map((item) => item.trim()).filter((item) => item && !/工具|返回列表|Task ID|session/i.test(item));
+  return sentences.slice(0, 3).join("\n\n") || "暂未获得可展示的运营结论。";
+}
+
+function StructuredAssistantMessage({ content }: { content: string }) {
+  const sections = conciseCustomerReply(content).split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
+  return <div className="space-y-2.5">{sections.map((section, index) => {
+    const match = section.match(/^([^：:]{1,14})[：:]\s*(.+)$/s);
+    return match ? <div key={`${match[1]}-${index}`} className="grid grid-cols-[74px_minmax(0,1fr)] gap-2 border-b border-slate-100 pb-2 last:border-0 last:pb-0"><span className="text-[11px] font-medium text-slate-400">{match[1]}</span><p className="text-[12px] leading-5 text-slate-700">{match[2]}</p></div> : <p key={`${section}-${index}`} className="text-[12px] leading-5 text-slate-700">{section}</p>;
+  })}</div>;
+}
+
+function QuickPrompts({ pageContext, disabled }: { pageContext: PageContext; disabled: boolean }) {
+  const { sendMessage } = useRobotOperations();
+  return <section className="mx-auto w-full max-w-[310px]" aria-label="运营助手推荐问题"><div className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold text-slate-700"><Sparkles size={14} className="text-sky-600" />推荐问题</div><div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white/80 shadow-sm">{QUICK_PROMPTS.map((prompt) => <button key={prompt} type="button" disabled={disabled} onClick={() => void sendMessage(prompt, pageContext)} className="group flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-[12px] text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"><span>{prompt}</span><ArrowUpRight size={13} className="shrink-0 text-slate-300 transition group-hover:text-sky-600" /></button>)}</div></section>;
+}
+
+function Messages({ pageContext }: { pageContext: PageContext }) {
   const { session, loading, error, pending } = useRobotOperations();
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [pending, session?.messages.length]);
   if (loading) return <div className="flex flex-1 items-center justify-center px-3 text-[11px] text-slate-500">正在连接运营助手…</div>;
   if (!session) return <div className="flex flex-1 items-center justify-center px-3 text-center text-[11px] leading-5 text-amber-700">{error ?? "运营助手暂不可用。"}</div>;
   const busy = pending || Boolean(session.busy);
-  return <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">{session.messages.length ? session.messages.map((message) => <article key={message.id} className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-[13px] leading-6 shadow-sm ${message.role === "user" ? "ml-10 bg-slate-900 text-white" : "mr-5 border border-slate-200 bg-white text-slate-700"}`}>{message.role !== "user" && <p className="mb-1 text-[11px] font-semibold text-slate-400">AI运营助手</p>}{customerAgentMessage(message.content)}</article>) : <p className="py-10 text-center text-[13px] leading-6 text-slate-500">你好，我是 AI运营助手。可以查询当前事件、机器人状态，或下达合法的配送与调度指令。</p>}{busy && <p className="flex items-center gap-1.5 text-[12px] text-slate-500"><LoaderCircle size={14} className="animate-spin" />正在发送并等待运营助手响应…</p>}{error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-800">{customerAgentMessage(error)}</p>}</div>;
+  return <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">{session.messages.length ? session.messages.map((message) => message.role === "user" ? <article key={message.id} className="ml-10 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-[13px] leading-6 text-white shadow-sm">{customerAgentMessage(message.content)}</article> : <article key={message.id} className="mr-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm"><div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400"><Bot size={13} />AI运营助手</div><StructuredAssistantMessage content={message.content} /></article>) : <div className="flex min-h-full flex-col justify-center py-8"><div className="mx-auto mb-6 max-w-[300px] text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><Bot size={19} /></span><p className="mt-3 text-[14px] font-semibold text-slate-800">今天想了解什么？</p><p className="mt-1 text-[12px] leading-5 text-slate-500">可快速查看事件、热区与机器人状态。</p></div><QuickPrompts pageContext={pageContext} disabled={busy} /></div>}{busy && <p className="flex items-center gap-1.5 text-[12px] text-slate-500"><LoaderCircle size={14} className="animate-spin" />正在发送并等待运营助手响应…</p>}{error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-800">{customerAgentMessage(error)}</p>}</div>;
 }
 
 function Composer({ pageContext }: { pageContext: PageContext }) {
@@ -24,7 +54,7 @@ function Composer({ pageContext }: { pageContext: PageContext }) {
 }
 
 export function RobotOperationsChat({ pageContext, className = "" }: { pageContext: PageContext; className?: string }) {
-  return <section className={`flex min-h-0 flex-col bg-white ${className}`} aria-label="Robot Operations Agent 对话"><Messages /><Composer pageContext={pageContext} /></section>;
+  return <section className={`flex min-h-0 flex-col bg-white ${className}`} aria-label="Robot Operations Agent 对话"><Messages pageContext={pageContext} /><Composer pageContext={pageContext} /></section>;
 }
 
 export function FloatingRobotOperationsAgent({ pageContext }: { pageContext: PageContext }) {
@@ -56,7 +86,7 @@ export function FloatingRobotOperationsAgent({ pageContext }: { pageContext: Pag
   return <section className="fixed z-[70] flex h-[min(560px,calc(100dvh-32px))] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" style={{ left: panelPosition.x, top: panelPosition.y }} aria-label="AI运营助手完整对话窗口"><header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-900 px-4 py-3 text-white"><div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-400 text-slate-900"><Bot size={19} /></span><div><p className="text-[14px] font-semibold">AI运营助手</p><p className="text-[11px] text-slate-300">协助查询事件与执行进度</p></div></div><button type="button" onClick={toggleExpanded} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="收起为 AI 悬浮球"><X size={18} /></button></header><RobotOperationsChat pageContext={pageContext} /></section>;
 }
 export function AnalyticsAgentChat({ pageContext }: { pageContext: PageContext }) {
-  return <aside className="sticky top-0 flex h-[calc(100dvh-54px)] min-h-[560px] flex-col border-l border-slate-200 bg-white" aria-label="AI运营助手固定对话"><header className="border-b border-slate-200 px-4 py-4"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white"><Bot size={16} /></span><p className="text-[14px] font-semibold text-slate-900">AI运营助手</p></div></header><RobotOperationsChat pageContext={pageContext} /></aside>;
+  return <aside className="sticky top-0 flex h-[calc(100dvh-54px)] min-h-[560px] flex-col border-l border-slate-200 bg-white" aria-label="AI运营助手固定对话"><header className="border-b border-slate-200 px-4 py-4"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white"><Bot size={16} /></span><div><p className="text-[14px] font-semibold text-slate-900">AI运营助手</p><p className="text-[11px] text-slate-400">面向园区的快速运营问答</p></div></div></header><RobotOperationsChat pageContext={pageContext} /></aside>;
 }
 
 function adviceCardLines(item: AdviceItem): [string, string] {

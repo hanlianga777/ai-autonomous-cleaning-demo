@@ -19,10 +19,22 @@ test("chat immediately renders the submitted user message while the server respo
 
 test("customer chat removes the user label and hides the task card from the conversation", () => {
   assert.doesNotMatch(panel, /message.role === "user" ? "你"/);
-  assert.match(panel, /message.role !== "user".*AI运营助手/);
+  assert.match(panel, /message.role === "user"/);
+  assert.match(panel, /<StructuredAssistantMessage content=\{message\.content\} \/>/);
   assert.doesNotMatch(panel, /当前任务|TaskCard|recentTasks/);
   assert.match(panel, /event.key === "Enter"/);
   assert.match(panel, /aria-label="发送"/);
+});
+
+test("the empty chat gives demo-specific recommendations and formats assistant replies", () => {
+  assert.match(panel, /当前有哪些事件需要优先处理？/);
+  assert.match(panel, /过去 30 天哪些区域问题较多？/);
+  assert.match(panel, /三台清洁机器人现在是什么状态？/);
+  assert.match(panel, /A栋1F液体污渍如何改善？/);
+  assert.match(panel, /aria-label="运营助手推荐问题"/);
+  assert.match(panel, /grid-cols-\[74px_minmax\(0,1fr\)\]/);
+  assert.match(panel, /function conciseCustomerReply/);
+  assert.match(panel, /sentences\.slice\(0, 3\)/);
 });
 
 test("advice cards use two concise, complete customer-facing lines", () => {

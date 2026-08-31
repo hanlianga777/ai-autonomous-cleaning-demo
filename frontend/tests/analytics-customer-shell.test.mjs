@@ -35,3 +35,13 @@ test("analytics removes auxiliary copy and the floor-button footer while retaini
   assert.match(chat, /adviceCardLines/);
   assert.doesNotMatch(chat, /line-clamp-2/);
 });
+
+test("analytics uses a fixed low-saturation 30-day density field rather than live work-order points", () => {
+  assert.match(source, /function HistoricalHeatmapOverlay/);
+  assert.match(source, /固定展示过去 30 天的高发密度区域/);
+  assert.match(source, /radialGradient id="heatmap-red"/);
+  assert.match(source, /radialGradient id="heatmap-blue"/);
+  assert.match(source, /radialGradient id="heatmap-gold"/);
+  assert.match(source, /<HistoricalHeatmapOverlay \/>/);
+  assert.doesNotMatch(source, /type:\s*"heatmap"/);
+});
