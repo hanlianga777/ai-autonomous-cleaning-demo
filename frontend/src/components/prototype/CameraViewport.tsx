@@ -7,7 +7,7 @@ import type { Camera } from "./types";
  * but the image and its controlled overlays must share the same 4:3 layer.
  * This keeps bbox coordinates stable even when the viewport has letterboxes.
  */
-export function CameraViewport({ camera, showDetections = false, compact = false, zoomable = true, fill = false }: { camera: Camera; showDetections?: boolean; compact?: boolean; zoomable?: boolean; fill?: boolean }) {
+export function CameraViewport({ camera, showDetections = false, compact = false, zoomable = true, fill = false, presentationLabel }: { camera: Camera; showDetections?: boolean; compact?: boolean; zoomable?: boolean; fill?: boolean; presentationLabel?: string }) {
   const [zoomed, setZoomed] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -24,7 +24,7 @@ export function CameraViewport({ camera, showDetections = false, compact = false
   useEffect(() => { const close = (event: KeyboardEvent) => event.key === "Escape" && setZoomed(false); window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
   const frame = <div ref={container} className={`relative flex w-full items-center justify-center overflow-hidden bg-slate-950 ${fill ? "h-full" : compact ? "aspect-[4/3]" : "aspect-video"}`}>
     <div data-testid="camera-image-plane" className="relative shrink-0" style={size}>
-      <img src={camera.image} alt={`${camera.id} ${camera.location}`} className="absolute inset-0 h-full w-full object-contain" />
+      <img src={camera.image} alt={presentationLabel ?? camera.location} className="absolute inset-0 h-full w-full object-contain" />
       {showDetections && camera.overlay?.map((item, index) => {
         const [x1, y1, x2, y2] = item.bbox;
         const paddingX = 0; const paddingY = 0;
@@ -35,5 +35,6 @@ export function CameraViewport({ camera, showDetections = false, compact = false
     </div>
   </div>;
   if (!zoomable) return frame;
-  return <><button type="button" onClick={() => setZoomed(true)} aria-label={`放大查看 ${camera.id}`} className={`block w-full text-left ${fill ? "h-full" : ""}`}>{frame}</button>{zoomed && <div role="dialog" aria-modal="true" aria-label={`${camera.id} 证据放大`} onClick={() => setZoomed(false)} className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 p-6"><div onClick={(event) => event.stopPropagation()} className="relative h-[80vh] w-full max-w-6xl"><button type="button" onClick={() => setZoomed(false)} className="absolute -right-1 -top-10 flex h-8 w-8 items-center justify-center border border-white/50 bg-slate-900 text-white" aria-label="关闭放大图"><X size={16} /></button><CameraViewport camera={camera} showDetections={showDetections} zoomable={false} fill /><p className="mt-2 text-center text-xs text-white/75">{camera.id} · {camera.location}</p></div></div>}</>;
+  const label = presentationLabel ?? camera.location;
+  return <><button type="button" onClick={() => setZoomed(true)} aria-label={`放大查看 ${label}`} className={`block w-full text-left ${fill ? "h-full" : ""}`}>{frame}</button>{zoomed && <div role="dialog" aria-modal="true" aria-label={`${label} 证据放大`} onClick={() => setZoomed(false)} className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 p-6"><div onClick={(event) => event.stopPropagation()} className="relative h-[80vh] w-full max-w-6xl"><button type="button" onClick={() => setZoomed(false)} className="absolute -right-1 -top-10 flex h-8 w-8 items-center justify-center border border-white/50 bg-slate-900 text-white" aria-label="关闭放大图"><X size={16} /></button><CameraViewport camera={camera} showDetections={showDetections} zoomable={false} fill presentationLabel={label} /><p className="mt-2 text-center text-xs text-white/75">{label}</p></div></div>}</>;
 }

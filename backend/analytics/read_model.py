@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 
 from analytics.history_seed import LOCAL_ZONE
 from database.connection import ROBOT_PRESENTATION
+from customer_data import customer_events
 from event_archive.service import project_event, read_archived_events, utc_time, TIME_SLOTS
 
 ROBOT_LABELS = {key: value["name"] for key, value in ROBOT_PRESENTATION.items() if key != "robot-d"}
@@ -108,7 +109,7 @@ def history(now, start, end, event_type=None, hour=None, raw_events=None, time_s
     if time_slot and time_slot not in TIME_SLOTS:
         raise ValueError("Unknown time slot.")
     rows = []
-    for event in read_archived_events() if raw_events is None else raw_events:
+    for event in customer_events(read_archived_events() if raw_events is None else raw_events):
         row = record(event, now)
         stamp = utc_time(row["timestamp"])
         if not stamp or not start <= stamp <= end:
@@ -229,7 +230,7 @@ def utilization(rows, start, end):
 def analytics_overview(*, event_type=None, since=None, until=None, hour=None, now=None, time_slot=None):
     now = now or datetime.now(timezone.utc)
     start, end = window(now, since, until)
-    raw_events = read_archived_events()
+    raw_events = customer_events(read_archived_events())
     rows = history(now, start, end, event_type, hour, raw_events, time_slot)
     carried = history(now, datetime.min.replace(tzinfo=timezone.utc), end, event_type, hour, raw_events, time_slot)
     metrics = calculate_kpis(rows)

@@ -11,6 +11,7 @@ import json
 from typing import Any
 
 from database.connection import database_session
+from customer_data import customer_events, is_customer_event
 
 
 CATEGORIES = {"all", "in_progress", "autonomous_closed", "human_pending", "exception"}
@@ -53,6 +54,19 @@ def read_archived_events() -> list[dict]:
         })
     return [{**json.loads(row["payload"]), "created_at": row["created_at"], "updated_at": row["updated_at"],
              "transitions": by_event.get(row["event_id"], [])} for row in rows]
+
+
+def archived_event_snapshot(event_id: str) -> dict:
+    """Return a historical archive record without reopening legacy workflow APIs.
+
+    Integrated events have their own authoritative temporal-evidence projection
+    and are dispatched by the route layer before reaching this history helper.
+    This function deliberately reads only the event-time SQLite record.
+    """
+    event = next((item for item in read_archived_events() if item.get("event_id") == event_id and is_customer_event(item)), None)
+    if event is None:
+        raise ValueError("Archived event was not found.")
+    return event
 
 
 def _system_failure(event: dict, snapshot: dict) -> bool:
@@ -133,7 +147,7 @@ def archive_index(*, category: str = "all", q: str = "", event_type: str | None 
     now = now or datetime.now(timezone.utc)
     terms = q.casefold().split()
     rows = []
-    for event in read_archived_events():
+    for event in customer_events(read_archived_events()):
         row = project_event(event, now)
         stamp = utc_time(row["discovered_at"])
         if begin and (stamp is None or stamp < begin) or end and (stamp is None or stamp > end):

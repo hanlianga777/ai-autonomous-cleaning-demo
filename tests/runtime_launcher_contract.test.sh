@@ -91,7 +91,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 port, include_openapi = int(sys.argv[1]), sys.argv[2] == "yes"
 health = {"status":"ok", "release_contract":"cleanops.interview.v1", "capabilities":["stage_runtime","event_archive","analytics","robot_operations","advanced_observability","spatial_v2"]}
-paths = {"/api/event-archive":{"get":{}}, "/api/robot-operations/sessions":{"post":{}}, "/api/spatial/overview":{"get":{}}} if include_openapi else {}
+paths = {"/api/event-archive":{"get":{}}, "/api/robot-operations/sessions":{"post":{}}, "/api/robot-operations/show-session":{"post":{}}, "/api/system/ai-readiness/probe":{"post":{}}, "/api/demo-v1/events":{"post":{}}, "/api/spatial/overview":{"get":{}}} if include_openapi else {}
 class Handler(BaseHTTPRequestHandler):
   def do_GET(self):
     body = health if self.path == "/api/health" else [{"id":"robot-a"},{"id":"robot-b"},{"id":"robot-c"},{"id":"robot-d"}] if self.path == "/api/robots" else {"paths":paths} if self.path == "/openapi.json" else {}
@@ -114,5 +114,15 @@ for _ in {1..20}; do runtime_port_in_use 18103 && break; sleep 0.1; done
 if runtime_preflight_backend 18103 >/dev/null; then fail "missing OpenAPI routes were accepted"; fi
 pass "health-only service with missing routes rejected"
 
+# A source-compatible but old owned backend must not be reused: the launcher
+# performs an ownership-checked SIGTERM before every new Show Session.
+grep -q 'restarting verified launcher-owned runtime for current source' "$PROJECT_DIR/start_demo.command" || fail "owned backend freshness restart is absent"
+grep -q 'restarting verified launcher-owned Vite for current source' "$PROJECT_DIR/start_demo.command" || fail "owned frontend freshness restart is absent"
+grep -q '"/api/robot-operations/show-session":"post"' "$PROJECT_DIR/scripts/runtime_launcher_lib.sh" || fail "show-session missing from OpenAPI preflight"
+grep -q '"/api/system/ai-readiness/probe":"post"' "$PROJECT_DIR/scripts/runtime_launcher_lib.sh" || fail "readiness probe missing from OpenAPI preflight"
+grep -q '"/api/demo-v1/events":"post"' "$PROJECT_DIR/scripts/runtime_launcher_lib.sh" || fail "official event creation missing from OpenAPI preflight"
+pass "owned runtime freshness and current API requirements are enforced"
+
 grep -q -- '--port "$FRONTEND_PORT" --strictPort' "$PROJECT_DIR/start_demo.command" || fail "frontend is not locked to the requested official port"
+grep -q 'VITE_API_PROXY_TARGET="http://127.0.0.1:$BACKEND_PORT"' "$PROJECT_DIR/start_demo.command" || fail "frontend proxy does not follow the launcher backend port"
 pass "official frontend remains strict-port"

@@ -45,11 +45,35 @@ test("newest-first task records keep the newest three visible", () => {
 test("customer task labels do not fabricate external or telemetry state", () => {
   assert.equal(model.taskKindLabel("relocation"), "待命调度");
   assert.equal(model.taskStatusLabel("ASSIGNED"), "已分配");
-  assert.equal(model.taskStatusLabel("UNSEEN_BACKEND_STATE"), "UNSEEN_BACKEND_STATE");
+  assert.equal(model.taskStatusLabel("UNSEEN_BACKEND_STATE"), "状态待确认");
   assert.equal(model.taskExecutorLabel({ task_id: "human-1", kind: "cleaning", status: "HUMAN_FALLBACK", source: "POC_SIMULATION", robot_id: null }), "处置方式：人工搬运");
   assert.equal(model.taskExecutorLabel({ task_id: "pending-1", kind: "cleaning", status: "CREATED", source: "POC_SIMULATION", robot_id: null }), "执行对象：待调度");
   assert.equal(model.taskExecutorLabel({ task_id: "robot-1", kind: "cleaning", status: "ASSIGNED", source: "POC_SIMULATION", robot_id: "robot-b" }), "机器人：高仙 Omnie");
   assert.equal(model.taskLocationLabel("East Corridor"), "东侧走廊");
+});
+
+test("customer chat redacts internal identifiers and runtime enums", () => {
+  const copy = model.customerAgentMessage("robot-b 正在处理 integrated-demo02-a1b2；POI 为 a2-corridor，状态 HUMAN_FALLBACK，zone_id=a2-corridor");
+  assert.match(copy, /高仙 Omnie/);
+  assert.doesNotMatch(copy, /integrated-demo|a2-corridor|HUMAN_FALLBACK|zone_id/i);
+});
+
+test("customer chat projects task jargon into business language", () => {
+  const copy = model.customerAgentMessage("Task ID: task-3\n类型: delivery (POC SIMULATION)\n状态: CREATED\nPOI: outdoor-standby");
+  assert.match(copy, /本次任务/);
+  assert.match(copy, /配送任务/);
+  assert.match(copy, /已创建/);
+  assert.match(copy, /园区室外道路待命点/);
+  assert.doesNotMatch(copy, /Task ID|delivery|POC|CREATED|outdoor-standby|POI/i);
+});
+
+test("customer presentation consistently uses formal robot, state and location labels", () => {
+  assert.equal(model.taskRobotLabel("robot-c"), "蜗小白 SC50");
+  assert.equal(model.taskRobotLabel("unknown-robot"), "未分配机器人");
+  assert.equal(model.taskStatusLabel("NAVIGATING"), "机器人前往现场");
+  assert.equal(model.taskStatusLabel("unrecognized"), "状态待确认");
+  assert.equal(model.taskLocationLabel("Main Lobby"), "主大堂");
+  assert.match(model.customerAgentMessage("Robot B 正在处理"), /高仙 Omnie/);
 });
 
 test("advice data window is rendered as a factual label, not an object", () => {

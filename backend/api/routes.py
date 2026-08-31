@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from database.connection import get_event, get_fleet_state, get_transitions_after, list_events, read_snapshot, reset_fleet_state
+from database.connection import get_event, get_fleet_state, read_snapshot, reset_fleet_state
 from event_archive.service import archive_index
 from analytics.service import analytics_overview, heatmap, kpis, robot_utilization, task_history
 from operations.service import list_work_orders, operations_snapshot, start_scenario, start_upload
@@ -12,9 +12,6 @@ from perception.service import MAX_UPLOAD_BYTES, RealInferenceError, ai_lab_sche
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
 from spatial.service import get_map, spatial_overview
-from workflow.engine import WorkflowError, create_mock_event, evaluate_event, event_detail, run_event, run_scenario_02
-from workflow.fixtures import EVENT_TEMPLATES
-from workbench.service import list_scenario_assets, run_scenario_02_workbench, run_workbench_event, run_workbench_upload, scenario_02_assets
 from demo_v1.service import (
     assign_event,
     cloud_review,
@@ -57,6 +54,15 @@ def post_demo_v1_event(
     created = _demo_stage(create_demo_event, demo_id, "STABLE_REPLAY" if mode == "replay" else "LIVE")
     start_autonomous_progression(str(created["event_id"]))
     return created
+
+
+@router.get("/demo-v1/events/{event_id}", tags=["Integrated Customer Demo"])
+def get_demo_v1_event(event_id: str) -> dict:
+    """Read the authoritative customer projection for a live demo event."""
+    try:
+        return customer_event_snapshot(event_id)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 @router.post("/demo-v1/events/{event_id}/edge-review", tags=["Integrated Customer Demo"])
@@ -217,7 +223,7 @@ def post_optimization_recommendations() -> dict:
 
 @router.get("/workbench/scenario02/assets", tags=["Customer Workbench"])
 def get_workbench_scenario_02_assets() -> dict:
-    return scenario_02_assets()
+    raise HTTPException(status_code=410, detail="Retired customer path. The active Workbench uses /api/demo-v1/scenarios and /api/demo-v1/events.")
 
 
 @router.post("/workbench/scenario02/run", tags=["Customer Workbench"])
@@ -227,7 +233,7 @@ def post_workbench_scenario_02_run() -> dict:
 
 @router.get("/workbench/scenarios", tags=["Customer Workbench"])
 def get_workbench_scenarios() -> list[dict]:
-    return list_scenario_assets()
+    raise HTTPException(status_code=410, detail="Retired customer path. Use /api/demo-v1/scenarios.")
 
 
 @router.post("/workbench/events/{event_id}/run", tags=["Customer Workbench"])
@@ -242,13 +248,12 @@ async def post_workbench_upload(file: UploadFile = File(...)) -> dict:
 
 @router.get("/operations/snapshot", tags=["Customer Operations"])
 def get_operations_snapshot(run_id: str | None = Query(None)) -> dict:
-    """Server-projected mock telemetry, work-order and fleet read model."""
-    return operations_snapshot(run_id)
+    raise HTTPException(status_code=410, detail="Retired customer path. Use the active Workbench and Robot Operations Agent projections.")
 
 
 @router.get("/operations/work-orders", tags=["Customer Operations"])
 def get_operations_work_orders(limit: int = Query(50, ge=1, le=100)) -> list[dict]:
-    return list_work_orders(limit)
+    raise HTTPException(status_code=410, detail="Retired customer path. Use /api/event-archive.")
 
 
 @router.post("/operations/runs/{event_id}", tags=["Customer Operations"])
@@ -316,10 +321,7 @@ def get_ai_lab_mock_cases() -> list[dict[str, str]]:
 
 @router.post("/ai-lab/mock-cases/{case_name}", tags=["AI Lab"])
 def post_ai_lab_mock_case(case_name: str) -> dict:
-    try:
-        return analyze_mock_case(case_name)
-    except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="AI Lab mock execution is engineering-test only and is not a customer runtime path.")
 
 
 @router.post("/ai-lab/analyze", tags=["AI Lab"])
@@ -327,16 +329,8 @@ async def post_ai_lab_analyze(
     file: UploadFile = File(...),
     camera_id: str = Query("CAM-A1-01"),
 ) -> dict:
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="An upload filename is required.")
-    try:
-        media_kind(file.filename)
-        file_path = save_upload(file.filename, await file.read())
-        return analyze_upload(file_path, file.filename, camera_id)
-    except (ValueError, RealInferenceError) as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    finally:
-        await file.close()
+    await file.close()
+    raise HTTPException(status_code=410, detail="AI Lab uploads are engineering-test only and are not a customer runtime path.")
 
 
 @router.post("/multiview/scenario02/run", tags=["Multi-view Perception Agent"])
@@ -346,7 +340,7 @@ def post_multiview_scenario_02() -> dict:
 
 @router.get("/events", tags=["Workflow + Scheduler"])
 def get_events(limit: int = Query(20, ge=1, le=100)) -> list[dict]:
-    return list_events(limit)
+    raise HTTPException(status_code=410, detail="Retired customer path. Read customer records through /api/event-archive.")
 
 
 @router.get("/event-archive", tags=["Read-only Event Archive"])
@@ -362,9 +356,21 @@ def get_event_archive(category: str = "all", q: str = Query("", max_length=200),
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
+@router.get("/event-archive/{event_id}", tags=["Read-only Event Archive"])
+def get_event_archive_detail(event_id: str) -> dict:
+    """Read an event through the archive boundary, never the legacy workflow API."""
+    if event_id.startswith("integrated-"):
+        return get_demo_v1_event(event_id)
+    from event_archive.service import archived_event_snapshot
+    try:
+        return archived_event_snapshot(event_id)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
 @router.get("/events/templates", tags=["Workflow + Scheduler"])
 def get_event_templates() -> list[dict]:
-    return [{"template": key, "label": value["label"]} for key, value in EVENT_TEMPLATES.items()]
+    raise HTTPException(status_code=410, detail="Mock workflow templates are engineering-test only.")
 
 
 @router.post("/events/mock/{template_name}", tags=["Workflow + Scheduler"])
@@ -384,31 +390,9 @@ def post_scheduler_evaluate(event_id: str = Query(...)) -> dict:
 
 @router.get("/events/stream", tags=["Workflow + Scheduler"])
 async def stream_events(last_event_id: int = Query(0, ge=0)) -> StreamingResponse:
-    async def event_stream():
-        cursor = last_event_id
-        while True:
-            transitions = get_transitions_after(cursor)
-            for transition in transitions:
-                cursor = transition["id"]
-                yield f"event: workflow\ndata: {json.dumps(transition, ensure_ascii=False)}\n\n"
-            if not transitions:
-                yield ": keepalive\n\n"
-            await asyncio.sleep(0.5)
-    return StreamingResponse(event_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    raise HTTPException(status_code=410, detail="Legacy workflow streaming is retired. Customer surfaces poll the authoritative archive/runtime projections.")
 
 
 @router.get("/events/{event_id}", tags=["Workflow + Scheduler"])
 def get_event_detail(event_id: str) -> dict:
-    # Integrated events are always projected through the authoritative
-    # temporal-evidence gate.  The historical workflow read model remains an
-    # engineering-only compatibility surface and must never leak into the
-    # customer Prototype.
-    if event_id.startswith("integrated-"):
-        try:
-            return customer_event_snapshot(event_id)
-        except ValueError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-    try:
-        return event_detail(event_id)
-    except WorkflowError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Retired customer path. Read customer records through /api/event-archive/{event_id}.")

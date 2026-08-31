@@ -146,6 +146,33 @@ class RobotOperationsTests(TestCase):
         self.assertEqual(result["state"], "HUMAN_REVIEW")
         self.assertFalse(any(item.get("active_event_id") for item in db.get_fleet_state()))
 
+    def test_agent_reads_only_customer_boundary_events_and_evidence(self):
+        customer = workflow.create_demo_event("demo01")
+        self.assertEqual(tools.read("event", customer["event_id"])["source"], "INTERVIEW_RUNTIME")
+        engineering = db.get_event(customer["event_id"])
+        engineering["event_id"] = "test-engineering-event"
+        engineering["source"] = "TEST"
+        db.save_event(engineering)
+        with self.assertRaises(ValueError):
+            tools.read("event", "test-engineering-event")
+        with self.assertRaises(ValueError):
+            tools.camera_evidence("test-engineering-event")
+
+    def test_fresh_agent_session_queries_customer_history_through_read_tool(self):
+        archived = workflow.create_demo_event("demo01")
+        fresh_session = repo.new_session()["id"]
+        sequence = [
+            call("read_operations", {"resource": "events"}),
+            ({"content": "已查询历史事件，可继续查看该事件的处置记录。"}, 8),
+        ]
+        with patch("robot_operations.agent.request_qwen_tool_turn", side_effect=sequence):
+            snapshot = agent.send_message(fresh_session, "查询最近的历史事件", {"page": "archive"})
+        self.assertEqual(snapshot["id"], fresh_session)
+        self.assertTrue(any(row["role"] == "assistant" and "已查询历史事件" in row["content"] for row in snapshot["messages"]))
+        audit = next(row for row in snapshot["audits"] if row.get("tool") == "read_operations")
+        self.assertEqual(audit["args"].get("resource"), "events")
+        self.assertIn(archived["event_id"], {item["event_id"] for item in tools.read("events")["items"]})
+
     def test_original_workbench_endpoint_cannot_bypass_task_lease(self):
         event = workflow.create_demo_event("demo01")
         task = tasks.create_task(self.session_id, "cleaning", event_id=event["event_id"])
@@ -268,6 +295,48 @@ class RobotOperationsTests(TestCase):
         self.assertTrue(any(row.get("task_id") == snapshot["tasks"][0]["task_id"] for row in snapshot["audits"]))
         self.assertEqual(snapshot["messages"][0]["role"], "user")
         self.assertFalse(snapshot["asr"]["available"])
+
+    def test_agent_delivery_dispatches_and_backend_completes_without_ui_advance(self):
+        sequence = [
+            call("create_delivery_task", {"origin_poi": "a1-delivery", "destination_poi": "a2-corridor"}),
+            call("dispatch_task", {"task_id": "TASK_ID_PLACEHOLDER"}, "call-2"),
+        ]
+        # The model learns the generated ID only through the first tool result;
+        # model the second turn dynamically to preserve that truthful contract.
+        def turns(messages, *_args, **_kwargs):
+            if len([row for row in messages if row.get("role") == "tool"]) == 0:
+                return sequence[0]
+            task_id = json.loads([row for row in messages if row.get("role") == "tool"][-1]["content"])["result"]["task_id"]
+            if len([row for row in messages if row.get("role") == "tool"]) == 1:
+                return call("dispatch_task", {"task_id": task_id}, "call-2")
+            return {"content": "配送任务已开始，将持续同步进度。"}, 8
+        with patch("robot_operations.agent.request_qwen_tool_turn", side_effect=turns):
+            snapshot = agent.send_message(self.session_id, "让普渡 FlashBot Max 从A栋1F前台把物料送到A栋2F会议室", {})
+        task_id = snapshot["tasks"][0]["task_id"]
+        for _ in range(30):
+            if tasks.get_task(task_id)["status"] == "CLOSED":
+                break
+            __import__("time").sleep(0.1)
+        self.assertEqual(tasks.get_task(task_id)["status"], "CLOSED")
+
+    def test_agent_policy_acceptance_incomplete_relocation_controls_and_human_guard(self):
+        # B / D: no synthetic task is created when the model asks a business
+        # clarification instead of inventing missing places or a robot.
+        with patch("robot_operations.agent.request_qwen_tool_turn", return_value=({"content": "请说明取件点和送达点。"}, 8)):
+            incomplete = agent.send_message(self.session_id, "帮我配送", {})
+        self.assertEqual(incomplete["tasks"], [])
+        with patch("robot_operations.agent.request_qwen_tool_turn", return_value=({"content": "请明确指定需要待命调度的机器人。"}, 8)):
+            relocation = agent.send_message(self.session_id, "去A栋1F大堂待命", {})
+        self.assertEqual(relocation["tasks"], [])
+        # E: durable explicit controls remain the only state changes.
+        task = self.delivery(); tasks.control(task["task_id"], "dispatch")
+        self.assertEqual(tasks.control(task["task_id"], "pause")["status"], "PAUSED")
+        self.assertEqual(tasks.control(task["task_id"], "resume")["status"], "ASSIGNED")
+        self.assertEqual(tasks.control(task["task_id"], "cancel")["status"], "CANCELLED")
+        # G: no Agent tool can manufacture explicit human completion.
+        task, _ = self.task_owned_human_fallback()
+        with self.assertRaises(ValueError):
+            tools.execute("complete_manual_task", {"task_id": task["task_id"]}, session_id=self.session_id, instruction="请自动完成人工处置")
 
     def test_provider_failure_is_visible_without_fake_reply_or_task(self):
         with patch("robot_operations.agent.request_qwen_tool_turn", side_effect=RuntimeError("provider down")):

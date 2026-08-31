@@ -94,6 +94,10 @@ class DemoV1Tests(unittest.TestCase):
         self.assertEqual(len(cloud.call_args.args[2]), 1)
         agent.assert_not_called()
 
+    def test_new_formal_demo_event_has_explicit_customer_runtime_source(self) -> None:
+        created = create_demo_event("demo01")
+        self.assertEqual(get_event(created["event_id"])["source"], "INTERVIEW_RUNTIME")
+
     def test_large_object_keeps_human_fallback(self) -> None:
         with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_event_qwen_vl", return_value=_review("large_object")):
             result = run_demo("demo04")

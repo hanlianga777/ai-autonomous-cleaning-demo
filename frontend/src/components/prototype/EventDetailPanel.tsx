@@ -34,25 +34,25 @@ export function EventDetailPanel({ event, mode = "live", onCompleteManual }: {
   const pauseFollow = () => { if (mode === "live") setFollow(false); };
   return <aside data-testid="event-detail-panel" data-mode={mode} className="relative flex h-full min-h-0 flex-col border border-slate-200 bg-white">
     <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
-      <div><p className="text-sm font-semibold">{mode === "history" ? "事件处置详情" : "当前事件处置详情"}</p><p className="mt-0.5 text-[10px] text-slate-500">{mode === "history" ? "已保存的业务快照 · 只读" : "发生、判断、调度与验收进度"}</p></div><Clock3 size={16} className="text-slate-400" />
+      <div><p className="text-sm font-semibold">{mode === "history" ? "事件处置详情" : "当前事件处置详情"}</p><p className="mt-0.5 text-[12px] text-slate-500">{mode === "history" ? "已保存的业务快照 · 只读" : "发生、判断、调度与验收进度"}</p></div><Clock3 size={16} className="text-slate-400" />
     </div>
     {!event ? <div className="flex flex-1 flex-col items-center justify-center px-8 text-center"><p className="text-sm font-medium text-slate-700">当前没有事件</p><p className="mt-2 text-xs leading-5 text-slate-500">从监控区的摄像头设置中触发演示，即可查看识别、空间定位、派单、执行及验收全过程。</p></div> : <>
       <div className="shrink-0 border-b border-slate-100 px-4 py-3">
         <p className="text-sm font-semibold">{event.scenario.eventTitle}</p>
-        {operationsOwnsEvent(event) && !terminal && <p className="mt-1 text-[10px] text-slate-500">{isEventPaused(event) ? "任务已暂停" : "任务正在持续执行"} · 当前页面会同步最新进度。</p>}
-        <p className="mt-1 text-[10px] text-slate-500">{clockLabel(event.liveResult?.created_at)} · 已用时 {elapsed}</p>
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{terminal ? "处置记录已完成" : "处置进行中"}</span></div>
+        {operationsOwnsEvent(event) && !terminal && <p className="mt-1 text-[12px] text-slate-500">{isEventPaused(event) ? "任务已暂停" : "任务正在持续执行"} · 当前页面会同步最新进度。</p>}
+        <p className="mt-1 text-[12px] text-slate-500">{clockLabel(event.liveResult?.created_at)} · 已用时 {elapsed}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[12px] text-slate-600"><span className="border border-slate-200 px-1.5 py-0.5">{customerTerm((event.liveResult?.task_profile as Record<string, unknown>)?.object_type ?? event.scenario.category)}</span><span className="border border-slate-200 px-1.5 py-0.5">{terminal ? "处置记录已完成" : "处置进行中"}</span></div>
       </div>
       <div ref={bodyRef} data-testid="event-timeline-scroll" tabIndex={0} onWheel={pauseFollow} onTouchStart={pauseFollow} onPointerDown={pauseFollow} onKeyDown={(e) => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"].includes(e.key)) pauseFollow(); }} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {!timeline.length && <p className="text-xs text-slate-500">{event.processing ? "正在创建事件…" : "尚无已保存的阶段记录。"}</p>}
         {timeline.map((entry, index) => <div data-current-stage={index === timeline.length - 1 || undefined} data-stage={entry.state} key={`${entry.state}-${index}`} className="relative border-l border-slate-200 pb-5 pl-4">
           <span className={`absolute -left-[5px] top-1 h-2 w-2 rounded-full ${entry.pending ? "animate-pulse bg-slate-500" : entry.state === "HUMAN_REVIEW" || entry.state === "HUMAN_FALLBACK" ? "bg-amber-500" : "bg-emerald-600"}`} />
-          <div className="flex items-start justify-between gap-2"><h3 className="text-xs font-semibold text-slate-800">{entry.label}</h3><span className="whitespace-nowrap text-[10px] text-slate-400">{entry.pending ? "处理中" : clockLabel(entry.timestamp)}</span></div>
+          <div className="flex items-start justify-between gap-2"><h3 className="text-xs font-semibold text-slate-800">{entry.label}</h3><span className="whitespace-nowrap text-[12px] text-slate-400">{entry.pending ? "处理中" : clockLabel(entry.timestamp)}</span></div>
           <EventStageEvidence event={event} entry={entry} mode={mode} onCompleteManual={onCompleteManual} />
         </div>)}
-        {!event.processing && Boolean(event.liveResult?.reason) && <p className="border-t border-slate-100 pt-2 text-[11px] leading-5 text-slate-500">当前记录：{customerTerm(event.liveResult?.reason)}</p>}
+        {!event.processing && Boolean(event.liveResult?.reason) && <p className="border-t border-slate-100 pt-2 text-[12px] leading-5 text-slate-500">当前记录：{customerTerm(event.liveResult?.reason)}</p>}
       </div>
-      {mode === "live" && !follow && <button onClick={() => { setFollow(true); scrollToCurrent(); }} className="absolute bottom-3 right-3 flex items-center gap-1 border border-slate-300 bg-white px-2 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm"><RotateCcw size={12} />回到当前进度</button>}
+      {mode === "live" && !follow && <button onClick={() => { setFollow(true); scrollToCurrent(); }} className="absolute bottom-3 right-3 flex items-center gap-1 border border-slate-300 bg-white px-2 py-1.5 text-[12px] font-medium text-slate-700 shadow-sm"><RotateCcw size={12} />回到当前进度</button>}
     </>}
   </aside>;
 }

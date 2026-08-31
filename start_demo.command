@@ -19,24 +19,16 @@ mkdir -p "$LOG_DIR"
 
 ensure_backend() {
   if runtime_port_in_use "$BACKEND_PORT"; then
-    if runtime_preflight_backend "$BACKEND_PORT"; then
-      if runtime_record_matches_listener "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$BACKEND_DIR"; then
-        echo "[backend] http://localhost:$BACKEND_PORT (verified launcher-owned runtime reused)"
-        return
-      fi
-      echo "[backend] compatible API is not launcher-owned; refusing silent reuse or termination."
+    if runtime_record_matches_listener "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$BACKEND_DIR"; then
+      # Process ownership is proven, but its loaded Python modules may predate
+      # this checkout. Every launcher run restarts an owned backend so current
+      # source and its OpenAPI surface are authoritative.
+      echo "[backend] restarting verified launcher-owned runtime for current source."
+      runtime_terminate_owned backend "$BACKEND_PORT" "$BACKEND_PID_FILE" "$BACKEND_DIR"
+    else
+      echo "[backend] service is not launcher-owned; refusing reuse or termination."
       runtime_describe_listener "$BACKEND_PORT"
       exit 1
-    fi
-    if runtime_port_in_use "$BACKEND_PORT"; then
-      if runtime_record_matches_listener "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$BACKEND_DIR"; then
-        echo "[backend] incompatible launcher-owned API detected; restarting it."
-        runtime_terminate_owned backend "$BACKEND_PORT" "$BACKEND_PID_FILE" "$BACKEND_DIR"
-      else
-        echo "[backend] incompatible or unknown service; refusing to terminate it."
-        runtime_describe_listener "$BACKEND_PORT"
-        exit 1
-      fi
     fi
   else
     rm -f "$BACKEND_PID_FILE"
@@ -60,7 +52,11 @@ ensure_backend() {
   for _ in {1..30}; do
     local pid
     pid="$(runtime_listener_pid "$BACKEND_PORT" 2>/dev/null || true)"
-    if [[ "$pid" == "$launched_pid" ]] && runtime_write_pid_record "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$pid" "$BACKEND_DIR"; then
+    # The macOS uvicorn launcher can exec through a Python wrapper, so the
+    # listening PID is not always the shell's immediate background PID. The
+    # listener itself is nevertheless verified by exact argv/cwd before its
+    # ownership record is written.
+    if [[ -n "$pid" ]] && runtime_write_pid_record "$BACKEND_PID_FILE" backend "$BACKEND_PORT" "$pid" "$BACKEND_DIR"; then
       echo "[backend] http://localhost:$BACKEND_PORT (started PID $pid)"
       return
     fi
@@ -72,7 +68,11 @@ ensure_backend() {
 
 ensure_frontend_slot() {
   if ! runtime_port_in_use "$FRONTEND_PORT"; then return; fi
-  if runtime_record_matches_listener "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$FRONTEND_DIR"; then return; fi
+  if runtime_record_matches_listener "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$FRONTEND_DIR"; then
+    echo "[frontend] restarting verified launcher-owned Vite for current source."
+    runtime_terminate_owned frontend "$FRONTEND_PORT" "$FRONTEND_PID_FILE" "$FRONTEND_DIR"
+    return
+  fi
   echo "[frontend] port $FRONTEND_PORT is not a verified launcher-owned Vite; refusing reuse or termination."
   runtime_describe_listener "$FRONTEND_PORT"; exit 1
 }
@@ -94,14 +94,18 @@ ensure_frontend() {
   local launched_pid
   (
     cd "$FRONTEND_DIR"
-    nohup "$FRONTEND_DIR/node_modules/.bin/vite" --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort >"$LOG_DIR/frontend.log" 2>&1 &
+    # Keep the browser's same-origin `/api` contract when the launcher is
+    # intentionally run on non-default ports during a safe local verification.
+    # The normal double-click path still resolves to 127.0.0.1:8000.
+    VITE_API_PROXY_TARGET="http://127.0.0.1:$BACKEND_PORT" \
+      nohup "$FRONTEND_DIR/node_modules/.bin/vite" --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort >"$LOG_DIR/frontend.log" 2>&1 &
     echo $! > "$LOG_DIR/frontend.spawn.pid"
   )
   launched_pid="$(cat "$LOG_DIR/frontend.spawn.pid")"; rm -f "$LOG_DIR/frontend.spawn.pid"
   for _ in {1..30}; do
     local pid
     pid="$(runtime_listener_pid "$FRONTEND_PORT" 2>/dev/null || true)"
-    if [[ "$pid" == "$launched_pid" ]] && runtime_write_pid_record "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$pid" "$FRONTEND_DIR"; then
+    if [[ -n "$pid" ]] && runtime_write_pid_record "$FRONTEND_PID_FILE" frontend "$FRONTEND_PORT" "$pid" "$FRONTEND_DIR"; then
       echo "[frontend] http://localhost:$FRONTEND_PORT (started PID $pid)"
       return
     fi

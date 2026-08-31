@@ -47,7 +47,7 @@ export function parseStoredPosition(value: string | null, viewport: { width: num
 }
 
 export function taskStatusLabel(status: string): string {
-  return ({ CREATED: "已创建", ASSIGNED: "已分配", DETECTED: "已发现", EDGE_DETECTED: "边缘识别完成", CLOUD_REVIEW: "云端研判", LOCATED: "已定位", NAVIGATING: "行驶中", ARRIVED: "已到达", CLEANING_COMPLETED: "清洁完成", VERIFYING: "验收中", HUMAN_FALLBACK: "人工兜底", HUMAN_REVIEW: "人工复核", PAUSED: "已暂停", CANCELLED: "已取消", CLOSED: "已完成", FAILED: "失败", TO_PICKUP: "前往取件", ARRIVED_PICKUP: "已到取件点", PICKED_UP: "已取件", ELEVATOR_TRANSIT: "电梯通行", TO_DESTINATION: "前往目的地", DELIVERED: "已送达" } as Record<string, string>)[status] ?? status;
+  return ({ CREATED: "已创建", ASSIGNED: "已分配", DETECTED: "已发现", EDGE_DETECTED: "边缘识别完成", CLOUD_REVIEW: "云端AI研判", LOCATED: "已定位", NAVIGATING: "机器人前往现场", ARRIVED: "已到达", CLEANING_COMPLETED: "清洁完成", VERIFYING: "验收中", HUMAN_FALLBACK: "人工处置", HUMAN_REVIEW: "待人工复核", PAUSED: "已暂停", CANCELLED: "已取消", CLOSED: "已完成", FAILED: "处理未完成", TO_PICKUP: "前往取件", ARRIVED_PICKUP: "已到取件点", PICKED_UP: "已取件", ELEVATOR_TRANSIT: "电梯通行", TO_DESTINATION: "前往目的地", DELIVERED: "已送达" } as Record<string, string>)[status] ?? "状态待确认";
 }
 
 export function taskKindLabel(kind: string): string {
@@ -57,7 +57,7 @@ export function taskKindLabel(kind: string): string {
 /** Customer-name projection only; selection remains the backend Task's robot_id. */
 export function taskRobotLabel(robotId?: string | null): string {
   if (!robotId) return "人工处置";
-  return ({ "robot-a": "赛特净界 S5", "robot-b": "高仙 Omnie", "robot-c": "蜗小白 SC50", "robot-d": "普渡 FlashBot Max" } as Record<string, string>)[robotId] ?? robotId;
+  return ({ "robot-a": "赛特净界 S5", "robot-b": "高仙 Omnie", "robot-c": "蜗小白 SC50", "robot-d": "普渡 FlashBot Max" } as Record<string, string>)[robotId] ?? "未分配机器人";
 }
 
 /** A null cleaning assignee is a human disposition, never a pending robot. */
@@ -70,7 +70,7 @@ export function taskExecutorLabel(task: OperationsTask): string {
 }
 
 export function taskLocationLabel(value?: string | null): string {
-  return value === "East Corridor" ? "东侧走廊" : value || "未提供目的地";
+  return ({ "East Corridor": "东侧走廊", "West Lobby": "西侧大堂", "Main Lobby": "主大堂", "Skybridge Entrance": "连廊入口", "Outdoor East Road": "园区东侧道路" } as Record<string, string>)[value ?? ""] ?? value ?? "未提供目的地";
 }
 
 /** Render persisted Agent copy safely in the customer shell. Internal IDs and
@@ -82,8 +82,20 @@ export function customerAgentMessage(value: string): string {
     .replace(/\brobot-b\b/gi, "高仙 Omnie")
     .replace(/\brobot-c\b/gi, "蜗小白 SC50")
     .replace(/\brobot-d\b/gi, "普渡 FlashBot Max")
+    .replace(/\bRobot\s*A\b/gi, "赛特净界 S5")
+    .replace(/\bRobot\s*B\b/gi, "高仙 Omnie")
+    .replace(/\bRobot\s*C\b/gi, "蜗小白 SC50")
+    .replace(/\bRobot\s*D\b/gi, "普渡 FlashBot Max")
+    .replace(/\b(?:integrated-demo|p\d+e-history)[a-z0-9_-]*\b/gi, "相关业务记录")
     .replace(/\b(?:event|task|session|camera|zone|map)-[a-z0-9_-]+\b/gi, "相关业务记录")
-    .replace(/\b(?:LIVE|MOCK|REPLAY|DEBUG|POC_SIMULATION)\b/gi, "")
+    .replace(/\b[ab]\d-(?:lobby|delivery|corridor|entrance|road|bridge|elevator)[a-z0-9_-]*\b/gi, "对应点位")
+    .replace(/\boutdoor-standby\b/gi, "园区室外道路待命点")
+    .replace(/\bTask\s*ID\s*:\s*[^\n]*/gi, "本次任务")
+    .replace(/\b(?:delivery|cleaning|relocation)\b/gi, (kind) => taskKindLabel(kind.toLowerCase()))
+    .replace(/\b(?:CREATED|ASSIGNED|DETECTED|CLOUD_REVIEW|LOCATED|NAVIGATING|ARRIVED|CLEANING_COMPLETED|VERIFYING|PAUSED|CANCELLED|CLOSED|FAILED|TO_PICKUP|ARRIVED_PICKUP|PICKED_UP|ELEVATOR_TRANSIT|TO_DESTINATION|DELIVERED)\b/g, (status) => taskStatusLabel(status))
+    .replace(/\b(?:LIVE|MOCK|REPLAY|DEBUG|POC[_\s-]*SIMULATION|HUMAN_FALLBACK|HUMAN_REVIEW|EDGE_DETECTED|MULTI_VIEW|large_object|unknown)\b/gi, "")
+    .replace(/\bPOI\b/gi, "点位")
+    .replace(/\b(?:zone_id|event_id|camera_id|duration_seconds|average_closure_time_minutes|count)\s*[=:][^；，,\n)]+/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

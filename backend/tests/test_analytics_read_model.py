@@ -26,7 +26,7 @@ def fixture(event_id="e1", *, human=False, closed=True, error=False, active=Fals
     if not active:
         rows += [("CLEANING_COMPLETED", 18, {}), ("VERIFYING", 19, {}),
                  ("CLOSED" if closed else "HUMAN_REVIEW", 20, {"verification_pass": closed})]
-    return {"event_id": event_id, "state": rows[-1][0], "camera_id": "CAM-A1-01", "mode": "LIVE",
+    return {"event_id": event_id, "source": "INTERVIEW_RUNTIME", "state": rows[-1][0], "camera_id": "CAM-A1-01", "mode": "LIVE",
             "location": {"building": "A", "floor": "1F", "zone": "Main Lobby", "map_id": "A_1F", "x": 29, "y": 27},
             "task_profile": {"object_type": "large_object" if human else "liquid"},
             "assignment_decision": {"selected_robot_id": None if human else "robot-b"},
@@ -117,6 +117,24 @@ class AnalyticsReadModelTests(unittest.TestCase):
         for key in overview["denominators"]:
             self.assertIsNone(overview["kpis"][key])
         self.assertEqual(overview["heatmap"], [])
+
+    def test_customer_analytics_excludes_engineering_records_without_deleting_them(self):
+        customer = fixture("customer")
+        engineering = fixture("acceptance")
+        engineering["source"] = "ACCEPTANCE"
+        self.store(customer)
+        self.store(engineering)
+        overview = analytics_overview(now=NOW)
+        self.assertEqual(overview["kpis"]["total_events"], 1)
+        self.assertIsNotNone(db.get_event("acceptance"))
+
+    def test_seeded_customer_history_covers_each_canonical_operating_zone(self):
+        seed_history(NOW)
+        overview = analytics_overview(now=NOW)
+        self.assertEqual(
+            {point["zone_id"] for point in overview["heatmap"]},
+            {"a1-east-entrance", "a1-main-lobby", "b1-west-lobby", "outdoor-east-road", "a2-corridor"},
+        )
 
     def test_heatmap_uses_actual_coordinates_and_drilldown_matches_exact_point(self):
         self.store(fixture("one"))

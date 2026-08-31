@@ -17,7 +17,14 @@ runtime_listener_pid() {
 
 runtime_port_in_use() { [[ -n "$(runtime_listener_pids "$1")" ]]; }
 runtime_process_command() { ps -p "$1" -o command= 2>/dev/null | sed 's/^[[:space:]]*//'; }
-runtime_process_cwd() { lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1; }
+runtime_process_cwd() {
+  # macOS lsof escapes non-ASCII path bytes (for example 项目) as literal
+  # `\xNN` sequences. Decode its field before comparing against $PWD; without
+  # this a legitimately launched process can never receive an ownership record.
+  local cwd
+  cwd="$(lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1)"
+  printf '%b\n' "$cwd"
+}
 runtime_process_started_at() { ps -p "$1" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
 runtime_command_signature() { printf '%s' "$1" | LC_ALL=C shasum -a 256 | awk '{print $1}'; }
 
@@ -111,7 +118,7 @@ runtime_fetch_json() {
 }
 
 runtime_openapi_ok() {
-  python3 -c 'import json,sys; spec=json.load(sys.stdin); paths=spec.get("paths", {}); required={"/api/event-archive":"get", "/api/robot-operations/sessions":"post", "/api/spatial/overview":"get"}; raise SystemExit(0 if all(method in paths.get(path, {}) for path, method in required.items()) else 1)' <<< "$RUNTIME_HTTP_BODY"
+  python3 -c 'import json,sys; spec=json.load(sys.stdin); paths=spec.get("paths", {}); required={"/api/event-archive":"get", "/api/robot-operations/sessions":"post", "/api/robot-operations/show-session":"post", "/api/system/ai-readiness/probe":"post", "/api/demo-v1/events":"post", "/api/spatial/overview":"get"}; raise SystemExit(0 if all(method in paths.get(path, {}) for path, method in required.items()) else 1)' <<< "$RUNTIME_HTTP_BODY"
 }
 
 runtime_robots_ok() {

@@ -5,6 +5,9 @@ the PoC driver. Cleaning delegates exclusively to the integrated event workflow.
 """
 from uuid import uuid4
 from datetime import datetime
+from threading import Lock, Thread
+from time import sleep
+import sqlite3
 
 from database.connection import get_event, get_fleet_state, get_transitions, record_transition, runtime_transaction, save_event, update_fleet_robot
 from spatial.route_planner import plan_route
@@ -16,6 +19,8 @@ from robot_operations.coordination import task_lease
 from observability.context import new_trace_id
 
 TERMINAL = {"CLOSED", "CANCELLED", "FAILED", "HUMAN_REVIEW"}
+_AUTONOMOUS_TASKS: set[str] = set()
+_AUTONOMOUS_TASKS_LOCK = Lock()
 DELIVERY_STATES = ["ASSIGNED", "TO_PICKUP", "ARRIVED_PICKUP", "PICKED_UP", "ELEVATOR_TRANSIT", "TO_DESTINATION", "DELIVERED", "CLOSED"]
 RELOCATION_STATES = ["ASSIGNED", "NAVIGATING", "ARRIVED", "CLOSED"]
 
@@ -237,6 +242,49 @@ def advance(task_id):
         task.update(robot_id=(result.get("assignment_decision") or {}).get("selected_robot_id"),
                     destination={"label": result["location"]["zone"], **result["location"]})
         return _transition(task, result["state"], {"delegated_to": handler.__name__})
+
+
+def start_autonomous_progression(task_id):
+    """Finish an authorised delivery/relocation from persisted backend state.
+
+    This is deliberately a backend worker rather than an UI timer. Pause,
+    cancel and terminal state are checked before every durable transition, so
+    closing Chat or changing pages cannot stop or manufacture task progress.
+    Cleaning keeps its separate authoritative event workflow and never enters
+    this generic motion worker.
+    """
+    task = get_task(task_id)
+    if task["kind"] not in {"delivery", "relocation"}:
+        return
+    with _AUTONOMOUS_TASKS_LOCK:
+        if task_id in _AUTONOMOUS_TASKS:
+            return
+        _AUTONOMOUS_TASKS.add(task_id)
+
+    def progress():
+        try:
+            while True:
+                current = get_task(task_id)
+                if current["status"] in TERMINAL or current["status"] == "CLOSED":
+                    return
+                if current["status"] == "PAUSED":
+                    sleep(0.2)
+                    continue
+                if current["status"] == "CREATED":
+                    return
+                advance(task_id)
+                sleep(0.35)
+        # A local demo can be shut down or a temporary test database removed
+        # while the daemon is between durable stages.  There is no safe retry
+        # target in that process, so stop quietly rather than leaking a worker
+        # exception or inventing progress after the runtime has gone away.
+        except (ValueError, KeyError, sqlite3.Error):
+            return
+        finally:
+            with _AUTONOMOUS_TASKS_LOCK:
+                _AUTONOMOUS_TASKS.discard(task_id)
+
+    Thread(target=progress, name=f"operations-task-{task_id[-8:]}", daemon=True).start()
 
 
 def complete_manual(task_id):

@@ -60,7 +60,7 @@ export function eventTypeLabel(value: string): string {
 export function structuralLocationLabel(value: string | undefined, part: "building" | "floor"): string {
   const text = value?.trim() ?? "";
   if (!text) return "";
-  if (/^outdoor$/i.test(text)) return "室外";
+  if (/^outdoor$/i.test(text)) return "园区室外";
   if (part === "building" && /^[A-Z]$/.test(text)) return `${text}栋`;
   return text;
 }

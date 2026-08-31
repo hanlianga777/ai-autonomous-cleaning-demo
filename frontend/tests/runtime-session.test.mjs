@@ -11,7 +11,7 @@ test("NAVIGATING restoration loads only the server snapshot with GET", async () 
   const event = await session.loadEventSnapshot("saved-id", undefined, async (url, options) => { calls.push({ url, options }); return { ok: true, json: async () => stored("NAVIGATING") }; });
   assert.equal(event.backendState, "NAVIGATING");
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, "/api/events/saved-id");
+  assert.equal(calls[0].url, "/api/demo-v1/events/saved-id");
   assert.equal(calls[0].options.method, undefined);
   assert.deepEqual(event.liveResult.navigation_plan.node_path, ["B_1F", "B_2F", "A_2F"]);
 });

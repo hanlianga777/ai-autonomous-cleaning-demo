@@ -133,7 +133,7 @@ export function PrototypeWorkbench() {
     if (view !== "workbench" || restoring || !runtimeReady || !eventId || isTerminalEvent(event)) return;
     const controller = new AbortController();
     const timer = window.setInterval(() => {
-      fetch(`/api/events/${encodeURIComponent(eventId)}`, { signal: controller.signal })
+      fetch(`/api/demo-v1/events/${encodeURIComponent(eventId)}`, { signal: controller.signal })
         .then((r) => r.ok ? r.json() : null)
         .then((stored) => { if (stored) applyStageResponse(fromStoredEvent(stored).liveResult ?? {}); })
         .catch(() => { /* The stage request owns the visible transport error. */ });

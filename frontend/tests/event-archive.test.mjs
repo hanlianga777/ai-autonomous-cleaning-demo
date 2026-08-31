@@ -53,8 +53,8 @@ test("customer labels and duration remain compact and never expose raw event ont
   assert.equal(archive.durationLabel(undefined), "进行中");
   assert.equal(archive.structuralLocationLabel("A", "building"), "A栋");
   assert.equal(archive.structuralLocationLabel("1F", "floor"), "1F");
-  assert.equal(archive.structuralLocationLabel("OUTDOOR", "building"), "室外");
-  assert.equal(archive.structuralLocationLabel("Outdoor", "floor"), "室外");
+  assert.equal(archive.structuralLocationLabel("OUTDOOR", "building"), "园区室外");
+  assert.equal(archive.structuralLocationLabel("Outdoor", "floor"), "园区室外");
 });
 
 test("SQLite timestamps without an offset are interpreted as UTC, not browser-local time", () => {

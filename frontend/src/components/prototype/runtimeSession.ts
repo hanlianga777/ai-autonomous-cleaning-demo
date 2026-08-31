@@ -24,7 +24,7 @@ export function canAutoAdvance(event: ActiveEvent | null): boolean {
 
 /** Reloads are GET-only. The browser stores IDs/request guards, not business facts. */
 export async function loadEventSnapshot(eventId: string, signal?: AbortSignal, request: typeof fetch = fetch): Promise<ActiveEvent> {
-  const response = await request(`/api/events/${encodeURIComponent(eventId)}`, { signal });
+  const response = await request(`/api/demo-v1/events/${encodeURIComponent(eventId)}`, { signal });
   if (!response.ok) throw new Error("无法恢复已保存事件；服务或事件记录暂不可用。");
   return fromStoredEvent(await response.json());
 }

@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from analytics.read_model import analytics_overview
+from customer_data import is_customer_event
 from database.connection import get_event, get_fleet_state, get_transitions, ROBOT_PRESENTATION
 from event_archive.service import archive_index
 from spatial.spatial_data import CAMERAS
@@ -67,7 +68,7 @@ def tool_definitions(read_only=False):
 
 def camera_evidence(event_id):
     event = get_event(event_id)
-    if not event or not event.get("demo_v1"):
+    if not event or not is_customer_event(event) or not event.get("demo_v1"):
         raise ValueError("No supported camera evidence for this event.")
     assets = available_evidence_manifest(
         event["demo_v1"], str(event.get("state", "DETECTED")),
@@ -92,7 +93,7 @@ def read(resource, id=""):
         return archive_index(limit=20)
     if resource == "event":
         value = get_event(id)
-        if not value:
+        if not value or not is_customer_event(value):
             raise ValueError("Event not found.")
         snapshot = value.get("demo_v1") or value
         public_assets = available_evidence_manifest(snapshot, str(value.get("state", "DETECTED")), get_transitions(id))
@@ -131,4 +132,7 @@ def execute(name, arguments, *, session_id, instruction, read_only=False):
     task = repo.get("task", args["task_id"])
     if task["session_id"] != session_id:
         raise ValueError("POLICY_REJECTED: task belongs to another session.")
-    return tasks.control(args["task_id"], name.removesuffix("_task"))
+    result = tasks.control(args["task_id"], name.removesuffix("_task"))
+    if name == "dispatch_task":
+        tasks.start_autonomous_progression(args["task_id"])
+    return result

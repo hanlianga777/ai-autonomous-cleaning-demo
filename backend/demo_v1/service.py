@@ -372,6 +372,7 @@ def create_demo_event(demo_id: str, mode: str = "LIVE") -> dict[str, Any]:
         raise ValueError("Unsupported runtime mode.")
     stored = {
         "event_id": event_id,
+        "source": "INTERVIEW_RUNTIME",
         "state": "DETECTED",
         "template": TEMPLATE_BY_EVENT[source_event_id],
         "location": template["location"],
@@ -446,6 +447,18 @@ def _perception_failure(stored: dict, code: str, message: str) -> dict:
     )
 
 
+def _one_transient_retry(call):
+    """Retry a provider transport failure exactly once; never retry semantics."""
+    try:
+        return call()
+    except RealInferenceError as first:
+        message = str(first).lower()
+        transient = any(token in message for token in ("timeout", "timed out", "temporar", "connection", "rate limit", "429", "502", "503", "504"))
+        if not transient:
+            raise
+        return call()
+
+
 @event_stage
 def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, Any]:
     """Single view → evidence acquisition → final confidence → independent review.
@@ -478,7 +491,7 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
             runtime.qwen_model,
         )
         bundle = load_perception_record(stored, key) if replay else None
-        first = _validated_cloud_review(bundle["responses"]["first"] if replay else run_event_qwen_vl(images, evidence, contexts, runtime.qwen_model))
+        first = _validated_cloud_review(bundle["responses"]["first"] if replay else _one_transient_retry(lambda: run_event_qwen_vl(images, evidence, contexts, runtime.qwen_model)))
     except RealInferenceError as error:
         return _perception_failure(stored, "replay_record_unavailable" if replay else "cloud_error", str(error))
 
@@ -549,7 +562,7 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
         if final["evidence_sufficient"] and 0.50 <= final["decision_confidence"] < 0.85:
             # Fresh independent judgment: only the legally acquired image set
             # and factual camera/edge context, never a previous model answer.
-            second = _validated_cloud_review(bundle["responses"]["second"] if replay else run_targeted_event_qwen_vl(images, evidence, contexts, runtime.qwen_model))
+            second = _validated_cloud_review(bundle["responses"]["second"] if replay else _one_transient_retry(lambda: run_targeted_event_qwen_vl(images, evidence, contexts, runtime.qwen_model)))
         if not replay:
             save_perception_record(stored, key, first, final, second, turns)
     except RealInferenceError as error:

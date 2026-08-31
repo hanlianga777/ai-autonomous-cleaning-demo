@@ -45,7 +45,7 @@ test("archive evidence is never replaced by a scenario success asset", () => {
   const event = view.fromStoredEvent({ state: "HUMAN_REVIEW", transitions: [] });
   assert.equal(view.eventCamera(event, "after"), null);
   assert.equal(view.customerTerm("large_object"), "大件物品");
-  assert.equal(view.customerTerm("unrecognized_internal_enum"), "未归类 / 待复核");
+  assert.equal(view.customerTerm("unrecognized_internal_enum"), "位置待确认");
 });
 test("timestamps do not append a second timezone to ISO values", () => {
   assert.equal(view.timestampMs("2026-08-30 01:00:00"), view.timestampMs("2026-08-30T01:00:00Z"));

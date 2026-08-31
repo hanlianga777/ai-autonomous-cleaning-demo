@@ -7,8 +7,8 @@ export type TimelineEntry = { state: string; label: string; timestamp?: string; 
 
 export const stateLabels: Record<string, string> = {
   SINGLE_VIEW_REVIEW: "单视角语义与证据充分性",
-  DETECTED: "发现现场事件", EDGE_DETECTED: "边缘目标识别", MULTI_VIEW: "多视角证据研判",
-  CLOUD_REVIEW: "云端综合研判", LOCATED: "空间定位", ASSIGNED: "能力匹配与机器人派单",
+  DETECTED: "发现现场事件", EDGE_DETECTED: "边缘识别完成", MULTI_VIEW: "多视角证据研判",
+  CLOUD_REVIEW: "云端AI研判", LOCATED: "空间定位", ASSIGNED: "能力匹配与机器人派单",
   NAVIGATING: "机器人前往现场", ARRIVED: "机器人到达现场", CLEANING_COMPLETED: "清洁动作完成",
   VERIFYING: "固定摄像头验收", CLOSED: "事件已闭环", HUMAN_FALLBACK: "零候选 · 人工兜底",
   HUMAN_REVIEW: "待人工复核",
@@ -95,11 +95,11 @@ export function monitorViews(event: ActiveEvent | null): Array<{ camera: Camera;
   });
 }
 
-const terms: Record<string, string> = { small_litter: "其他小型垃圾", "地面纸巾": "其他小型垃圾", "大型纸箱": "大件物品", liquid: "液体污渍", can: "易拉罐", large_object: "大件物品", leaf: "树叶", unknown: "尚未明确", low: "轻度", medium: "中度", high: "重度", tile: "瓷砖", polished_tile: "抛光瓷砖", ceramic_tile: "瓷砖", granite: "花岗岩", asphalt: "沥青", carpet: "地毯", epoxy: "环氧地坪", reflection: "反光", floor_reflection: "地面反光", glare: "眩光", low_lighting: "光照较弱", none: "无", indoor: "室内", outdoor: "室外" };
+const terms: Record<string, string> = { small_litter: "其他小型垃圾", "地面纸巾": "其他小型垃圾", "大型纸箱": "大件物品", liquid: "液体污渍", can: "易拉罐", large_object: "大件物品", leaf: "树叶", unknown: "尚未明确", low: "轻度", medium: "中度", high: "重度", tile: "瓷砖", polished_tile: "抛光瓷砖", ceramic_tile: "瓷砖", granite: "花岗岩", asphalt: "沥青", carpet: "地毯", epoxy: "环氧地坪", reflection: "反光", floor_reflection: "地面反光", glare: "眩光", low_lighting: "光照较弱", none: "无", indoor: "室内", outdoor: "园区室外", OUTDOOR: "园区室外", A_1F: "A栋1F", A_2F: "A栋2F", B_1F: "B栋1F", B_2F: "B栋2F" };
 export function customerTerm(value: unknown): string {
   const text = String(value ?? "");
   const aliases: Record<string, string> = { carpeted_floor: "地毯", tiled_floor: "瓷砖", tile_floor: "瓷砖", concrete: "混凝土", concrete_floor: "混凝土", wet_floor: "湿润地面", smooth_floor: "光滑地面", proximity_to_recycling_bin: "靠近回收箱", potential_obstruction_in_corridor: "可能阻挡通道", occlusion: "局部遮挡", perspective: "视角偏差", insufficient_view: "视野不足", lens_contamination: "镜头污染", "East Corridor": "东侧走廊", "West Lobby": "西侧大堂", "Main Lobby": "主大堂", "Skybridge Entrance": "连廊入口", "Outdoor East Road": "园区东侧道路", "No robot passes hard constraints; create manual work order.": "没有机器人满足处置硬约束，已创建人工工单。" };
-  return terms[text] ?? aliases[text] ?? (/^[\x00-\x7F]*$/.test(text) ? "未归类 / 待复核" : text);
+  return terms[text] ?? aliases[text] ?? (/^[\x00-\x7F]*$/.test(text) ? "位置待确认" : text);
 }
 export function timestampMs(value: unknown): number {
   if (typeof value !== "string" || !value) return NaN;

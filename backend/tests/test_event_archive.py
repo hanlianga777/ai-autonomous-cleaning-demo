@@ -16,7 +16,7 @@ NOW = datetime(2026, 8, 30, 12, tzinfo=timezone.utc)
 def event_fixture(event_id="evt-1", state="CLOSED", *, human=False, error=None):
     states = ["DETECTED", "LOCATED", "HUMAN_FALLBACK" if human else "ASSIGNED", state]
     return {
-        "event_id": event_id, "state": state,
+        "event_id": event_id, "source": "INTERVIEW_RUNTIME", "state": state,
         "created_at": "2026-08-30 10:00:00", "updated_at": "2026-08-30 10:01:00",
         "location": {"building": "A", "floor": "2F", "zone": "East Corridor", "map_id": "A_2F", "x": 10, "y": 20},
         "task_profile": {"object_type": "large_object" if human else "can"},
@@ -125,3 +125,12 @@ class EventArchiveTests(unittest.TestCase):
         self.assertEqual(row["location"]["x"], 10)
         self.assertEqual(db.get_event("evt-1"), before)
         self.assertEqual(db.get_transitions("evt-1"), transitions)
+
+    def test_customer_boundary_excludes_engineering_records_without_deleting_them(self):
+        customer = event_fixture("customer-event")
+        engineering = event_fixture("test-event")
+        engineering["source"] = "TEST"
+        self.store(customer)
+        self.store(engineering)
+        self.assertEqual([item["event_id"] for item in archive_index(now=NOW)["items"]], ["customer-event"])
+        self.assertIsNotNone(db.get_event("test-event"))

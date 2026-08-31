@@ -2,11 +2,29 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from api.routes import health_check
+from fastapi import HTTPException
+
+from api.routes import (
+    get_event_detail, get_events, get_operations_snapshot, get_operations_work_orders,
+    get_workbench_scenario_02_assets, get_workbench_scenarios, health_check,
+    post_ai_lab_mock_case, post_multiview_scenario_02,
+)
 from api.runtime_contract import RELEASE_CONTRACT, REQUIRED_CAPABILITIES, runtime_info
 
 
 class RuntimeContractTests(TestCase):
+
+    def test_legacy_customer_runtime_reads_are_retired(self):
+        for endpoint in (
+            get_workbench_scenario_02_assets, get_workbench_scenarios,
+            get_operations_snapshot, get_operations_work_orders, get_events,
+            lambda: get_event_detail("legacy-event"), post_multiview_scenario_02,
+            lambda: post_ai_lab_mock_case("heavy_milk_tea_spill"),
+        ):
+            with self.subTest(endpoint=endpoint.__name__), self.assertRaises(HTTPException) as error:
+                endpoint()
+            self.assertEqual(error.exception.status_code, 410)
+
     def test_health_has_precise_release_contract_and_required_capabilities(self):
         health = health_check()
         self.assertEqual(health["release_contract"], RELEASE_CONTRACT)
