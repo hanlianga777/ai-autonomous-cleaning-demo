@@ -25,3 +25,12 @@ test("analytics hotspot labels and the fixed Chat are customer-facing", () => {
   assert.match(source, /<AnalyticsAgentChat pageContext=\{analyticsAgentContext\}/);
   assert.doesNotMatch(chat, /Microphone|语音输入|Voice/);
 });
+
+test("analytics removes auxiliary copy and the floor-button footer while retaining direct map drill-down", () => {
+  assert.doesNotMatch(source, /近30天园区运营情况|选择楼层热点查看事件档案|可访问楼层热点列表|点击地图或楼层入口/);
+  assert.match(source, /onClick=\{\(\) => navigateToHotspot\(entries\[0\]\.index\)\}/);
+  const fixedAnalyticsChat = chat.split("export function AnalyticsAgentChat", 2)[1];
+  assert.doesNotMatch(fixedAnalyticsChat, /协助查询事件与执行进度/);
+  assert.doesNotMatch(chat, /基于近 30 天运营情况生成/);
+  assert.match(chat, /line-clamp-2/);
+});

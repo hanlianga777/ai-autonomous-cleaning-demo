@@ -138,6 +138,7 @@ def regenerate_advice():
 def _generate_advice(session):
     instruction = """读取 analytics 和必要的 events，最多4次只读工具。生成3至4条运营建议。
 只返回JSON对象 {\"items\":[{\"finding\":\"发现\",\"evidence\":\"工具中的事实及样本口径\",\"recommendation\":\"建议\",\"related_events\":[\"实际读取的event_id\"]}]}。
+recommendation 必须是一句不超过32个汉字的明确行动，不使用并列长句。
 没有数据也应明确说明数据不足，不要虚构数字/收益/事件ID。不能执行任何配置修改或派单。
 不要把很小的均值差称为统计显著；没有统计检验就只描述实际差值。演示历史不能当成生产经营结论。
 """
