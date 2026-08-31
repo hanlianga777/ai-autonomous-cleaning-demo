@@ -24,6 +24,7 @@ export type NavigationPlan = {
   node_path?: string[];
   display_anchors?: string[];
   visual_path?: CanvasPoint[];
+  visual_style?: { planned?: string; completed?: string };
   segments?: RouteSegment[];
   total_cost?: number;
 };

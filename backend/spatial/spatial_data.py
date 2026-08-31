@@ -73,23 +73,26 @@ ROBOT_POSITIONS = {
 # Dijkstra topology remain the operational routing source of truth.
 ROBOT_ROUTE_VISUALS = {
     "robot-a": [
-        {"x": 67.2, "y": 76.9, "node_id": "OUTDOOR", "label": "园区东侧道路待命点"},
-        {"x": 53.0, "y": 71.2, "node_id": "OUTDOOR", "label": "园区道路"},
-        {"x": 36.5, "y": 63.5, "node_id": "OUTDOOR", "label": "园区道路清洁终点"},
+        {"x": 68.3, "y": 75.1, "node_id": "OUTDOOR", "label": "B栋侧道路待命点"},
+        {"x": 36.2, "y": 62.6, "node_id": "OUTDOOR", "label": "A栋侧道路终点"},
     ],
     "robot-b": [
-        {"x": 24.2, "y": 46.0, "node_id": "A_1F", "label": "A栋1F清洁起点"},
-        {"x": 31.0, "y": 51.5, "node_id": "A_1F", "label": "A栋1F清洁终点"},
+        {"x": 16.4, "y": 44.0, "node_id": "A_1F", "label": "A栋1F内部起点"},
+        {"x": 31.8, "y": 50.0, "node_id": "A_1F", "label": "B栋方向终点"},
     ],
     "robot-c": [
-        {"x": 67.0, "y": 61.3, "node_id": "B_1F", "label": "B栋1F清洁起点"},
-        {"x": 76.0, "y": 52.0, "node_id": "B_ELEVATOR_1F", "label": "B栋1F电梯"},
-        {"x": 76.0, "y": 37.0, "node_id": "B_ELEVATOR_2F", "label": "B栋2F电梯"},
-        {"x": 74.0, "y": 34.0, "node_id": "B_2F", "label": "B栋2F"},
-        {"x": 61.0, "y": 29.0, "node_id": "SKYBRIDGE_B", "label": "连廊B端"},
-        {"x": 50.0, "y": 29.0, "node_id": "SKYBRIDGE_A", "label": "连廊A端"},
-        {"x": 38.0, "y": 30.0, "node_id": "A_2F", "label": "A栋2F清洁终点"},
+        {"x": 79.2, "y": 63.3, "node_id": "B_1F", "label": "B栋1F内部起点"},
+        {"x": 69.4, "y": 60.0, "node_id": "B_ELEVATOR_1F", "label": "B栋1F电梯口"},
+        {"x": 69.4, "y": 37.7, "node_id": "B_ELEVATOR_2F", "label": "B栋2F电梯口"},
+        {"x": 64.0, "y": 35.6, "node_id": "SKYBRIDGE_B", "label": "B栋2F连廊入口"},
+        {"x": 40.8, "y": 30.2, "node_id": "A_2F", "label": "A栋2F连廊入口"},
     ],
+}
+
+ROBOT_ROUTE_STYLES = {
+    "robot-a": {"planned": "#d6a400", "completed": "#a16f00"},
+    "robot-b": {"planned": "#1686d9", "completed": "#0b61a4"},
+    "robot-c": {"planned": "#ef4444", "completed": "#b91c1c"},
 }
 
 # Edges are intentionally explicit. A production system would derive same-floor

@@ -2,7 +2,7 @@ import unittest
 
 from spatial.calibration import map_pixel_to_slam
 from spatial.route_planner import plan_route
-from spatial.spatial_data import ROBOT_POSITIONS, ROBOT_ROUTE_VISUALS
+from spatial.spatial_data import ROBOT_POSITIONS, ROBOT_ROUTE_STYLES, ROBOT_ROUTE_VISUALS
 from demo_v1.service import DEMO_STAGE_PAUSES, stage_pause_seconds
 
 
@@ -25,14 +25,22 @@ class SpatialEngineTests(unittest.TestCase):
         self.assertEqual(ROBOT_POSITIONS["robot-a"], {"map_id": "OUTDOOR", "x": 30, "y": 26})
         self.assertEqual(ROBOT_POSITIONS["robot-b"], {"map_id": "A_1F", "x": 10, "y": 10})
         self.assertEqual(ROBOT_POSITIONS["robot-c"], {"map_id": "B_1F", "x": 24, "y": 45})
-        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][0]["label"], "园区东侧道路待命点")
-        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][-1]["label"], "园区道路清洁终点")
-        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-b"][0]["label"], "A栋1F清洁起点")
-        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-b"][-1]["label"], "A栋1F清洁终点")
+        self.assertEqual(len(ROBOT_ROUTE_VISUALS["robot-a"]), 2)
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][0]["label"], "B栋侧道路待命点")
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][-1]["label"], "A栋侧道路终点")
+        self.assertEqual(len(ROBOT_ROUTE_VISUALS["robot-b"]), 2)
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-b"][0]["label"], "A栋1F内部起点")
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-b"][-1]["label"], "B栋方向终点")
         path = ROBOT_ROUTE_VISUALS["robot-c"]
+        self.assertEqual(len(path), 5)
         self.assertEqual(path[0]["node_id"], "B_1F")
-        self.assertEqual([point["node_id"] for point in path[1:-1]], ["B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A"])
+        self.assertEqual([point["node_id"] for point in path[1:-1]], ["B_ELEVATOR_1F", "B_ELEVATOR_2F", "SKYBRIDGE_B"])
         self.assertEqual(path[-1]["node_id"], "A_2F")
+        self.assertEqual(ROBOT_ROUTE_STYLES, {
+            "robot-a": {"planned": "#d6a400", "completed": "#a16f00"},
+            "robot-b": {"planned": "#1686d9", "completed": "#0b61a4"},
+            "robot-c": {"planned": "#ef4444", "completed": "#b91c1c"},
+        })
 
     def test_realistic_stage_pacing_uses_longer_cross_building_navigation(self):
         self.assertEqual(DEMO_STAGE_PAUSES, {

@@ -42,7 +42,7 @@ from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
-from spatial.spatial_data import CAMERAS, MAPS, ROBOT_ROUTE_VISUALS
+from spatial.spatial_data import CAMERAS, MAPS, ROBOT_ROUTE_STYLES, ROBOT_ROUTE_VISUALS
 from demo_v1.replay import evidence_key, load_replay_bundle, save_live_bundle, validate_response
 from demo_v1.perception_records import (
     PIPELINE_SCHEMA, RecordedToolTurns, load_perception_record,
@@ -725,6 +725,7 @@ def start_navigation(event_id: str) -> dict[str, Any]:
         "source": "dijkstra_global_topology_planner",
         "display_anchors": plan["node_path"],
         "visual_path": _calibrated_visual_path(robot_id, plan),
+        "visual_style": deepcopy(ROBOT_ROUTE_STYLES.get(robot_id, {})),
     })
     update_fleet_robot(robot_id, status="navigating", active_event_id=event_id)
     return _save_stage(stored, "NAVIGATING", {"navigation_plan": plan}, navigation_plan=plan, fleet_snapshot=get_fleet_state(), reason="机器人已按 Dijkstra 园区拓扑路线前往目标区域。")

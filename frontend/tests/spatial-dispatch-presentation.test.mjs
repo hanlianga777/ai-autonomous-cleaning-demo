@@ -19,7 +19,8 @@ test("map projection remains driven by persisted backend route and fleet state",
 });
 
 test("map has a high-contrast route and no obstructing status bubbles", () => {
-  assert.match(source, /stroke="#1f5f8b"/);
+  assert.match(source, /style\?\.planned/);
+  assert.match(source, /style\?\.completed/);
   assert.match(source, /strokeWidth="3"/);
   assert.match(source, /strokeWidth="5"/);
   assert.doesNotMatch(source, /定位完成后显示前往现场的路线|等待固定摄像头发现事件/);
@@ -28,4 +29,10 @@ test("map has a high-contrast route and no obstructing status bubbles", () => {
 test("Pudu remains at the dedicated overview standby point without changing delivery state", () => {
   assert.match(source, /robot\.id === "robot-d" && !robot\.active_task_id/);
   assert.match(source, /\{ x: 84, y: 81, label: "园区道路" \}/);
+});
+
+test("every map robot has a bound label bubble and indoor cleaners are translucent", () => {
+  assert.match(source, /w-\[116px\].*bg-white\/75.*\{robot\.name\}/);
+  assert.match(source, /robot\.id === "robot-b" \|\| robot\.id === "robot-c"/);
+  assert.match(source, /isIndoor \? "opacity-75" : "opacity-100"/);
 });
