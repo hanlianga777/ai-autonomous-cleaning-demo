@@ -4,7 +4,7 @@ import { EventDetailPanel } from "./EventDetailPanel";
 import { customerTerm, fromStoredEvent } from "./eventViewModel";
 import {
   ARCHIVE_CATEGORIES, EMPTY_COUNTS, archivePageKey, archiveQuery,
-  archiveDateTimeInputValue, archiveTimestampMs, archiveUrlWithSelection, canRenderArchiveDetail, durationLabel, eventTypeLabel, isDemoEntry, nextKnownEventBatch, parseArchiveFilters, parseArchiveSelection, structuralLocationLabel,
+  archiveDateTimeInputValue, archiveTimestampMs, archiveUrlWithSelection, canRenderArchiveDetail, eventTypeLabel, isDemoEntry, nextKnownEventBatch, parseArchiveFilters, parseArchiveSelection, structuralLocationLabel,
   type ArchiveCounts, type ArchiveFilters, type ArchiveItem, type ArchiveResponse, type HandlingMode,
 } from "./eventArchiveModel";
 import type { ActiveEvent } from "./types";
@@ -46,9 +46,8 @@ function statusTone(item: ArchiveItem) {
 }
 
 function EventRow({ item, selected, onSelect }: { item: ArchiveItem; selected: boolean; onSelect: (eventId: string) => void }) {
-  return <button type="button" onClick={() => onSelect(item.event_id)} className={`w-full border-b border-slate-100 px-4 py-3 text-left transition-colors ${selected ? "bg-slate-100/90 shadow-[inset_2px_0_0_#334155]" : "bg-white hover:bg-slate-50"}`}>
-    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-[13px] font-semibold text-slate-800">{eventTypeLabel(item.event_type)}</p><p className="mt-1 truncate text-[12px] text-slate-500">{locationLabel(item)}</p></div><span className={`shrink-0 border px-1.5 py-0.5 text-[12px] font-medium ${statusTone(item)}`}>{item.status_label || item.status}</span></div>
-    <div className="mt-2 flex min-w-0 items-center gap-2 overflow-hidden text-[12px] text-slate-500"><span className="truncate">发现 {formatTime(item.discovered_at)}</span><span className="h-3 w-px shrink-0 bg-slate-200" /><span className="truncate">{item.executor || "系统处理中"} · {durationLabel(item.duration_seconds)}</span></div>
+  return <button type="button" onClick={() => onSelect(item.event_id)} className={`grid w-full grid-cols-[1.2fr_.9fr_1.2fr_1fr_.9fr] items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-[12px] transition-colors ${selected ? "bg-slate-100/90 shadow-[inset_2px_0_0_#334155]" : "bg-white hover:bg-slate-50"}`}>
+    <p className="truncate font-semibold text-slate-800">{eventTypeLabel(item.event_type)}</p><time className="truncate text-slate-500">{formatTime(item.discovered_at)}</time><p className="truncate text-slate-600">{locationLabel(item)}</p><p className="truncate text-slate-600">{item.executor || "系统处理中"}</p><span className={`justify-self-start border px-1.5 py-0.5 font-medium ${statusTone(item)}`}>{item.status_label || item.status}</span>
   </button>;
 }
 
@@ -71,12 +70,14 @@ export function EventArchiveView({ onAgentContextChange }: { onAgentContextChang
   const [listError, setListError] = useState<string | null>(null);
   const [newCount, setNewCount] = useState(0);
   const knownIds = useRef<Set<string>>(new Set());
+  const selectedIdRef = useRef(selectedId);
   const didLoadForKey = useRef<string | null>(null);
   const listRequest = useRef(0);
   const detailRequest = useRef(0);
   const pageKey = useMemo(() => archivePageKey(filters), [filters]);
 
   const selectEvent = useCallback((eventId: string | null, historyMode: "push" | "replace" = "push") => {
+    selectedIdRef.current = eventId;
     setSelectedId(eventId);
     const parsed = new URL(archiveUrlWithSelection(urlHere(), eventId), window.location.origin);
     parsed.searchParams.delete("entry");
@@ -86,7 +87,7 @@ export function EventArchiveView({ onAgentContextChange }: { onAgentContextChang
   }, []);
 
   useEffect(() => {
-    const onPopState = () => { setSelectedId(parseArchiveSelection(urlHere())); setFilters(parseArchiveFilters(urlHere())); setDemoEntry(isDemoEntry(urlHere())); };
+    const onPopState = () => { const nextSelection = parseArchiveSelection(urlHere()); selectedIdRef.current = nextSelection; setSelectedId(nextSelection); setFilters(parseArchiveFilters(urlHere())); setDemoEntry(isDemoEntry(urlHere())); };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
@@ -111,6 +112,7 @@ export function EventArchiveView({ onAgentContextChange }: { onAgentContextChang
           setNewCount((previous) => previous + batch.added);
         } else { knownIds.current = new Set(incoming.map((item) => item.event_id)); didLoadForKey.current = pageKey; setNewCount(0); }
         setItems(incoming); setCounts(payload.counts ?? EMPTY_COUNTS); setTotal(payload.total ?? 0); setListError(null);
+        if (!selectedIdRef.current && incoming[0]) selectEvent(incoming[0].event_id, "replace");
       } catch (error) {
         if (active && !controller.signal.aborted) setListError("事件列表暂时无法刷新；当前档案选择未改变。");
       } finally {
@@ -120,7 +122,7 @@ export function EventArchiveView({ onAgentContextChange }: { onAgentContextChang
     void load();
     const timer = window.setInterval(() => void load(), POLL_INTERVAL_MS);
     return () => { active = false; controller.abort(); window.clearInterval(timer); };
-  }, [pageKey, filters]);
+  }, [pageKey, filters, selectEvent]);
 
   useEffect(() => {
     if (!selectedId) { setDetail(null); setDetailEventId(null); setDetailError(null); setDetailLoading(false); return; }
@@ -156,12 +158,12 @@ export function EventArchiveView({ onAgentContextChange }: { onAgentContextChang
   }, [detail?.liveResult, detailEventId, filters, onAgentContextChange, selectedId]);
 
   return <main className="min-h-full bg-[#f6f7f8] px-5 py-5 text-slate-800" aria-label="事件中心">
-    <div className="mx-auto max-w-[1540px]"><header className="mb-4"><h1 className="text-xl font-semibold tracking-tight text-slate-900">事件中心</h1><p className="mt-1 text-xs text-slate-500">按发现时间查看已保存的处置进度与验收结果</p></header>
+    <div className="mx-auto max-w-[1540px]"><header className="mb-4"><h1 className="text-xl font-semibold tracking-tight text-slate-900">事件中心</h1></header>
       <section className="border border-slate-200 bg-white"><div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2"><label className="flex min-w-[230px] flex-1 items-center gap-2 border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-slate-500"><Search size={14} /><input aria-label="搜索事件" value={filters.q} onChange={(event) => updateFilters({ q: event.target.value })} placeholder="搜索事件类型或发生位置" className="min-w-0 flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400" /></label><label className="text-[12px] text-slate-500">事件类型 <select aria-label="事件类型" value={filters.eventType} onChange={(event) => updateFilters({ eventType: event.target.value })} className="ml-1 border border-slate-200 bg-white px-2 py-1.5 text-[12px] text-slate-700 outline-none">{EVENT_TYPES.map((type) => <option key={type || "all"} value={type}>{type ? eventTypeLabel(type) : "全部"}</option>)}</select></label><label className="text-[12px] text-slate-500">处置方式 <select aria-label="处置方式" value={filters.handlingMode} onChange={(event) => updateFilters({ handlingMode: event.target.value as HandlingMode })} className="ml-1 border border-slate-200 bg-white px-2 py-1.5 text-[12px] text-slate-700 outline-none">{HANDLING_MODES.map((mode) => <option key={mode.id || "all"} value={mode.id}>{mode.label}</option>)}</select></label></div>
         {demoEntry && selectedId && <div data-testid="demo-archive-handoff" className="border-b border-emerald-100 bg-emerald-50 px-4 py-2 text-xs leading-5 text-emerald-800">刚完成的演示事件已进入只读档案。这里展示事件发生时保存的 AI、调度、路线与验收快照，不会触发重跑。</div>}
         {newCount > 0 && <div className="flex items-center justify-between border-b border-sky-100 bg-sky-50 px-4 py-2 text-xs text-sky-800"><span>有 {newCount} 条新事件已进入档案列表；当前查看的历史详情未改变。</span><button type="button" onClick={() => setNewCount(0)} className="font-medium underline underline-offset-2">已查看</button></div>}
         {listError && <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-800"><AlertCircle size={14} />{listError}</div>}
-        <div className="grid h-[calc(100vh-205px)] min-h-[460px] grid-cols-[minmax(0,1fr)_44%] overflow-hidden"><section className="flex min-h-0 min-w-0 flex-col border-r border-slate-200"><div className="grid grid-cols-3 border-b border-slate-100 px-4 py-2 text-[12px] font-medium text-slate-400"><span>事件 / 发生位置</span><span>发现时间 / 处置方式</span><span>执行对象 / 状态</span></div><div className="min-h-0 flex-1 overflow-y-auto">{items.length ? items.map((item) => <EventRow key={item.event_id} item={item} selected={item.event_id === selectedId} onSelect={selectEvent} />) : <div className="flex min-h-[400px] flex-col items-center justify-center px-8 text-center"><History size={20} className="text-slate-300" /><p className="mt-3 text-sm text-slate-600">当前筛选下没有事件</p></div>}</div><div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-[12px] text-slate-500"><span>{total ? `${filters.offset + 1}–${offsetEnd} / ${total}` : "0 / 0"}</span><div className="flex gap-1"><button type="button" aria-label="上一页事件" disabled={filters.offset === 0} onClick={() => updateFilters({ offset: Math.max(0, filters.offset - filters.limit) })} className="border border-slate-200 p-1 disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft size={14} /></button><button type="button" aria-label="下一页事件" disabled={offsetEnd >= total} onClick={() => updateFilters({ offset: filters.offset + filters.limit })} className="border border-slate-200 p-1 disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight size={14} /></button></div></div></section>
+        <div className="grid h-[calc(100vh-180px)] min-h-[460px] grid-cols-[minmax(0,72fr)_minmax(320px,28fr)] overflow-hidden"><section className="flex min-h-0 min-w-0 flex-col border-r border-slate-200"><div className="grid grid-cols-[1.2fr_.9fr_1.2fr_1fr_.9fr] gap-3 border-b border-slate-100 px-4 py-2 text-[12px] font-medium text-slate-400"><span>事件</span><span>发现时间</span><span>地点</span><span>机器人</span><span>工单状态</span></div><div className="min-h-0 flex-1 overflow-y-auto">{items.length ? items.map((item) => <EventRow key={item.event_id} item={item} selected={item.event_id === selectedId} onSelect={selectEvent} />) : <div className="flex min-h-[400px] flex-col items-center justify-center px-8 text-center"><History size={20} className="text-slate-300" /><p className="mt-3 text-sm text-slate-600">当前筛选下没有事件</p></div>}</div><div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-[12px] text-slate-500"><span>{total ? `${filters.offset + 1}–${offsetEnd} / ${total}` : "0 / 0"}</span><div className="flex gap-1"><button type="button" aria-label="上一页事件" disabled={filters.offset === 0} onClick={() => updateFilters({ offset: Math.max(0, filters.offset - filters.limit) })} className="border border-slate-200 p-1 disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft size={14} /></button><button type="button" aria-label="下一页事件" disabled={offsetEnd >= total} onClick={() => updateFilters({ offset: filters.offset + filters.limit })} className="border border-slate-200 p-1 disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight size={14} /></button></div></div></section>
           <section className="min-h-0 min-w-0 overflow-hidden bg-slate-50/60">{detail && hasMatchingDetail ? <div className="relative h-full overflow-hidden"><EventDetailPanel event={detail} mode="history" />{detailLoading && <div className="absolute right-3 top-3 border border-slate-200 bg-white px-2 py-1 text-[12px] text-slate-500 shadow-sm">正在更新快照…</div>}{detailError && <div role="alert" className="absolute bottom-3 left-3 right-3 border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] leading-5 text-amber-800 shadow-sm">{detailError}</div>}</div> : <EmptyDetail loading={detailLoading} error={detailError} />}</section></div>
       </section></div>
   </main>;

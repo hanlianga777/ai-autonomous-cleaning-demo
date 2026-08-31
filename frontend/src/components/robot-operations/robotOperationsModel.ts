@@ -1,6 +1,6 @@
 /** Pure state helpers for the single Robot Operations Agent UI. */
 
-export type AgentMessage = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
+export type AgentMessage = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string; delivery?: "sending" | "failed" };
 export type OperationsTask = {
   task_id: string;
   kind: string;

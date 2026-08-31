@@ -8,9 +8,9 @@ const detail = await readFile(resolve(import.meta.dirname, "../src/components/pr
 const evidence = await readFile(resolve(import.meta.dirname, "../src/components/prototype/EventStageEvidence.tsx"), "utf8");
 
 test("Event Center is a customer work-order list using the shared read-only detail shell", () => {
-  assert.match(archive, /事件 \/ 发生位置/);
-  assert.match(archive, /发现时间 \/ 处置方式/);
-  assert.match(archive, /执行对象 \/ 状态/);
+  for (const column of ["事件", "发现时间", "地点", "机器人", "工单状态"]) assert.match(archive, new RegExp(`<span>${column}</span>`));
+  assert.match(archive, /grid-cols-\[minmax\(0,72fr\)_minmax\(320px,28fr\)\]/);
+  assert.match(archive, /if \(!selectedIdRef\.current && incoming\[0\]\) selectEvent\(incoming\[0\]\.event_id, "replace"\)/);
   assert.match(archive, /<EventDetailPanel event=\{detail\} mode="history"/);
   assert.match(detail, /mode === "history" \? "事件处置详情"/);
 });

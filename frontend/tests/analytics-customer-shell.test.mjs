@@ -32,5 +32,6 @@ test("analytics removes auxiliary copy and the floor-button footer while retaini
   const fixedAnalyticsChat = chat.split("export function AnalyticsAgentChat", 2)[1];
   assert.doesNotMatch(fixedAnalyticsChat, /协助查询事件与执行进度/);
   assert.doesNotMatch(chat, /基于近 30 天运营情况生成/);
-  assert.match(chat, /line-clamp-2/);
+  assert.match(chat, /adviceCardLines/);
+  assert.doesNotMatch(chat, /line-clamp-2/);
 });

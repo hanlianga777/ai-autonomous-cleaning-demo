@@ -136,9 +136,10 @@ def regenerate_advice():
 
 
 def _generate_advice(session):
-    instruction = """读取 analytics 和必要的 events，最多4次只读工具。生成3至4条运营建议。
+    instruction = """读取 analytics 和必要的 events，最多4次只读工具。生成恰好3条运营建议。
 只返回JSON对象 {\"items\":[{\"finding\":\"发现\",\"evidence\":\"工具中的事实及样本口径\",\"recommendation\":\"建议\",\"related_events\":[\"实际读取的event_id\"]}]}。
-recommendation 必须是一句不超过32个汉字的明确行动，不使用并列长句。
+每条卡片会逐行展示 finding 与 recommendation：两者各是一句完整、简洁、不使用省略号的中文。finding 不超过24个汉字，描述真实地点或时段中的具体清洁问题；recommendation 不超过20个汉字，提出一个明确解决动作。
+三条建议需覆盖不同维度：第一条是地点与高频问题，第二条是时段与高频问题，第三条是摄像头/证据质量或其它独立运营问题。没有对应事实时明确说明数据不足，不得套用固定结论。
 没有数据也应明确说明数据不足，不要虚构数字/收益/事件ID。不能执行任何配置修改或派单。
 不要把很小的均值差称为统计显著；没有统计检验就只描述实际差值。演示历史不能当成生产经营结论。
 """

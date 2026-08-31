@@ -102,15 +102,22 @@ export function RobotOperationsProvider({ children }: { children: ReactNode }) {
 
   const sendMessage = useCallback(async (text: string, pageContext: PageContext): Promise<boolean> => {
     if (!session || !text.trim() || pending) return false;
+    const submittedText = text.trim();
+    const optimisticId = `local-${Date.now()}`;
     mutationId.current += 1;
     setPending(true); setError(null);
+    setSession((current) => current ? {
+      ...current,
+      messages: [...current.messages, { id: optimisticId, role: "user", content: submittedText, created_at: new Date().toISOString(), delivery: "sending" }],
+    } : current);
     try {
-      const response = await fetch(`/api/robot-operations/sessions/${encodeURIComponent(session.id)}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: text.trim(), page_context: pageContext }) });
+      const response = await fetch(`/api/robot-operations/sessions/${encodeURIComponent(session.id)}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: submittedText, page_context: pageContext }) });
       const body = await responseJson(response);
       applySnapshot(body);
       return isSnapshot(body) && !body.error;
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "消息未能提交；未生成本地替代回复。");
+      setSession((current) => current ? { ...current, messages: current.messages.map((message) => message.id === optimisticId ? { ...message, delivery: "failed" } : message) } : current);
+      setError(reason instanceof Error ? `消息未能提交，本条未送达：${reason.message}` : "消息未能提交，本条未送达。未生成本地替代回复。");
       return false;
     }
     finally { setPending(false); }

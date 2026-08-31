@@ -34,8 +34,7 @@ test("terminal workbench events can hand off the exact saved event to the read-o
   assert.match(archive, /不会触发重跑/);
 });
 
-test("analytics frames a completed demo as preserved evidence, not a real-time KPI claim", () => {
-  assert.match(analytics, /本次演示的运营价值/);
-  assert.match(analytics, /不将单次演示伪装成实时经营结论/);
-  assert.match(analytics, /<RecentDemoInsight event=\{event\} onViewArchive=\{onViewArchive\} \/>/);
+test("analytics keeps its insight surface separate from a completed demo event", () => {
+  assert.doesNotMatch(analytics, /本次演示的运营价值|RecentDemoInsight/);
+  assert.match(analytics, /<AnalyticsAdviceCards \/>/);
 });
