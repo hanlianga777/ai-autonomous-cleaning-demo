@@ -74,17 +74,28 @@ test("Dijkstra topology alone never creates an overview route", () => {
 
 test("persisted calibrated visual path wins only when the backend provides it", () => {
   const route = projection.projectBackendRoute({
-    visual_route_version: 2,
+    visual_route_version: 3,
     node_path: ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A", "A_2F"],
     visual_path: [
-      { x: 67, y: 61, node_id: "B_1F" }, { x: 76, y: 52, node_id: "B_ELEVATOR_1F" },
+      { x: 67, y: 61, node_id: "B_1F", progress_label: "已从 B 栋 1F 出发" }, { x: 76, y: 52, node_id: "B_ELEVATOR_1F" },
       { x: 76, y: 37, node_id: "B_ELEVATOR_2F" }, { x: 61, y: 29, node_id: "SKYBRIDGE_B" },
       { x: 50, y: 29, node_id: "SKYBRIDGE_A" }, { x: 38, y: 30, node_id: "A_2F" },
     ],
   }, undefined, undefined);
-  assert.deepEqual(route[0], { x: 67, y: 61, nodeId: "B_1F" });
+  assert.deepEqual(route[0], { x: 67, y: 61, nodeId: "B_1F", progressLabel: "已从 B 栋 1F 出发" });
   assert.equal(route[2].nodeId, "B_ELEVATOR_2F");
   assert.deepEqual(route.at(-1), { x: 38, y: 30, nodeId: "A_2F" });
+});
+
+test("route waypoint status only changes at persisted visual nodes", () => {
+  const points = [
+    { x: 10, y: 50, progressLabel: "起点" },
+    { x: 30, y: 50, progressLabel: "电梯口" },
+    { x: 30, y: 20, progressLabel: "二楼" },
+  ];
+  assert.equal(projection.routeWaypointAtDistance(points, 19).progressLabel, "起点");
+  assert.equal(projection.routeWaypointAtDistance(points, 20).progressLabel, "电梯口");
+  assert.equal(projection.routeWaypointAtDistance(points, 50).progressLabel, "二楼");
 });
 
 test("route projection rejects a missing or unknown backend topology rather than inventing a direct line", () => {

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from data.mock_data import PARK, ROBOTS
 from observability.context import new_trace_id, CURRENT_TRACE
-from spatial.spatial_data import ROBOT_POSITIONS, VISUAL_ROUTE_VERSION, calibrated_visual_route
+from spatial.spatial_data import ROBOT_POSITIONS, VISUAL_ROUTE_VERSION, calibrated_visual_route, robot_visual_standby
 
 DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_demo.db"
 _TRANSACTION: ContextVar[sqlite3.Connection | None] = ContextVar("runtime_transaction", default=None)
@@ -169,6 +169,7 @@ def initialize_database() -> None:
             if "trace_id" not in columns:
                 connection.execute(f"ALTER TABLE {table} ADD COLUMN trace_id TEXT")
         _backfill_visual_routes(connection)
+        _backfill_fleet_visual_positions(connection)
 
 
 def _backfill_visual_routes(connection: sqlite3.Connection) -> None:
@@ -202,6 +203,45 @@ def _backfill_visual_routes(connection: sqlite3.Connection) -> None:
                 "UPDATE cleaning_events SET payload = ?, updated_at = CURRENT_TIMESTAMP WHERE event_id = ?",
                 (json.dumps(event, ensure_ascii=False, default=str), event_id),
             )
+    rows = connection.execute("SELECT event_id, payload FROM cleaning_events").fetchall()
+    for row in rows:
+        event = json.loads(row["payload"])
+        runtime = event.setdefault("demo_v1", {})
+        decision = event.get("assignment_decision") or {}
+        robot_id = str(decision.get("selected_robot_id", ""))
+        if runtime.get("navigation_plan") or not robot_id:
+            continue
+        route = calibrated_visual_route(robot_id, None)
+        if route is None:
+            continue
+        preview = {"robot_id": robot_id, **route}
+        if runtime.get("visual_route_preview") != preview:
+            runtime["visual_route_preview"] = preview
+            connection.execute(
+                "UPDATE cleaning_events SET payload = ?, updated_at = CURRENT_TIMESTAMP WHERE event_id = ?",
+                (json.dumps(event, ensure_ascii=False, default=str), row["event_id"]),
+            )
+
+
+def _backfill_fleet_visual_positions(connection: sqlite3.Connection) -> None:
+    row = connection.execute("SELECT payload FROM system_snapshots WHERE snapshot_key = 'fleet_state'").fetchone()
+    if row is None:
+        return
+    fleet = json.loads(row["payload"])
+    changed = False
+    for robot in fleet:
+        standby = robot_visual_standby(str(robot.get("id", "")))
+        if standby is not None and robot.get("overview_position") != standby:
+            robot["overview_position"] = standby
+            changed = True
+        if robot.get("id") == "robot-d" and robot.get("overview_position") != {"x": 84.0, "y": 81.0, "label": "园区道路"}:
+            robot["overview_position"] = {"x": 84.0, "y": 81.0, "label": "园区道路"}
+            changed = True
+    if changed:
+        connection.execute(
+            "UPDATE system_snapshots SET payload = ?, updated_at = CURRENT_TIMESTAMP WHERE snapshot_key = 'fleet_state'",
+            (json.dumps(fleet, ensure_ascii=False),),
+        )
 
 
 def read_snapshot(snapshot_key: str) -> dict | list:

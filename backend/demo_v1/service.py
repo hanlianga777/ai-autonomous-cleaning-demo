@@ -694,7 +694,10 @@ def assign_event(event_id: str) -> dict[str, Any]:
         str(decision["selected_robot_id"]), status="assigned", active_event_id=event_id,
         active_task_id=stored.get("operations_task_id"),
     )
-    return _save_stage(stored, "ASSIGNED", {"assignment_decision": decision, "fleet_robot": robot}, assignment_decision=decision, fleet_snapshot=get_fleet_state(), reason="能力匹配与调度已生成机器人任务。")
+    robot_id = str(decision["selected_robot_id"])
+    preview = calibrated_visual_route(robot_id, None)
+    visual_route_preview = {"robot_id": robot_id, **preview} if preview else None
+    return _save_stage(stored, "ASSIGNED", {"assignment_decision": decision, "fleet_robot": robot, "visual_route_preview": visual_route_preview}, assignment_decision=decision, visual_route_preview=visual_route_preview, fleet_snapshot=get_fleet_state(), reason="能力匹配与调度已生成机器人任务。")
 
 
 @event_stage

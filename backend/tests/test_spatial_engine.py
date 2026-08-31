@@ -8,6 +8,7 @@ from spatial.spatial_data import (
     ROBOT_ROUTE_VISUALS,
     VISUAL_ROUTE_VERSION,
     calibrated_visual_route,
+    robot_visual_standby,
 )
 from demo_v1.service import DEMO_STAGE_PAUSES, stage_pause_seconds
 
@@ -42,11 +43,15 @@ class SpatialEngineTests(unittest.TestCase):
         self.assertEqual(path[0]["node_id"], "B_1F")
         self.assertEqual([point["node_id"] for point in path[1:-1]], ["B_ELEVATOR_1F", "B_ELEVATOR_2F", "SKYBRIDGE_B"])
         self.assertEqual(path[-1]["node_id"], "A_2F")
-        self.assertEqual(ROBOT_ROUTE_STYLES, {
-            "robot-a": {"planned": "#d6a400", "completed": "#a16f00"},
-            "robot-b": {"planned": "#1686d9", "completed": "#0b61a4"},
-            "robot-c": {"planned": "#ef4444", "completed": "#b91c1c"},
+        self.assertEqual(VISUAL_ROUTE_VERSION, 3)
+        self.assertEqual(set(tuple(style.items()) for style in ROBOT_ROUTE_STYLES.values()), {
+            (("planned", "#ef4444"), ("completed", "#b91c1c")),
         })
+        self.assertEqual(robot_visual_standby("robot-a"), ROBOT_ROUTE_VISUALS["robot-a"][0])
+        self.assertEqual(robot_visual_standby("robot-b"), ROBOT_ROUTE_VISUALS["robot-b"][0])
+        self.assertEqual(robot_visual_standby("robot-c"), ROBOT_ROUTE_VISUALS["robot-c"][0])
+        self.assertIsNone(robot_visual_standby("robot-d"))
+        self.assertEqual(path[1]["x"], path[2]["x"], "Demo03 elevator remains vertically aligned")
         route = calibrated_visual_route("robot-c", ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A", "A_2F"])
         self.assertEqual(route["visual_route_version"], VISUAL_ROUTE_VERSION)
         self.assertEqual(route["visual_path"], path)

@@ -6,7 +6,7 @@
  * they never infer a route from a demo id or mutate runtime state.
  */
 
-export type CanvasPoint = { x: number; y: number; label?: string; nodeId?: string };
+export type CanvasPoint = { x: number; y: number; label?: string; progressLabel?: string; nodeId?: string };
 
 export type FleetPosition = {
   id: string;
@@ -178,10 +178,11 @@ export function projectBackendRoute(
   _target: EventTarget | null | undefined,
 ): CanvasPoint[] {
   const visualPath = plan?.visual_path;
-  if (plan?.visual_route_version === 2 && Array.isArray(visualPath) && visualPath.length > 1 && visualPath.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))) {
+  if (plan?.visual_route_version === 3 && Array.isArray(visualPath) && visualPath.length > 1 && visualPath.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))) {
     return compactRoutePoints(visualPath.map((point) => {
-      const { node_id, ...canvasPoint } = point as CanvasPoint & { node_id?: string };
-      return { ...canvasPoint, x: clamp(canvasPoint.x), y: clamp(canvasPoint.y), nodeId: canvasPoint.nodeId ?? node_id };
+      const { node_id, progress_label, ...canvasPoint } = point as CanvasPoint & { node_id?: string; progress_label?: string };
+      const progressLabel = canvasPoint.progressLabel ?? progress_label;
+      return { ...canvasPoint, x: clamp(canvasPoint.x), y: clamp(canvasPoint.y), nodeId: canvasPoint.nodeId ?? node_id, ...(progressLabel ? { progressLabel } : {}) };
     }));
   }
   return [];
@@ -211,6 +212,17 @@ export function pointAtRouteDistance(points: CanvasPoint[], distance: number): C
       return { x: start.x + (end.x - start.x) * fraction, y: start.y + (end.y - start.y) * fraction };
     }
     remaining -= segmentLength;
+  }
+  return points[points.length - 1];
+}
+
+/** The last persisted route node reached at a display distance. */
+export function routeWaypointAtDistance(points: CanvasPoint[], distance: number): CanvasPoint | null {
+  if (!points.length) return null;
+  let covered = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    covered += distanceBetween(points[index - 1], points[index]);
+    if (distance + 0.0001 < covered) return points[index - 1];
   }
   return points[points.length - 1];
 }

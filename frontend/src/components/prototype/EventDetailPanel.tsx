@@ -3,17 +3,18 @@ import { EventStageEvidence } from "./EventStageEvidence";
 import { clockLabel, timelineFor, timestampMs } from "./eventViewModel";
 import type { ActiveEvent } from "./types";
 import { isTerminalEvent } from "./runtimeSession";
+import type { NavigationPresentation } from "./navigationPresentation";
 
 /** One durable-event renderer: history is read-only, live adds follow + actions. */
 function discoveryTitle(event: ActiveEvent) { return event.scenario.eventTitle.replace(/发现.*$/u, "发现 AI 清洁事件"); }
 
-export function EventDetailPanel({ event, mode = "live", onCompleteManual, onViewArchive }: {
-  event: ActiveEvent | null; mode?: "live" | "history"; onCompleteManual?: () => void; onViewArchive?: (eventId: string) => void;
+export function EventDetailPanel({ event, mode = "live", navigationPresentation, onCompleteManual, onViewArchive }: {
+  event: ActiveEvent | null; mode?: "live" | "history"; navigationPresentation?: NavigationPresentation; onCompleteManual?: () => void; onViewArchive?: (eventId: string) => void;
 }) {
   const [now, setNow] = useState(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
   const timeline = event ? timelineFor(event, mode) : [];
-  const currentKey = timeline.map((entry) => `${entry.state}:${entry.pending ? "pending" : "saved"}`).join("|");
+  const currentKey = `${timeline.map((entry) => `${entry.state}:${entry.pending ? "pending" : "saved"}`).join("|")}:${mode === "live" ? navigationPresentation?.progressLabel ?? "" : ""}`;
   const terminal = isTerminalEvent(event);
   const scrollToCurrent = () => {
     const panel = bodyRef.current;
@@ -43,7 +44,7 @@ export function EventDetailPanel({ event, mode = "live", onCompleteManual, onVie
         {timeline.map((entry, index) => <div data-current-stage={index === timeline.length - 1 || undefined} data-stage={entry.state} key={`${entry.state}-${index}`} className="relative border-l border-slate-200 pb-5 pl-4">
           <span className={`absolute -left-[5px] top-1 h-2 w-2 rounded-full ${entry.pending ? "animate-pulse bg-slate-500" : entry.state === "HUMAN_REVIEW" || entry.state === "HUMAN_FALLBACK" ? "bg-amber-500" : "bg-emerald-600"}`} />
           <div className="flex items-start justify-between gap-2"><h3 className="text-xs font-semibold text-slate-800">{entry.label}</h3><span className="whitespace-nowrap text-[12px] text-slate-400">{entry.pending ? "处理中" : clockLabel(entry.timestamp)}</span></div>
-          <EventStageEvidence event={event} entry={entry} mode={mode} onCompleteManual={onCompleteManual} onViewArchive={onViewArchive} />
+          <EventStageEvidence event={event} entry={entry} mode={mode} navigationProgress={mode === "live" ? navigationPresentation : undefined} onCompleteManual={onCompleteManual} onViewArchive={onViewArchive} />
         </div>)}
       </div>
     </>}

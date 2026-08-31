@@ -13,7 +13,7 @@ test("map keeps business fleet detail in hover and has no duplicate navigation s
 });
 
 test("map projection remains driven by persisted backend route and fleet state", () => {
-  assert.match(source, /projectBackendRoute\(plan, origin, target\)/);
+  assert.match(source, /presentation: NavigationPresentation/);
   assert.match(source, /fetch\("\/api\/robots"\)/);
   assert.match(source, /<RouteLayer points=\{routePoints\}/);
 });
@@ -23,6 +23,7 @@ test("map has a high-contrast route and no obstructing status bubbles", () => {
   assert.match(source, /style\?\.completed/);
   assert.match(source, /strokeWidth="3"/);
   assert.match(source, /strokeWidth="5"/);
+  assert.match(source, /strokeDasharray="7 5"/);
   assert.doesNotMatch(source, /routeArrowPoints|pointAtRouteDistance/);
   assert.doesNotMatch(source, /定位完成后显示前往现场的路线|等待固定摄像头发现事件/);
 });
@@ -33,7 +34,12 @@ test("Pudu remains at the dedicated overview standby point without changing deli
 });
 
 test("every map robot has a bound label bubble and indoor cleaners are translucent", () => {
-  assert.match(source, /w-\[116px\].*bg-white\/75.*\{robot\.name\}/);
+  assert.match(source, /w-\[104px\].*bg-white\/55.*scale-\[0\.92\].*\{robot\.name\}/);
   assert.match(source, /robot\.id === "robot-b" \|\| robot\.id === "robot-c"/);
-  assert.match(source, /isIndoor \? "opacity-75" : "opacity-100"/);
+  assert.match(source, /isIndoor \? "opacity-60" : "opacity-100"/);
+});
+
+test("event marker uses the visual route endpoint rather than the business SLAM coordinate", () => {
+  assert.match(source, /routePoints\.at\(-1\)/);
+  assert.match(source, /overview_position/);
 });

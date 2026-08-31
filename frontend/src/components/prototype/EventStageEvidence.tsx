@@ -1,6 +1,7 @@
 import { CameraViewport } from "./CameraViewport";
 import { customerTerm, eventCamera, type RecordValue, type TimelineEntry } from "./eventViewModel";
 import type { ActiveEvent } from "./types";
+import type { NavigationPresentation } from "./navigationPresentation";
 
 const percent = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? `${Math.round(value * 100)}%` : "—";
 const card = "mt-2 space-y-1.5 border border-slate-200 bg-slate-50 p-2 text-[12px] leading-5 text-slate-600";
@@ -72,7 +73,7 @@ function CapabilitySummary({ decision, result }: { decision?: RecordValue; resul
   </div>;
 }
 
-export function EventStageEvidence({ event, entry, mode, onCompleteManual, onViewArchive }: { event: ActiveEvent; entry: TimelineEntry; mode: "live" | "history"; onCompleteManual?: () => void; onViewArchive?: (eventId: string) => void }) {
+export function EventStageEvidence({ event, entry, mode, navigationProgress, onCompleteManual, onViewArchive }: { event: ActiveEvent; entry: TimelineEntry; mode: "live" | "history"; navigationProgress?: NavigationPresentation; onCompleteManual?: () => void; onViewArchive?: (eventId: string) => void }) {
   const result = (event.liveResult ?? {}) as RecordValue;
   const manualVerificationRecorded = result.human_work_order?.status === "COMPLETED"
     && Array.isArray(result.transitions)
@@ -96,7 +97,7 @@ export function EventStageEvidence({ event, entry, mode, onCompleteManual, onVie
       return <div className={card}><p><strong>事件位置：</strong>{building} · {customerTerm(location.zone)}</p><p><strong>SLAM坐标：</strong>X {location.x} / Y {location.y}</p><p><strong>所属地图：</strong>{routeLabel(String(location.map_id ?? ""))}</p></div>;
     }
     case "ASSIGNED": return <CapabilitySummary decision={entry.detail.assignment_decision} result={result} />;
-    case "NAVIGATING": return <div className={card}><p>机器人正在前往现场。</p><p><strong>主要节点：</strong>{(entry.detail.navigation_plan?.display_path ?? entry.detail.navigation_plan?.node_path ?? []).map(routeLabel).join(" → ")}</p></div>;
+    case "NAVIGATING": return <div className={card}><p>机器人正在前往现场。</p><p><strong>主要节点：</strong>{(entry.detail.navigation_plan?.display_path ?? entry.detail.navigation_plan?.node_path ?? []).map(routeLabel).join(" → ")}</p>{navigationProgress?.progressLabel && <p aria-live="polite" className="border-t border-slate-200 pt-1.5 transition-opacity duration-150"><strong>实时行驶位置：</strong>{navigationProgress.progressLabel}</p>}</div>;
     case "ARRIVED": return <p className="mt-2 text-[12px] text-slate-500">机器人已到达目标区域，准备开始处置。</p>;
     case "CLEANING_COMPLETED": return <p className="mt-2 text-[12px] text-slate-500">现场处置已完成，正在读取处置后画面。</p>;
     case "HUMAN_FALLBACK": return <><CapabilitySummary decision={entry.detail.assignment_decision} result={result} /><div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-[12px] leading-5 text-amber-900"><p className="font-medium">人工处置工单已创建</p><p>能力引擎候选数为零。完成搬运后由固定摄像头证据进入同一验收流程。</p>{mode === "live" && event.backendState === "HUMAN_FALLBACK" && onCompleteManual && <button disabled={event.processing} onClick={onCompleteManual} className="mt-2 border border-amber-400 bg-white px-2 py-1 font-medium disabled:opacity-40">确认人工清理完成并验收</button>}{mode === "live" && event.backendState === "HUMAN_FALLBACK" && !onCompleteManual && <p className="mt-2">此事件由共享 Operations 任务管理；请在任务卡中确认人工完成并验收。</p>}{manualVerificationRecorded && <p>人工完成与固定摄像头验收已记录。</p>}{!manualVerificationRecorded && event.backendState === "CANCELLED" && <p>人工处置未完成，任务已取消。</p>}{!manualVerificationRecorded && event.backendState !== "HUMAN_FALLBACK" && event.backendState !== "CANCELLED" && <p>人工处置尚未完成或未通过验收。</p>}</div></>;
