@@ -51,8 +51,8 @@ SCHEMAS = {"read_operations": Read, "create_cleaning_task": Cleaning, "create_de
 DESCRIPTIONS = {
     "read_operations": "Read authoritative Event/Analytics/Fleet/Robot/Capability/approved POI/Task/Camera Evidence/Delivery adapter facts. Use id for singular resources. Never executes tasks.",
     "create_cleaning_task": "Create one task linked to an existing eligible integrated camera event. Does not choose a robot or bypass Cloud. Read events first if no ID is supplied.",
-    "create_delivery_task": "Create native POC SIMULATION delivery by FlashBot Max, approved pickup and destination POIs only. Not a Meituan/Eleme/JD/Taobao external order.",
-    "create_relocation_task": "Create standby relocation for the robot explicitly named by the user, to an approved POI only.",
+    "create_delivery_task": "Create, validate and dispatch native POC SIMULATION delivery by FlashBot Max, approved pickup and destination POIs only. Backend continues it autonomously.",
+    "create_relocation_task": "Create, validate and dispatch standby relocation for the robot explicitly named by the user, to an approved POI only. Backend continues it autonomously.",
     "dispatch_task": "Dispatch a CREATED task. Backend validates reservation, capability scope and Dijkstra routing; cleaning delegates to its existing workflow.",
     "pause_task": "Pause a non-terminal task without losing position/reservation.",
     "resume_task": "Resume a PAUSED task from persisted state.",
@@ -128,11 +128,15 @@ def execute(name, arguments, *, session_id, instruction, read_only=False):
         if not any(alias.casefold() in instruction.casefold() for alias in [args["robot_id"], *aliases[args["robot_id"]]]):
             raise ValueError("POLICY_REJECTED: relocation requires the user's explicit robot, not an LLM-selected cleaner.")
     if name.startswith("create_"):
-        return tasks.create_task(session_id, name.removeprefix("create_").removesuffix("_task"), **args)
+        kind = name.removeprefix("create_").removesuffix("_task")
+        task = tasks.create_task(session_id, kind, autonomous=kind in {"delivery", "relocation"}, **args)
+        if kind in {"delivery", "relocation"}:
+            tasks.start_autonomous_progression(task["task_id"])
+        return task
     task = repo.get("task", args["task_id"])
     if task["session_id"] != session_id:
         raise ValueError("POLICY_REJECTED: task belongs to another session.")
     result = tasks.control(args["task_id"], name.removesuffix("_task"))
-    if name == "dispatch_task":
+    if name in {"dispatch_task", "resume_task"}:
         tasks.start_autonomous_progression(args["task_id"])
     return result

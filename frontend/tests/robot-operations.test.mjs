@@ -22,18 +22,18 @@ test("floating Agent defaults to bottom-left and persisted positions stay in vie
   assert.equal(model.FLOATING_EXPANDED_KEY, "cleanops.robot-operations.expanded.v2");
 });
 
-test("task action cards expose only state-appropriate backend actions", () => {
+test("customer task action cards expose only pause, resume, cancel and explicit human completion", () => {
   const created = { task_id: "task-1", kind: "cleaning", status: "CREATED", source: "POC_SIMULATION" };
-  assert.deepEqual(model.taskActions(created), ["dispatch", "cancel"]);
+  assert.deepEqual(model.taskActions(created), ["cancel"]);
   assert.deepEqual(model.taskActions({ ...created, status: "PAUSED" }), ["resume", "cancel"]);
-  assert.deepEqual(model.taskActions({ ...created, status: "ASSIGNED" }), ["pause", "cancel", "advance"]);
-  assert.deepEqual(model.taskActions({ ...created, status: "CLOUD_REVIEW" }), ["pause", "cancel", "advance"]);
-  assert.deepEqual(model.taskActions({ ...created, kind: "delivery", status: "PICKED_UP" }), ["pause", "cancel", "advance"]);
-  assert.deepEqual(model.taskActions({ ...created, kind: "relocation", status: "NAVIGATING" }), ["pause", "cancel", "advance"]);
+  assert.deepEqual(model.taskActions({ ...created, status: "ASSIGNED" }), ["pause", "cancel"]);
+  assert.deepEqual(model.taskActions({ ...created, status: "CLOUD_REVIEW" }), ["pause", "cancel"]);
+  assert.deepEqual(model.taskActions({ ...created, kind: "delivery", status: "PICKED_UP" }), ["pause", "cancel"]);
+  assert.deepEqual(model.taskActions({ ...created, kind: "relocation", status: "NAVIGATING" }), ["pause", "cancel"]);
   assert.deepEqual(model.taskActions({ ...created, status: "HUMAN_FALLBACK" }), ["manual_complete"]);
   assert.deepEqual(model.taskActions({ ...created, kind: "delivery", status: "HUMAN_FALLBACK" }), []);
   assert.deepEqual(model.taskActions({ ...created, status: "CLOSED" }), []);
-  assert.equal(model.actionLabel("advance"), "继续任务");
+  assert.equal(model.taskActions({ ...created, status: "ASSIGNED" }).includes("advance"), false);
   assert.equal(model.actionLabel("manual_complete"), "确认人工处置完成");
 });
 

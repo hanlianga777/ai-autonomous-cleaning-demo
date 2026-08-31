@@ -58,7 +58,7 @@ def get_task(task_id):
 
 
 @runtime_transaction()
-def create_task(session_id, kind, *, event_id=None, robot_id=None, origin_poi=None, destination_poi=None):
+def create_task(session_id, kind, *, event_id=None, robot_id=None, origin_poi=None, destination_poi=None, autonomous=False):
     repo.get("session", session_id)
     origin = destination = None
     if kind == "cleaning":
@@ -89,11 +89,18 @@ def create_task(session_id, kind, *, event_id=None, robot_id=None, origin_poi=No
             "origin_request_trace_id": repo.get("session", session_id).get("active_request_trace_id"),
             "robot_id": robot_id, "origin": origin, "destination": destination, "event_id": event_id,
             "source": "POC_SIMULATION", "created_at": repo.now(), "status": "CREATED", "transitions": [], "route": None}
+    created = _transition(task, "CREATED", {"source": "operator_requested_task"})
+    if autonomous and kind in {"delivery", "relocation"}:
+        # A complete natural-language task is not an invitation for a second
+        # model turn or customer button.  Validate and reserve inside this
+        # durable transaction, then let the backend worker own progression.
+        _reserve(task)
+        return _transition(task, "ASSIGNED", {"route": task["route"], "source": "agent_autonomous_dispatch"})
     if kind == "cleaning":
         event["operations_task_id"] = task["task_id"]
         event["demo_v1"]["operations_task_id"] = task["task_id"]
         save_event(event)
-    return _transition(task, "CREATED", {"source": "operator_requested_task"})
+    return created
 
 
 def _reserve(task):

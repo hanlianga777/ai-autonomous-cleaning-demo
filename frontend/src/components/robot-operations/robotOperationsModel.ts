@@ -109,12 +109,11 @@ export function actionLabel(action: OperationsTaskAction): string {
 export function taskActions(task: OperationsTask): OperationsTaskAction[] {
   if (task.kind === "cleaning" && task.status === "HUMAN_FALLBACK") return ["manual_complete"];
   if (["CLOSED", "CANCELLED", "FAILED", "HUMAN_REVIEW", "HUMAN_FALLBACK"].includes(task.status)) return [];
-  if (task.status === "CREATED") return ["dispatch", "cancel"];
+  // Customer tasks are dispatched and progressed by the backend.  Explicit
+  // controls intentionally exclude engineering-style Start/Advance actions.
+  if (task.status === "CREATED") return ["cancel"];
   if (task.status === "PAUSED") return ["resume", "cancel"];
-  if (task.status === "ASSIGNED") return ["pause", "cancel", "advance"];
-  if (task.kind === "delivery" && ["TO_PICKUP", "ARRIVED_PICKUP", "PICKED_UP", "ELEVATOR_TRANSIT", "TO_DESTINATION", "DELIVERED"].includes(task.status)) return ["pause", "cancel", "advance"];
-  if (task.kind === "relocation" && ["NAVIGATING", "ARRIVED"].includes(task.status)) return ["pause", "cancel", "advance"];
-  if (task.kind === "cleaning" && ["DETECTED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED"].includes(task.status)) return ["pause", "cancel", "advance"];
+  if (["ASSIGNED", "DETECTED", "EDGE_DETECTED", "CLOUD_REVIEW", "LOCATED", "NAVIGATING", "ARRIVED", "CLEANING_COMPLETED", "TO_PICKUP", "ARRIVED_PICKUP", "PICKED_UP", "ELEVATOR_TRANSIT", "TO_DESTINATION", "DELIVERED"].includes(task.status)) return ["pause", "cancel"];
   return [];
 }
 

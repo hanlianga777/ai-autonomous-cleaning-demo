@@ -284,14 +284,19 @@ class RobotOperationsTests(TestCase):
                     tasks.control(task["task_id"], "dispatch")
         self.assertIsNone(tasks.robot("robot-d").get("active_task_id"))
 
-    def test_real_tool_loop_transport_fixture_executes_and_audits_backend_action(self):
+    def test_complete_relocation_instruction_dispatches_without_a_second_model_turn(self):
         sequence = [call("read_operations", {"resource": "pois"}),
                     call("create_relocation_task", {"robot_id": "robot-b", "destination_poi": "a1-lobby"}, "call-2"),
-                    ({"content": "任务已创建，等待派发。"}, 8)]
+                    ({"content": "已安排机器人前往待命点，系统将持续同步进度。"}, 8)]
         with patch("robot_operations.agent.request_qwen_tool_turn", side_effect=sequence):
             snapshot = agent.send_message(self.session_id, "让高仙 Omnie 去 A栋1F大堂待命", {"page": "workbench"})
         self.assertEqual(len(snapshot["tasks"]), 1)
-        self.assertEqual(snapshot["tasks"][0]["status"], "CREATED")
+        self.assertNotEqual(snapshot["tasks"][0]["status"], "CREATED")
+        for _ in range(30):
+            if tasks.get_task(snapshot["tasks"][0]["task_id"])["status"] == "CLOSED":
+                break
+            __import__("time").sleep(0.1)
+        self.assertEqual(tasks.get_task(snapshot["tasks"][0]["task_id"])["status"], "CLOSED")
         self.assertTrue(any(row.get("task_id") == snapshot["tasks"][0]["task_id"] for row in snapshot["audits"]))
         self.assertEqual(snapshot["messages"][0]["role"], "user")
         self.assertFalse(snapshot["asr"]["available"])
