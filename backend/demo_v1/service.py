@@ -42,7 +42,7 @@ from scheduling.capability_engine import evaluate_capabilities
 from scheduling.scheduler import make_assignment_decision
 from spatial.calibration import CalibrationError, map_pixel_to_slam
 from spatial.route_planner import RouteNotFoundError, plan_route
-from spatial.spatial_data import CAMERAS, MAPS
+from spatial.spatial_data import CAMERAS, MAPS, ROBOT_ROUTE_VISUALS
 from demo_v1.replay import evidence_key, load_replay_bundle, save_live_bundle, validate_response
 from demo_v1.perception_records import (
     PIPELINE_SCHEMA, RecordedToolTurns, load_perception_record,
@@ -64,12 +64,34 @@ SCENARIO_IDS = {
     "demo04": "event-oversized-box-004",
 }
 YOLO_CONFIDENCE = {"CAM-OUT-01": 0.81, "CAM-A1-01": 0.58, "CAM-A1-02": 0.63, "CAM-A1-04": 0.61, "CAM-A2-08": 0.84, "CAM-A2-11": 0.82}
+DEMO_STAGE_PAUSES = {
+    "DETECTED": 2.0,
+    "EDGE_DETECTED": 3.0,
+    "SINGLE_VIEW_REVIEW": 2.0,
+    "CLOUD_REVIEW": 3.0,
+    "LOCATED": 4.0,
+    "ASSIGNED": 2.0,
+    "ARRIVED": 3.0,
+    "CLEANING_COMPLETED": 3.0,
+    "VERIFYING": 2.0,
+}
 TEMPLATE_BY_EVENT = {
     "event-outdoor-tissue-001": "outdoor_debris",
     "event-beverage-spill-002": "multiview_heavy_spill",
     "event-indoor-can-003": "indoor_can",
     "event-oversized-box-004": "oversized_object_a2",
 }
+
+
+def stage_pause_seconds(stored: dict[str, Any]) -> float:
+    """Minimum presentation dwell; external cloud latency is never replaced."""
+    state = str(stored.get("state"))
+    if state == "NAVIGATING":
+        segments = (stored.get("demo_v1") or {}).get("navigation_plan", {}).get("segments", [])
+        if any(segment.get("type") == "skybridge" for segment in segments):
+            return 10.0
+        return 8.0
+    return DEMO_STAGE_PAUSES.get(state, 0.0)
 
 
 def _asset_path(asset: dict[str, Any]) -> Path:
@@ -224,31 +246,16 @@ def start_autonomous_progression(event_id: str) -> None:
     def progress() -> None:
         handlers = {
             "DETECTED": edge_review,
-            "EDGE_DETECTED": cloud_review,
+            "EDGE_DETECTED": start_single_view_review,
+            "SINGLE_VIEW_REVIEW": complete_cloud_review,
             "CLOUD_REVIEW": locate_event,
             "LOCATED": assign_event,
             "ASSIGNED": start_navigation,
             "NAVIGATING": complete_navigation,
             "ARRIVED": complete_cleaning,
-            "CLEANING_COMPLETED": verify_event,
+            "CLEANING_COMPLETED": start_verification,
+            "VERIFYING": verify_event,
         }
-        def stage_pause_seconds(stored: dict[str, Any]) -> float:
-            state = str(stored.get("state"))
-            if state == "NAVIGATING":
-                segments = (stored.get("demo_v1") or {}).get("navigation_plan", {}).get("segments", [])
-                if any(segment.get("type") == "skybridge" for segment in segments):
-                    return 11.0
-                if any(segment.get("type") == "elevator" for segment in segments):
-                    return 8.0
-                return 6.5
-            return {
-                "DETECTED": 0.9,
-                "CLOUD_REVIEW": 0.8,
-                "LOCATED": 2.2,
-                "ASSIGNED": 1.0,
-                "ARRIVED": 1.8,
-                "CLEANING_COMPLETED": 1.6,
-            }.get(state, 0.25)
         try:
             while True:
                 stored = get_event(event_id)
@@ -476,12 +483,8 @@ def _one_transient_retry(call):
 
 
 @event_stage
-def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, Any]:
-    """Single view → evidence acquisition → final confidence → independent review.
-
-    Only external model responses are replayable. Coverage, evidence fetch,
-    gates, Fusion and every later business stage execute for the new event.
-    """
+def start_single_view_review(event_id: str, force_unavailable: bool = False) -> dict[str, Any]:
+    """Persist the real single-view result before any further AI workflow."""
     stored = _load_stage_event(event_id)
     _require_state(stored, "EDGE_DETECTED")
     result = stored["demo_v1"]
@@ -511,10 +514,36 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
     except RealInferenceError as error:
         return _perception_failure(stored, "replay_record_unavailable" if replay else "cloud_error", str(error))
 
-    _save_stage(stored, "SINGLE_VIEW_REVIEW", {
+    return _save_stage(stored, "SINGLE_VIEW_REVIEW", {
         "confidence": first["decision_confidence"], "evidence_sufficient": first["evidence_sufficient"],
         "ambiguity_type": first["ambiguity_type"], "source": "REPLAY" if replay else "LIVE_MODEL",
     }, first_qwen_review=first, qwen_review=first, reason="单视角研判已返回，正在检查证据充分性。")
+
+
+def _complete_cloud_review(stored: dict[str, Any]) -> dict[str, Any]:
+    """Resume the evidence and decision workflow from the saved single view."""
+    _require_state(stored, "SINGLE_VIEW_REVIEW")
+    result = stored["demo_v1"]
+    manifest = result["asset_manifest"]
+    images, evidence, contexts = _cloud_images(result)
+    result["cloud_context"] = contexts
+    replay = result.get("mode") == "STABLE_REPLAY"
+    runtime = get_runtime()
+    try:
+        available_assets = [asset for asset in manifest["assets"] if asset["role"] in {"before", "evidence"}]
+        key = evidence_key(
+            [_asset_path(asset) for asset in available_assets],
+            {"pipeline": PIPELINE_SCHEMA, "evidence": evidence, "cameras": contexts,
+             "asset_cameras": [asset["camera_id"] for asset in available_assets],
+             "camera_coverage": CAMERAS, "agent_model": get_agent_model(), "agent_contract": acquisition_contract()},
+            runtime.qwen_model,
+        )
+        bundle = load_perception_record(stored, key) if replay else None
+        first = _validated_cloud_review(result["first_qwen_review"])
+        if replay and first != _validated_cloud_review(bundle["responses"]["first"]):
+            return _perception_failure(stored, "replay_execution_mismatch", "已保存的单视角研判与回放记录不一致。")
+    except (KeyError, RealInferenceError) as error:
+        return _perception_failure(stored, "replay_record_unavailable" if replay else "cloud_error", str(error))
     final = first
     turns = []
     if not first["evidence_sufficient"]:
@@ -609,6 +638,19 @@ def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, An
 
 
 @event_stage
+def complete_cloud_review(event_id: str) -> dict[str, Any]:
+    """Advance a persisted single-view result into the final cloud decision."""
+    return _complete_cloud_review(_load_stage_event(event_id))
+
+
+@event_stage
+def cloud_review(event_id: str, force_unavailable: bool = False) -> dict[str, Any]:
+    """Compatibility endpoint: retain the original full cloud-review call."""
+    first = start_single_view_review(event_id, force_unavailable=force_unavailable)
+    return first if first.get("state") != "SINGLE_VIEW_REVIEW" else complete_cloud_review(event_id)
+
+
+@event_stage
 def locate_event(event_id: str) -> dict[str, Any]:
     """Map the primary detection through the shared Phase 2 calibration."""
     stored = _load_stage_event(event_id)
@@ -655,6 +697,15 @@ def assign_event(event_id: str) -> dict[str, Any]:
     return _save_stage(stored, "ASSIGNED", {"assignment_decision": decision, "fleet_robot": robot}, assignment_decision=decision, fleet_snapshot=get_fleet_state(), reason="能力匹配与调度已生成机器人任务。")
 
 
+def _calibrated_visual_path(robot_id: str, plan: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return only a topology-consistent overview path for the saved plan."""
+    path = ROBOT_ROUTE_VISUALS.get(robot_id, [])
+    node_path = set(plan.get("node_path") or [])
+    if not path or any(point.get("node_id") not in node_path for point in path):
+        return []
+    return [deepcopy(point) for point in path]
+
+
 @event_stage
 @runtime_transaction()
 def start_navigation(event_id: str) -> dict[str, Any]:
@@ -669,7 +720,12 @@ def start_navigation(event_id: str) -> dict[str, Any]:
         plan = plan_route(str(robot["map_id"]), str(stored["location"]["map_id"]))
     except RouteNotFoundError as error:
         return _save_stage(stored, "HUMAN_REVIEW", {"error_type": "ROUTE_ERROR", "reason": str(error)}, reason=f"拓扑路线规划失败：{error}")
-    plan.update({"robot_id": robot_id, "source": "dijkstra_global_topology_planner", "display_anchors": plan["node_path"]})
+    plan.update({
+        "robot_id": robot_id,
+        "source": "dijkstra_global_topology_planner",
+        "display_anchors": plan["node_path"],
+        "visual_path": _calibrated_visual_path(robot_id, plan),
+    })
     update_fleet_robot(robot_id, status="navigating", active_event_id=event_id)
     return _save_stage(stored, "NAVIGATING", {"navigation_plan": plan}, navigation_plan=plan, fleet_snapshot=get_fleet_state(), reason="机器人已按 Dijkstra 园区拓扑路线前往目标区域。")
 
@@ -750,17 +806,18 @@ def _validate_replayed_verification(verification: dict[str, Any]) -> None:
     raise RealInferenceError("Replay verification record lacks the required independent ROI review.")
 
 
-def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False) -> dict[str, Any]:
+def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False, verification_started: bool = False) -> dict[str, Any]:
     """Run the same after-evidence workflow for robot and human completion."""
     result = stored["demo_v1"]
     primary = _primary_asset(result)
     after = next((asset for asset in result["asset_manifest"]["assets"] if asset["role"] == "after"), None)
     if manual:
         result["human_work_order"] = {"status": "COMPLETED", "source": "manual_operator"}
-    _save_stage(stored, "VERIFYING", {
-        "source": "manual_completion" if manual else "post_cleaning_cloud_verification",
-        "manual_completion": manual,
-    }, reason="正在读取清洁后证据并执行验收。")
+    if not verification_started:
+        _save_stage(stored, "VERIFYING", {
+            "source": "manual_completion" if manual else "post_cleaning_cloud_verification",
+            "manual_completion": manual,
+        }, reason="正在读取清洁后证据并执行验收。")
     verification = None
     error = None
     try:
@@ -863,10 +920,20 @@ def _verify_stored_event(stored: dict[str, Any], *, manual: bool = False) -> dic
 
 
 @event_stage
-def verify_event(event_id: str) -> dict[str, Any]:
+def start_verification(event_id: str) -> dict[str, Any]:
     stored = _load_stage_event(event_id)
     _require_state(stored, "CLEANING_COMPLETED")
-    return _verify_stored_event(stored)
+    return _save_stage(stored, "VERIFYING", {"source": "post_cleaning_cloud_verification", "manual_completion": False}, reason="正在读取清洁后证据并执行验收。")
+
+
+@event_stage
+def verify_event(event_id: str) -> dict[str, Any]:
+    stored = _load_stage_event(event_id)
+    if stored.get("state") == "CLEANING_COMPLETED":
+        start_verification(event_id)
+        stored = _load_stage_event(event_id)
+    _require_state(stored, "VERIFYING")
+    return _verify_stored_event(stored, verification_started=True)
 
 
 @event_stage
@@ -903,4 +970,5 @@ def run_demo(demo_id: str, mode: str = "live", force_unavailable: bool = False) 
         return navigating
     complete_navigation(event_id)
     complete_cleaning(event_id)
+    start_verification(event_id)
     return verify_event(event_id)

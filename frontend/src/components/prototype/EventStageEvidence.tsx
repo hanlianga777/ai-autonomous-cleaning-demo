@@ -78,7 +78,7 @@ export function EventStageEvidence({ event, entry, mode, onCompleteManual, onVie
     && Array.isArray(result.transitions)
     && result.transitions.some((transition: RecordValue) => transition.state === "VERIFYING" && transition.detail?.manual_completion === true);
   if (result.mode === "DEMO_HISTORY") return <div className={card}><p>演示历史记录 · {entry.label}</p>{typeof entry.detail.verification_pass === "boolean" && <p>历史验收结果：{entry.detail.verification_pass ? "通过" : "未通过"}</p>}</div>;
-  if (entry.pending) return <p className="mt-2 text-[12px] text-slate-500">正在执行本阶段，等待真实服务结果…</p>;
+  if (entry.pending || entry.loading) return <p className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-500" aria-live="polite"><span>{String(entry.detail.loading_message ?? "正在执行本阶段，等待真实服务结果")}</span><span aria-label="加载中" className="inline-flex items-center gap-0.5"><i className="h-1 w-1 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]" /><i className="h-1 w-1 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]" /><i className="h-1 w-1 animate-bounce rounded-full bg-slate-400" /></span></p>;
   switch (entry.state) {
     case "DETECTED": return <p className="mt-1 text-[12px] text-slate-600">固定摄像头发现疑似清洁事件，正在确认现场情况。</p>;
     case "CANCELLED": return <p className="mt-2 text-[12px] text-slate-600">操作员已取消任务；此前处置记录保留，不再自动推进。</p>;

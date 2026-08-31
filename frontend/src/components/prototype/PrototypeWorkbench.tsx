@@ -8,7 +8,7 @@ import { EventDetailPanel } from "./EventDetailPanel";
 import { scenarios } from "./data";
 import { SpatialDispatchView } from "./SpatialDispatchView";
 import { PanelBoundary } from "./PanelBoundary";
-import { displayStates, fromStoredEvent } from "./eventViewModel";
+import { displayStates, fromStoredEvent, isAutoProgressingState } from "./eventViewModel";
 import { archiveDemoEntryUrl } from "./eventArchiveModel";
 import { canApplySnapshot, canStartDemo, isTerminalEvent, loadEventSnapshot, operationsOwnsEvent } from "./runtimeSession";
 import { FloatingRobotOperationsAgent } from "@/components/robot-operations/RobotOperationsPanel";
@@ -121,7 +121,7 @@ export function PrototypeWorkbench() {
       if (!canApplySnapshot(current, result)) return current;
       const backendState = String(result.state ?? result.status ?? current.backendState ?? "DETECTED");
       const steps = Array.isArray(result.transitions) ? result.transitions.map((item) => displayStates[item.state]).filter(Boolean) : current.scenario.steps;
-      return { ...current, scenario: { ...current.scenario, steps }, stageIndex: stageIndexFor(steps, backendState), liveResult: result, backendState, inFlightState: undefined, processing: false };
+      return { ...current, scenario: { ...current.scenario, steps }, stageIndex: stageIndexFor(steps, backendState), liveResult: result, backendState, inFlightState: undefined, processing: isAutoProgressingState(backendState) };
     });
   };
 

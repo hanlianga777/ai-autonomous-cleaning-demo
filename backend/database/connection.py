@@ -11,6 +11,7 @@ from pathlib import Path
 
 from data.mock_data import PARK, ROBOTS
 from observability.context import new_trace_id, CURRENT_TRACE
+from spatial.spatial_data import ROBOT_POSITIONS
 
 DATABASE_PATH = Path(__file__).resolve().parents[1] / "ai_cleaning_demo.db"
 _TRANSACTION: ContextVar[sqlite3.Connection | None] = ContextVar("runtime_transaction", default=None)
@@ -32,7 +33,8 @@ def _baseline_fleet() -> list[dict]:
     for robot in fleet:
         robot.update(ROBOT_PRESENTATION[robot["id"]])
         robot["map_id"] = {"robot-a": "OUTDOOR", "robot-b": "A_1F", "robot-c": "B_1F"}[robot["id"]]
-        robot["coordinates"] = {"robot-a": {"x": 24, "y": 40}, "robot-b": {"x": 78, "y": 29}, "robot-c": {"x": 24, "y": 26}}[robot["id"]]
+        robot["coordinates"] = deepcopy(ROBOT_POSITIONS[robot["id"]] | {})
+        robot["coordinates"].pop("map_id")
         robot["source"] = "POC_SIMULATION"
     fleet.append({
         "id": "robot-d", "code": "R-D04", "status": "idle", "battery": 86,

@@ -27,6 +27,18 @@ test("only live can add a pending request row; history is snapshot-only", () => 
   assert.equal(view.timelineFor(event, "history").length, 1);
   assert.equal(view.timelineFor(event)[1].timestamp, undefined);
 });
+test("saved stages expose one truthful next-step loading row with an ellipsis message", () => {
+  const event = view.fromStoredEvent(stored("CAM-A1-01", ["DETECTED", "EDGE_DETECTED", "SINGLE_VIEW_REVIEW"]));
+  const timeline = view.timelineFor(event);
+  assert.equal(timeline.at(-1).state, "CLOUD_REVIEW");
+  assert.equal(timeline.at(-1).pending, true);
+  assert.match(timeline.at(-1).detail.loading_message, /云端研判/);
+
+  const verifying = view.fromStoredEvent(stored("CAM-OUT-01", ["DETECTED", "VERIFYING"]));
+  const verificationTimeline = view.timelineFor(verifying);
+  assert.equal(verificationTimeline.length, 2);
+  assert.equal(verificationTimeline.at(-1).loading, true);
+});
 test("three-slot monitor wall shows primary before, normal views, and after even on failed verification", () => {
   for (const camera of ["CAM-OUT-01", "CAM-A1-01", "CAM-A2-08", "CAM-A2-11"]) {
     const before = view.fromStoredEvent(stored(camera, ["DETECTED", "EDGE_DETECTED"]));

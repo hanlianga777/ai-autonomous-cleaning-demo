@@ -76,6 +76,20 @@ test("backend route includes persisted Fleet start, Dijkstra nodes and SLAM targ
   assert.ok(projection.routeLength(route) > 0);
 });
 
+test("persisted calibrated visual path wins only when the backend provides it", () => {
+  const route = projection.projectBackendRoute({
+    node_path: ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A", "A_2F"],
+    visual_path: [
+      { x: 67, y: 61, node_id: "B_1F" }, { x: 76, y: 52, node_id: "B_ELEVATOR_1F" },
+      { x: 76, y: 37, node_id: "B_ELEVATOR_2F" }, { x: 61, y: 29, node_id: "SKYBRIDGE_B" },
+      { x: 50, y: 29, node_id: "SKYBRIDGE_A" }, { x: 38, y: 30, node_id: "A_2F" },
+    ],
+  }, undefined, undefined);
+  assert.deepEqual(route[0], { x: 67, y: 61, nodeId: "B_1F" });
+  assert.equal(route[2].nodeId, "B_ELEVATOR_2F");
+  assert.deepEqual(route.at(-1), { x: 38, y: 30, nodeId: "A_2F" });
+});
+
 test("route projection rejects a missing or unknown backend topology rather than inventing a direct line", () => {
   const fleet = { id: "robot-a", map_id: "A_1F", coordinates: { x: 22, y: 18 } };
   const target = { map_id: "A_1F", x: 66, y: 40 };

@@ -2,6 +2,8 @@ import unittest
 
 from spatial.calibration import map_pixel_to_slam
 from spatial.route_planner import plan_route
+from spatial.spatial_data import ROBOT_POSITIONS, ROBOT_ROUTE_VISUALS
+from demo_v1.service import DEMO_STAGE_PAUSES, stage_pause_seconds
 
 
 class SpatialEngineTests(unittest.TestCase):
@@ -18,6 +20,30 @@ class SpatialEngineTests(unittest.TestCase):
         second = map_pixel_to_slam("CAM-A1-01", 500, 400)
         self.assertEqual(first, second)
         self.assertEqual(first["location"], {"building": "A", "floor": "1F", "zone": "Main Lobby", "map_id": "A_1F", "x": 29.5, "y": 27.0})
+
+    def test_cleaning_route_calibration_preserves_requested_starts_and_cross_building_connectors(self):
+        self.assertEqual(ROBOT_POSITIONS["robot-a"], {"map_id": "OUTDOOR", "x": 30, "y": 26})
+        self.assertEqual(ROBOT_POSITIONS["robot-b"], {"map_id": "A_1F", "x": 10, "y": 10})
+        self.assertEqual(ROBOT_POSITIONS["robot-c"], {"map_id": "B_1F", "x": 24, "y": 45})
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][0]["label"], "园区东侧道路待命点")
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][-1]["label"], "园区道路清洁终点")
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-b"][0]["label"], "A栋1F清洁起点")
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-b"][-1]["label"], "A栋1F清洁终点")
+        path = ROBOT_ROUTE_VISUALS["robot-c"]
+        self.assertEqual(path[0]["node_id"], "B_1F")
+        self.assertEqual([point["node_id"] for point in path[1:-1]], ["B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A"])
+        self.assertEqual(path[-1]["node_id"], "A_2F")
+
+    def test_realistic_stage_pacing_uses_longer_cross_building_navigation(self):
+        self.assertEqual(DEMO_STAGE_PAUSES, {
+            "DETECTED": 2.0, "EDGE_DETECTED": 3.0, "SINGLE_VIEW_REVIEW": 2.0,
+            "CLOUD_REVIEW": 3.0, "LOCATED": 4.0, "ASSIGNED": 2.0,
+            "ARRIVED": 3.0, "CLEANING_COMPLETED": 3.0, "VERIFYING": 2.0,
+        })
+        self.assertEqual(stage_pause_seconds({"state": "EDGE_DETECTED"}), 3.0)
+        self.assertEqual(stage_pause_seconds({"state": "LOCATED"}), 4.0)
+        self.assertEqual(stage_pause_seconds({"state": "NAVIGATING", "demo_v1": {"navigation_plan": {"segments": []}}}), 8.0)
+        self.assertEqual(stage_pause_seconds({"state": "NAVIGATING", "demo_v1": {"navigation_plan": {"segments": [{"type": "skybridge"}]}}}), 10.0)
 
 
 if __name__ == "__main__":

@@ -227,7 +227,7 @@ class FleetRestartPersistenceTests(unittest.TestCase):
                 assert robot["status"] == "idle"
                 assert robot.get("active_event_id") is None
                 assert robot["map_id"] == "B_1F"
-                assert robot["coordinates"] == {"x": 24, "y": 26}
+                assert robot["coordinates"] == {"x": 24, "y": 45}
                 print(json.dumps({"fleet": current, "event": event_after}, ensure_ascii=False))
                 """,
                 closed["event_id"],

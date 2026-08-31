@@ -23,6 +23,7 @@ export type RouteSegment = { from?: string; to?: string; type?: string; cost?: n
 export type NavigationPlan = {
   node_path?: string[];
   display_anchors?: string[];
+  visual_path?: CanvasPoint[];
   segments?: RouteSegment[];
   total_cost?: number;
 };
@@ -173,6 +174,13 @@ export function projectBackendRoute(
   fleetRobot: FleetPosition | null | undefined,
   target: EventTarget | null | undefined,
 ): CanvasPoint[] {
+  const visualPath = plan?.visual_path;
+  if (Array.isArray(visualPath) && visualPath.length > 1 && visualPath.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))) {
+    return compactRoutePoints(visualPath.map((point) => {
+      const { node_id, ...canvasPoint } = point as CanvasPoint & { node_id?: string };
+      return { ...canvasPoint, x: clamp(canvasPoint.x), y: clamp(canvasPoint.y), nodeId: canvasPoint.nodeId ?? node_id };
+    }));
+  }
   const nodeIds = plan?.node_path;
   // A visually plausible start→target line without a backend Dijkstra plan
   // would misrepresent an assignment as a navigable route.

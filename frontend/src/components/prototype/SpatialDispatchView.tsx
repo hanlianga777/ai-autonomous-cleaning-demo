@@ -1,4 +1,4 @@
-import { BatteryCharging, Route, Sparkles } from "lucide-react";
+import { BatteryCharging } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { MapCanvas } from "./MapCanvas";
 import {
@@ -11,7 +11,7 @@ import {
   type NavigationPlan,
   type RouteSegment,
 } from "./spatialProjection";
-import type { ActiveEvent, PrototypeState } from "./types";
+import type { ActiveEvent } from "./types";
 import { useRoutePlayback } from "./useRoutePlayback";
 import { isEventPaused, operationsOwnsEvent } from "./runtimeSession";
 
@@ -54,10 +54,6 @@ const EMPTY_ROUTE_SEGMENTS: RouteSegment[] = [];
 const ROBOT_ASSET_OFFSETS: Record<string, { x: number; scale: number }> = {
   "robot-a": { x: -1, scale: 1.2 }, "robot-b": { x: 0, scale: 1.15 }, "robot-c": { x: 1, scale: 1.18 }, "robot-d": { x: 0, scale: 1.12 },
 };
-
-function displayState(event: ActiveEvent | null): PrototypeState {
-  return event?.inFlightState ?? (event ? event.scenario.steps[event.stageIndex] : "IDLE");
-}
 
 function activeRobotId(event: ActiveEvent | null): string | null {
   const decision = event?.liveResult?.assignment_decision as { selected_robot_id?: string } | undefined;
@@ -106,9 +102,9 @@ function RouteLayer({ points, travelledDistance, totalDistance, terminal }: { po
   const fullPath = svgPath(points);
   const completedPath = svgPath(points, travelledDistance);
   return <svg className={`pointer-events-none absolute inset-0 z-10 h-full w-full ${terminal ? "opacity-45" : "opacity-100"}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="园区规划路线">
-    <path d={fullPath} fill="none" stroke="#a7b7c9" strokeWidth="1.15" strokeDasharray="3.5 3" vectorEffect="non-scaling-stroke" />
-    {travelledDistance > 0 && <path d={completedPath} fill="none" stroke="#4f7798" strokeWidth="1.75" vectorEffect="non-scaling-stroke" />}
-    {routeArrowPoints(points, travelledDistance, totalDistance).map((point, index) => <g key={`${point.x}-${point.y}-${index}`} transform={`translate(${point.x} ${point.y})`}><path d="M-1.4,-1.4 L1.5,0 L-1.4,1.4" fill="none" stroke="#4f7798" strokeWidth="0.8" vectorEffect="non-scaling-stroke" /></g>)}
+    <path d={fullPath} fill="none" stroke="#1f5f8b" strokeWidth="3" strokeDasharray="7 5" vectorEffect="non-scaling-stroke" />
+    {travelledDistance > 0 && <path d={completedPath} fill="none" stroke="#0c4a6e" strokeWidth="5" vectorEffect="non-scaling-stroke" />}
+    {routeArrowPoints(points, travelledDistance, totalDistance).map((point, index) => <g key={`${point.x}-${point.y}-${index}`} transform={`translate(${point.x} ${point.y})`}><path d="M-2.4,-2.2 L2.5,0 L-2.4,2.2" fill="none" stroke="#0c4a6e" strokeWidth="1.5" vectorEffect="non-scaling-stroke" /></g>)}
   </svg>;
 }
 
@@ -133,7 +129,6 @@ function idlePresentationPosition(robot: FleetRobot): CanvasPoint {
 
 export function SpatialDispatchView({ event, onNavigationComplete }: SpatialDispatchViewProps) {
   const [apiFleet, setApiFleet] = useState<FleetRobot[]>([]);
-  const state = displayState(event);
   const selectedRobotId = activeRobotId(event);
   const plan = navigationPlan(event);
   const target = event?.liveResult?.spatial_location as EventTarget | undefined;
@@ -178,11 +173,9 @@ export function SpatialDispatchView({ event, onNavigationComplete }: SpatialDisp
     <MapCanvas imageSrc="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区空间白模" className="min-h-[248px] bg-[#eef2f5]">
       <>
         <RouteLayer points={routePoints} travelledDistance={displayedTravel} totalDistance={playback.totalDistance} terminal={!isNavigating && routeReady} />
-        {target && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: `${projectMapCoordinate(target.map_id, target.x, target.y).x}%`, top: `${projectMapCoordinate(target.map_id, target.x, target.y).y}%` }} aria-label="已定位事件位置"><span className="block h-4 w-4 rounded-full border-2 border-rose-500 bg-rose-100/95 shadow-sm" /><span className="absolute left-1/2 top-5 -translate-x-1/2 whitespace-nowrap text-[12px] font-medium text-rose-700">事件位置</span></div>}
-        {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId && activePosition ? activePosition : idlePresentationPosition(robot); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
+        {target && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={{ left: `${(routePoints.at(-1) ?? projectMapCoordinate(target.map_id, target.x, target.y)).x}%`, top: `${(routePoints.at(-1) ?? projectMapCoordinate(target.map_id, target.x, target.y)).y}%` }} aria-label="已定位事件位置"><span className="block h-4 w-4 rounded-full border-2 border-rose-500 bg-rose-100/95 shadow-sm" /><span className="absolute left-1/2 top-5 -translate-x-1/2 whitespace-nowrap text-[12px] font-medium text-rose-700">事件位置</span></div>}
+        {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId ? (activePosition ?? routePoints.at(-1) ?? idlePresentationPosition(robot)) : idlePresentationPosition(robot); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
         {isNavigating && !paused && playback.isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white px-2 py-1 text-[12px] font-medium text-slate-700 shadow-sm" style={{ left: `${playback.point?.x ?? 50}%`, top: `${playback.point?.y ?? 50}%` }}>乘梯中</div>}
-        <div className="absolute bottom-[3%] left-[3%] z-40 flex max-w-[72%] items-center gap-1.5 border border-slate-200 bg-white/95 px-2 py-1 text-[12px] text-slate-600 shadow-sm"><Route size={11} strokeWidth={1.7} className="shrink-0 text-[#4f7798]" />{routeReady ? <span>{isNavigating ? "机器人正沿规划路线前往现场" : "本次处置路线已保存"}</span> : <span>定位完成后显示前往现场的路线</span>}</div>
-        {!event && <div className="absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 border border-slate-200 bg-white/95 px-3 py-1.5 text-[12px] text-slate-500 shadow-sm"><Sparkles size={12} />等待固定摄像头发现事件</div>}
       </>
     </MapCanvas>
   </section>;

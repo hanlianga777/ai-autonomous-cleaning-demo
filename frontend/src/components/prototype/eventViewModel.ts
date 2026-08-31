@@ -3,7 +3,7 @@ import { cameras, scenarios } from "./data";
 import type { ActiveEvent, Camera, Overlay, PrototypeState } from "./types";
 
 export type RecordValue = Record<string, any>;
-export type TimelineEntry = { state: string; label: string; timestamp?: string; detail: RecordValue; pending?: boolean };
+export type TimelineEntry = { state: string; label: string; timestamp?: string; detail: RecordValue; pending?: boolean; loading?: boolean };
 
 export const stateLabels: Record<string, string> = {
   SINGLE_VIEW_REVIEW: "单视角语义与证据充分性",
@@ -24,12 +24,33 @@ export const displayStates: Record<string, PrototypeState> = {
   CANCELLED: "CANCELLED",
 };
 const inflightStates: Record<string, string> = { EDGE_DETECTED: "EDGE_DETECTED", MULTI_VIEW: "MULTI_VIEW", CLOUD_REVIEW: "CLOUD_REVIEW", LOCATING: "LOCATED", ROBOT_ASSIGNED: "ASSIGNED", NAVIGATING: "NAVIGATING", CLEANING: "CLEANING_COMPLETED", VERIFYING: "VERIFYING" };
+const nextState: Record<string, string> = {
+  DETECTED: "EDGE_DETECTED", EDGE_DETECTED: "SINGLE_VIEW_REVIEW", SINGLE_VIEW_REVIEW: "CLOUD_REVIEW",
+  CLOUD_REVIEW: "LOCATED", LOCATED: "ASSIGNED", ASSIGNED: "NAVIGATING", NAVIGATING: "ARRIVED",
+  ARRIVED: "CLEANING_COMPLETED", CLEANING_COMPLETED: "VERIFYING", VERIFYING: "VERIFYING",
+};
+const loadingCopy: Record<string, string> = {
+  EDGE_DETECTED: "正在生成边缘识别结果", SINGLE_VIEW_REVIEW: "正在调用云端分析主摄像头画面",
+  CLOUD_REVIEW: "正在汇总云端研判与证据门控", LOCATED: "正在执行摄像头到 SLAM 空间定位",
+  ASSIGNED: "正在评估机器人能力并生成派单", NAVIGATING: "正在生成路线并向机器人派发",
+  ARRIVED: "机器人正在按已保存路线前往现场", CLEANING_COMPLETED: "正在确认到场并开始清洁",
+  VERIFYING: "正在读取处置后画面并执行云端验收",
+};
+
+export function isAutoProgressingState(state: unknown): boolean {
+  return Object.prototype.hasOwnProperty.call(nextState, String(state));
+}
 
 export function timelineFor(event: ActiveEvent, mode: "live" | "history" = "live"): TimelineEntry[] {
   const transitions = event.liveResult?.transitions;
   const rows: TimelineEntry[] = Array.isArray(transitions) ? transitions.map((item: RecordValue) => ({ state: String(item.state), label: stateLabels[item.state] ?? "已记录的处理阶段", timestamp: item.created_at, detail: item.detail ?? {} })) : [];
-  const pending = event.inFlightState && inflightStates[event.inFlightState];
-  if (mode === "live" && event.processing && pending && rows[rows.length - 1]?.state !== pending) rows.push({ state: pending, label: stateLabels[pending], detail: {}, pending: true });
+  const pending = event.inFlightState && inflightStates[event.inFlightState]
+    || (event.processing ? nextState[String(event.backendState)] : undefined);
+  if (mode === "live" && pending) {
+    const detail = { loading_message: loadingCopy[pending] ?? "正在执行本阶段，等待真实服务结果" };
+    if (rows[rows.length - 1]?.state === pending) rows[rows.length - 1] = { ...rows[rows.length - 1], detail: { ...rows[rows.length - 1].detail, ...detail }, loading: true };
+    else rows.push({ state: pending, label: stateLabels[pending] ?? "处理中", detail, pending: true });
+  }
   return rows;
 }
 
@@ -40,7 +61,7 @@ export function fromStoredEvent(stored: RecordValue): ActiveEvent {
   const cameraId = snapshot.asset_manifest?.assets?.find((a: RecordValue) => a.role === "before")?.camera_id ?? stored.camera_id ?? "未记录摄像头";
   const base = scene ?? { id: "outdoor" as const, demoCode: "Demo01" as const, triggerLabel: "历史事件", presentationFocus: "已保存的处置记录", cameraId, eventTitle: "历史清洁事件", category: customerTerm(stored.task_profile?.object_type), confidence: 0, qwenConfidence: 0, qwenSummary: "", steps: [] };
   const steps = Array.isArray(stored.transitions) ? stored.transitions.map((t: RecordValue) => displayStates[t.state]).filter(Boolean) : [displayStates[stored.state] ?? "HUMAN_REVIEW"];
-  return { scenario: { ...base, steps }, stageIndex: Math.max(0, steps.length - 1), startedAt: stored.created_at ?? "", backendState: stored.state, liveResult: runtime };
+  return { scenario: { ...base, steps }, stageIndex: Math.max(0, steps.length - 1), startedAt: stored.created_at ?? "", backendState: stored.state, processing: isAutoProgressingState(stored.state), liveResult: runtime };
 }
 
 function validOverlay(value: RecordValue): Overlay | null {
