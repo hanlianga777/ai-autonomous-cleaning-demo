@@ -119,6 +119,39 @@ def snapshot(session_id):
     return value
 
 
+def session_history(session_id: str) -> dict:
+    """Read-only customer chat projection; never exposes tasks, audits or page context."""
+    session = get("session", session_id)
+    return {
+        "id": session["id"],
+        "created_at": session.get("created_at"),
+        "messages": [
+            {key: message.get(key) for key in ("id", "role", "content", "created_at")}
+            for message in session.get("messages", [])
+        ],
+    }
+
+
+def session_history_index() -> dict:
+    """Return all persisted chat sessions newest first with a compact preview."""
+    with database_session() as connection:
+        rows = connection.execute("SELECT payload FROM ops_sessions ORDER BY rowid DESC").fetchall()
+    sessions = []
+    for row in rows:
+        value = json.loads(row["payload"])
+        messages = value.get("messages", [])
+        latest = messages[-1] if messages else {}
+        sessions.append({
+            "id": value.get("id"),
+            "created_at": value.get("created_at"),
+            "message_count": len(messages),
+            "preview": str(latest.get("content", ""))[:80],
+            "updated_at": latest.get("created_at") or value.get("created_at"),
+        })
+    sessions.sort(key=lambda item: item.get("updated_at") or "", reverse=True)
+    return {"sessions": sessions}
+
+
 def message(session, role, content):
     session["messages"].append({"id": uuid4().hex, "role": role, "content": content, "created_at": now()})
     save("session", session)

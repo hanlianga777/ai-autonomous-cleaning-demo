@@ -75,8 +75,8 @@ ROBOT_POSITIONS = {
 # Dijkstra topology remain the operational routing source of truth.
 ROBOT_ROUTE_VISUALS = {
     "robot-a": [
-        {"x": 68.4, "y": 75.3, "node_id": "OUTDOOR", "label": "B栋侧道路待命点", "progress_label": "已从 B 栋侧道路待命点出发"},
-        {"x": 34.0, "y": 64.1, "node_id": "OUTDOOR", "label": "A栋侧道路终点", "progress_label": "已抵达 A 栋侧道路终点"},
+        {"x": 68.4, "y": 80.0, "node_id": "OUTDOOR", "label": "B栋侧道路待命点", "progress_label": "已从 B 栋侧道路待命点出发"},
+        {"x": 34.0, "y": 63.7, "node_id": "OUTDOOR", "label": "A栋侧道路终点", "progress_label": "已抵达 A 栋侧道路终点"},
     ],
     "robot-b": [
         {"x": 16.0, "y": 44.1, "node_id": "A_1F", "label": "A栋1F内部起点", "progress_label": "已从 A 栋 1F 内侧清洁通道出发"},
@@ -96,7 +96,7 @@ ROBOT_ROUTE_STYLES = {
     "robot-b": {"route": "#b91c1c", "opacity": 0.45, "stroke_width": 5, "dasharray": "7 5"},
     "robot-c": {"route": "#b91c1c", "opacity": 0.45, "stroke_width": 5, "dasharray": "7 5"},
 }
-VISUAL_ROUTE_VERSION = 4
+VISUAL_ROUTE_VERSION = 5
 
 
 def robot_visual_standby(robot_id: str) -> dict | None:

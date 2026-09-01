@@ -16,22 +16,19 @@ const mapLabel = (id: string) => id === "OUTDOOR" ? "园区室外" : id.replace(
 function HistoricalHeatmapOverlay() {
   return <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="过去 30 天园区事件密度分布">
     <defs>
-      <filter id="heatmap-soften" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="3.2" /></filter>
-      <radialGradient id="heatmap-red" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#ef4444" stopOpacity=".48" /><stop offset="34%" stopColor="#f97316" stopOpacity=".27" /><stop offset="68%" stopColor="#facc15" stopOpacity=".12" /><stop offset="100%" stopColor="#facc15" stopOpacity="0" /></radialGradient>
-      <radialGradient id="heatmap-blue" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#2563eb" stopOpacity=".30" /><stop offset="42%" stopColor="#38bdf8" stopOpacity=".16" /><stop offset="100%" stopColor="#38bdf8" stopOpacity="0" /></radialGradient>
-      <radialGradient id="heatmap-gold" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#f59e0b" stopOpacity=".36" /><stop offset="44%" stopColor="#fde047" stopOpacity=".18" /><stop offset="100%" stopColor="#fde047" stopOpacity="0" /></radialGradient>
+      <filter id="heatmap-soften" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" /></filter>
+      <radialGradient id="heatmap-red" cx="48%" cy="52%" r="58%"><stop offset="0%" stopColor="#ef4444" stopOpacity=".66" /><stop offset="28%" stopColor="#f97316" stopOpacity=".48" /><stop offset="57%" stopColor="#facc15" stopOpacity=".24" /><stop offset="100%" stopColor="#facc15" stopOpacity="0" /></radialGradient>
+      <radialGradient id="heatmap-blue" cx="54%" cy="48%" r="58%"><stop offset="0%" stopColor="#2563eb" stopOpacity=".45" /><stop offset="42%" stopColor="#38bdf8" stopOpacity=".27" /><stop offset="100%" stopColor="#38bdf8" stopOpacity="0" /></radialGradient>
+      <radialGradient id="heatmap-gold" cx="45%" cy="48%" r="58%"><stop offset="0%" stopColor="#f97316" stopOpacity=".58" /><stop offset="36%" stopColor="#facc15" stopOpacity=".38" /><stop offset="100%" stopColor="#fde047" stopOpacity="0" /></radialGradient>
     </defs>
     <g filter="url(#heatmap-soften)">
-      <ellipse cx="39" cy="56" rx="18" ry="12" fill="url(#heatmap-red)" />
-      <ellipse cx="30" cy="48" rx="14" ry="10" fill="url(#heatmap-blue)" />
-      <ellipse cx="66" cy="58" rx="16" ry="11" fill="url(#heatmap-blue)" />
-      <ellipse cx="87" cy="76" rx="18" ry="12" fill="url(#heatmap-red)" />
-      <ellipse cx="29" cy="30" rx="15" ry="10" fill="url(#heatmap-gold)" />
-    </g>
-    <g fill="none" strokeLinecap="round">
-      <path d="M22 57 C27 48 36 45 46 49 C53 52 55 60 48 66 C39 73 26 69 22 57Z" stroke="#fb923c" strokeOpacity=".25" strokeWidth=".45" strokeDasharray="1.6 1.8" />
-      <path d="M76 76 C79 67 91 65 97 72 C100 78 95 86 86 86 C78 85 74 81 76 76Z" stroke="#f97316" strokeOpacity=".28" strokeWidth=".45" strokeDasharray="1.6 1.8" />
-      <path d="M57 58 C60 50 71 48 77 54 C81 60 76 67 68 68 C61 68 56 64 57 58Z" stroke="#38bdf8" strokeOpacity=".24" strokeWidth=".4" strokeDasharray="1.4 1.7" />
+      <path d="M19 58 C20 50 27 45 35 46 C41 43 50 48 52 55 C55 62 49 69 42 69 C35 73 24 68 19 58Z" fill="url(#heatmap-red)" />
+      <path d="M17 50 C20 43 28 41 35 45 C39 50 36 58 30 60 C23 61 17 57 17 50Z" fill="url(#heatmap-blue)" />
+      <path d="M53 59 C55 51 64 48 70 51 C77 49 82 56 78 62 C75 68 66 69 61 66 C57 65 54 63 53 59Z" fill="url(#heatmap-blue)" />
+      <path d="M76 75 C78 68 86 65 92 68 C98 68 101 75 98 80 C95 87 84 88 78 83 C75 81 74 78 76 75Z" fill="url(#heatmap-red)" />
+      <path d="M19 31 C20 23 28 20 34 24 C41 23 45 29 42 35 C38 41 30 40 26 37 C22 37 18 35 19 31Z" fill="url(#heatmap-gold)" />
+      <path d="M33 55 C36 50 42 51 45 55 C47 59 44 63 39 63 C34 62 31 59 33 55Z" fill="url(#heatmap-gold)" />
+      <path d="M84 74 C87 70 93 72 95 76 C96 80 92 83 88 82 C84 81 82 78 84 74Z" fill="url(#heatmap-gold)" />
     </g>
   </svg>;
 }

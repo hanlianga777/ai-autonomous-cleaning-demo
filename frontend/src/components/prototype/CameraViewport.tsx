@@ -28,7 +28,7 @@ export function CameraViewport({ camera, showDetections = false, compact = false
       {showDetections && camera.overlay?.map((item, index) => {
         const [x1, y1, x2, y2] = item.bbox;
         const paddingX = 0; const paddingY = 0;
-        return <div key={`${item.label}-${index}`} className="absolute border-[1.5px] border-rose-500" style={{ left: `${Math.max(0, x1 - paddingX) * 100}%`, top: `${Math.max(0, y1 - paddingY) * 100}%`, width: `${Math.min(1, x2 + paddingX) * 100 - Math.max(0, x1 - paddingX) * 100}%`, height: `${Math.min(1, y2 + paddingY) * 100 - Math.max(0, y1 - paddingY) * 100}%` }}>
+        return <div key={`${item.label}-${index}`} data-testid="detection-overlay" className="absolute border-[1.5px] border-rose-500" style={{ left: `${Math.max(0, x1 - paddingX) * 100}%`, top: `${Math.max(0, y1 - paddingY) * 100}%`, width: `${Math.min(1, x2 + paddingX) * 100 - Math.max(0, x1 - paddingX) * 100}%`, height: `${Math.min(1, y2 + paddingY) * 100 - Math.max(0, y1 - paddingY) * 100}%` }}>
           <span className="absolute -top-5 left-0 whitespace-nowrap bg-rose-600 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">{item.label} · {Math.round(item.confidence * 100)}%</span>
         </div>;
       })}

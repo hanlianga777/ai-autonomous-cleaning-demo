@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 from database import connection
+from workbench.preset_detections import _OVERLAYS
 from workbench.service import list_scenario_assets, run_scenario_02_workbench, run_workbench_event, run_workbench_upload, scenario_02_assets
 
 
@@ -47,6 +48,7 @@ class WorkbenchTests(unittest.TestCase):
     def test_other_image_backed_scenarios_reuse_scheduler_and_preserve_human_boundary(self):
         robot_c = run_workbench_event("event-indoor-can-003")
         self.assertEqual(robot_c["initial_ai_result"]["task_profile"]["object_type"], "aluminum_can")
+        self.assertEqual(_OVERLAYS[("event-indoor-can-003", "CAM-A2-08", "primary.png")][0]["bbox"], [681, 682, 753, 734])
         self.assertEqual(robot_c["workflow_event"]["assignment_decision"]["selected_robot_name"], "Robot C")
         self.assertIn("Skybridge", robot_c["workflow_event"]["navigation_plan"]["display_path"])
         human = run_workbench_event("event-oversized-box-004")

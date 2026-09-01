@@ -46,6 +46,14 @@ test("map robot hover reuses the aligned fleet card and opens inward", () => {
   assert.match(source, /expandInward/);
 });
 
+test("only the workbench fleet list uses the four supplied replacement photos", () => {
+  assert.match(source, /workbench-fleet\/\$\{robot\.id\}\.jpg/);
+  assert.match(source, /<FleetSummary robot=\{robot\} workbenchList \/>/);
+  assert.match(source, /h-7 w-8 shrink-0 items-center justify-center overflow-hidden/);
+  assert.match(source, /object-contain \$\{workbenchList \? "mix-blend-multiply" : ""\}/);
+  assert.match(source, /\/visual-assets\/robots\/\$\{robot\.id\}\.png/);
+});
+
 test("event marker uses the visual route endpoint rather than the business SLAM coordinate", () => {
   assert.match(source, /routePoints\.at\(-1\)/);
   assert.match(source, /overview_position/);

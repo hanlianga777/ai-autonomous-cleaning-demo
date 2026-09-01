@@ -52,6 +52,21 @@ class RobotOperationsTests(TestCase):
         # Existing audit/task storage is retained for historical accountability.
         self.assertEqual(repo.get("task", task["task_id"])["status"], "ASSIGNED")
 
+    def test_chat_history_is_newest_first_and_read_only_projection(self):
+        first = self.session_id
+        repo.message(repo.get("session", first), "user", "先前的问题")
+        second = repo.new_session()["id"]
+        repo.message(repo.get("session", second), "assistant", "最新的答复")
+        index = repo.session_history_index()["sessions"]
+        self.assertEqual(index[0]["id"], second)
+        self.assertEqual(index[0]["preview"], "最新的答复")
+        detail = repo.session_history(first)
+        self.assertEqual(detail["id"], first)
+        self.assertEqual(detail["messages"][0]["content"], "先前的问题")
+        self.assertNotIn("tasks", detail)
+        self.assertNotIn("audits", detail)
+        self.assertNotIn("page_context", detail)
+
     def test_delivery_real_state_machine_atomic_fleet_and_restart(self):
         task = self.delivery()
         task = tasks.control(task["task_id"], "dispatch")

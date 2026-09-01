@@ -41,6 +41,12 @@ test("cancelled cleaning restores as terminal and releases subsequent demo contr
   assert.equal(session.canStartDemo({ ...event, backendState: "NAVIGATING" }), false);
 });
 
+test("workbench assistant context remains compact enough for the bounded request contract", () => {
+  assert.match(workbenchSource, /fleet_snapshot\.slice\(0, 4\)/);
+  assert.match(workbenchSource, /id: robot\.id, name: robot\.name, status: robot\.status, battery: robot\.battery, location: robot\.location/);
+  assert.doesNotMatch(workbenchSource, /event_snapshot:/);
+});
+
 test("runtime session exports no browser-owned stage advancement contract", () => {
   assert.equal("canAutoAdvance" in session, false);
   assert.equal("claimStage" in session, false);

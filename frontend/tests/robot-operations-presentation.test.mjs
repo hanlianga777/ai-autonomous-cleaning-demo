@@ -43,3 +43,14 @@ test("advice cards use two concise, complete customer-facing lines", () => {
   assert.match(panel, /园区东侧道路常见识别不清事件。/);
   assert.doesNotMatch(panel, /line-clamp-2/);
 });
+
+test("both assistant entries share a bottom-pinned composer and read-only history drawer", () => {
+  assert.match(panel, /flex min-h-0 flex-1 flex-col bg-white/);
+  assert.match(panel, /w-fit max-w-\[calc\(100%-2\.5rem\)\]/);
+  assert.match(panel, /\/api\/robot-operations\/sessions\/history/);
+  assert.match(panel, /历史记录仅供查阅，不能继续发送/);
+  assert.match(panel, /<HistoryButton dark onOpen=\{\(\) => setHistoryOpen\(true\)\} \/>/);
+  assert.match(panel, /<HistoryButton onOpen=\{\(\) => setHistoryOpen\(true\)\} \/>/);
+  assert.match(panel, /const \[expanded, setExpanded\] = useState\(false\)/);
+  assert.doesNotMatch(panel, /readStorage\(FLOATING_EXPANDED_KEY\)/);
+});

@@ -38,7 +38,6 @@ export function CameraMonitorGrid({ event, onTrigger }: { event: ActiveEvent | n
       {monitorViews(event).map(({ camera, available, eventView, after }) => <div key={camera.id} data-camera-id={camera.id} data-evidence-role={after ? "after" : "before"} className="relative min-h-0 overflow-hidden bg-slate-950">
         {available ? <CameraViewport camera={camera} showDetections={false} fill presentationLabel={camera.location} /> : <p className="flex h-full items-center justify-center text-xs text-slate-300">本阶段证据暂不可用</p>}
         <div className="pointer-events-none absolute left-1 top-1 bg-slate-950/75 px-1.5 py-0.5 text-[12px] text-white">{camera.location}</div>
-        <div className={`pointer-events-none absolute right-1 top-1 px-1.5 py-0.5 text-[12px] text-white ${eventView && !after ? "bg-amber-700" : "bg-slate-800/85"}`}>{!eventView ? "实时画面" : after ? "处置后证据" : "处置前证据"}</div>
         <time dateTime={now.toISOString()} className="pointer-events-none absolute bottom-2 right-2 bg-slate-950/65 px-1.5 py-0.5 font-mono text-[12px] tabular-nums text-white">{liveTime}</time>
         <div className="pointer-events-none absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/25 text-white"><Play size={13} fill="currentColor" /></div>
       </div>)}

@@ -32,7 +32,12 @@ function workbenchAgentPageContext(event: ActiveEvent | null, runtimeMode: "live
   const snapshot = event?.liveResult ?? null;
   const spatial = recordValue(snapshot?.spatial_location);
   const decision = recordValue(snapshot?.assignment_decision);
-  const fleetSnapshot = Array.isArray(snapshot?.fleet_snapshot) ? snapshot.fleet_snapshot.slice(0, 8) : null;
+  const fleetSnapshot = Array.isArray(snapshot?.fleet_snapshot)
+    ? snapshot.fleet_snapshot.slice(0, 4).map((item) => {
+      const robot = recordValue(item);
+      return robot ? { id: robot.id, name: robot.name, status: robot.status, battery: robot.battery, location: robot.location } : null;
+    }).filter(Boolean)
+    : null;
   return {
     page: "workbench",
     runtime_mode: runtimeMode,
@@ -41,10 +46,11 @@ function workbenchAgentPageContext(event: ActiveEvent | null, runtimeMode: "live
       event_id: typeof snapshot?.event_id === "string" ? snapshot.event_id : null,
       camera_id: typeof snapshot?.camera_id === "string" ? snapshot.camera_id : event.scenario.cameraId,
       map_id: typeof spatial?.map_id === "string" ? spatial.map_id : null,
+      state: typeof snapshot?.state === "string" ? snapshot.state : event.backendState ?? null,
+      location: typeof spatial?.label === "string" ? spatial.label : null,
       robot_id: typeof decision?.selected_robot_id === "string" ? decision.selected_robot_id : null,
       fleet_resource: "/api/robots",
       fleet_snapshot: fleetSnapshot,
-      event_snapshot: snapshot,
     } : null,
   };
 }

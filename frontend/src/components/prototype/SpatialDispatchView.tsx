@@ -43,7 +43,7 @@ const ROBOT_ASSET_OFFSETS: Record<string, { x: number; scale: number }> = {
   "robot-a": { x: -1, scale: 1.2 }, "robot-b": { x: 0, scale: 1.15 }, "robot-c": { x: 1, scale: 1.18 }, "robot-d": { x: 0, scale: 1.12 },
 };
 const FLEET_LIST_ASSET_OFFSETS: Record<string, { x: number; scale: number }> = {
-  "robot-a": { x: 2, scale: 1.2 }, "robot-b": { x: 0, scale: 1.15 }, "robot-c": { x: -2, scale: 1.18 }, "robot-d": { x: 0, scale: 1.12 },
+  "robot-a": { x: 0, scale: 0.86 }, "robot-b": { x: 0, scale: 0.88 }, "robot-c": { x: 0, scale: 0.9 }, "robot-d": { x: 0, scale: 0.84 },
 };
 
 function fleetFromEvent(event: ActiveEvent | null, fallback: FleetRobot[]): FleetRobot[] {
@@ -61,17 +61,18 @@ function RouteLayer({ points, style }: { points: CanvasPoint[]; style?: Navigati
   </svg>;
 }
 
-function FleetSummary({ robot, translucent = false }: { robot: FleetRobot; translucent?: boolean }) {
+function FleetSummary({ robot, translucent = false, workbenchList = false }: { robot: FleetRobot; translucent?: boolean; workbenchList?: boolean }) {
   const status = statusCopy[robot.status] ?? robot.status;
   const asset = FLEET_LIST_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
+  const src = workbenchList ? `/visual-assets/workbench-fleet/${robot.id}.jpg` : `/visual-assets/robots/${robot.id}.png`;
   return <div className={translucent ? "border border-white/70 bg-white/55 px-2 py-2 shadow-lg backdrop-blur-sm" : "px-2 py-2"}>
-    <p className="text-[12px] font-semibold leading-4 text-slate-800">{robot.name}</p><div className="mt-1 grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-1.5"><span className="flex h-7 w-8 shrink-0 items-center justify-center overflow-visible"><img src={`/visual-assets/robots/${robot.id}.png`} alt="" className="h-7 w-8 object-contain" style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><p className="min-w-0 text-[12px] text-slate-500">{status}</p><span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-600"><BatteryCharging size={11} strokeWidth={1.7} />{robot.battery}%</span></div>
+    <p className="text-[12px] font-semibold leading-4 text-slate-800">{robot.name}</p><div className="mt-1 grid grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-1.5"><span className="flex h-7 w-8 shrink-0 items-center justify-center overflow-hidden"><img src={src} alt="" className={`h-7 w-8 object-contain ${workbenchList ? "mix-blend-multiply" : ""}`} style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><p className="min-w-0 text-[12px] text-slate-500">{status}</p><span className="flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-600"><BatteryCharging size={11} strokeWidth={1.7} />{robot.battery}%</span></div>
   </div>;
 }
 
 function FleetAssetCard({ robot, active }: { robot: FleetRobot; active: boolean }) {
   return <article className={`group relative border transition-colors ${active ? "border-slate-500 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-    <FleetSummary robot={robot} />
+    <FleetSummary robot={robot} workbenchList />
     <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-52 border border-slate-300 bg-white p-3 text-[12px] leading-5 text-slate-600 shadow-lg group-hover:block"><p className="font-semibold text-slate-800">{robot.name}</p><p>{robot.location}</p><p className="mt-1 border-t border-slate-100 pt-1"><span className="text-slate-400">服务范围：</span>{robot.role ?? robot.zone ?? "园区服务区域"}</p><p><span className="text-slate-400">适用范围：</span>{robot.product_capability ?? robot.capabilities?.join(" / ") ?? "未配置"}</p></div>
   </article>;
 }

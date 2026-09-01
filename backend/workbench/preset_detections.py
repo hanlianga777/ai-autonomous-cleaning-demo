@@ -32,7 +32,7 @@ _OVERLAYS: dict[tuple[str, str, str], list[dict[str, Any]]] = {
         {"label": "液体污渍", "bbox": [630, 539, 817, 614], "confidence": 0.91},
     ],
     ("event-indoor-can-003", "CAM-A2-08", "primary.png"): [
-        {"label": "易拉罐", "bbox": [699, 695, 735, 721], "confidence": 0.92},
+        {"label": "易拉罐", "bbox": [681, 682, 753, 734], "confidence": 0.92},
     ],
     ("event-oversized-box-004", "CAM-A2-11", "primary.png"): [
         {"label": "大型纸箱", "bbox": [505, 570, 627, 706], "confidence": 0.94},

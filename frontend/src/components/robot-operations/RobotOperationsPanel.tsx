@@ -1,7 +1,7 @@
-import { ArrowUpRight, Bot, LoaderCircle, MessageCircle, Send, Sparkles, X } from "lucide-react";
+import { ArrowUpRight, Bot, History, LoaderCircle, MessageCircle, MoreHorizontal, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useRobotOperations } from "./RobotOperationsProvider";
-import { FLOATING_BALL_SIZE, FLOATING_CHAT_SIZE, FLOATING_EXPANDED_KEY, FLOATING_POSITION_KEY, clampFloatingPosition, customerAgentMessage, defaultFloatingPosition, parseStoredPosition, readStorage, writeStorage, type AdviceItem } from "./robotOperationsModel";
+import { FLOATING_BALL_SIZE, FLOATING_CHAT_SIZE, FLOATING_POSITION_KEY, clampFloatingPosition, customerAgentMessage, defaultFloatingPosition, parseStoredPosition, readStorage, writeStorage, type AdviceItem } from "./robotOperationsModel";
 
 type PageContext = Record<string, unknown>;
 
@@ -11,6 +11,9 @@ const QUICK_PROMPTS = [
   "三台清洁机器人现在是什么状态？",
   "A栋1F液体污渍如何改善？",
 ];
+
+type ChatHistorySummary = { id: string; created_at: string; updated_at: string; message_count: number; preview: string };
+type ChatHistoryRecord = { id: string; created_at: string; messages: Array<{ id: string; role: "user" | "assistant" | "system"; content: string; created_at: string }> };
 
 function conciseCustomerReply(content: string): string {
   const source = customerAgentMessage(content).replace(/^本轮未执行任务写操作。\s*/, "").trim();
@@ -42,7 +45,7 @@ function Messages({ pageContext }: { pageContext: PageContext }) {
   if (loading) return <div className="flex flex-1 items-center justify-center px-3 text-[11px] text-slate-500">正在连接运营助手…</div>;
   if (!session) return <div className="flex flex-1 items-center justify-center px-3 text-center text-[11px] leading-5 text-amber-700">{error ?? "运营助手暂不可用。"}</div>;
   const busy = pending || Boolean(session.busy);
-  return <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">{session.messages.length ? session.messages.map((message) => message.role === "user" ? <article key={message.id} className="ml-10 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-[13px] leading-6 text-white shadow-sm">{customerAgentMessage(message.content)}</article> : <article key={message.id} className="mr-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm"><div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400"><Bot size={13} />AI运营助手</div><StructuredAssistantMessage content={message.content} /></article>) : <div className="flex min-h-full flex-col justify-center py-8"><div className="mx-auto mb-6 max-w-[300px] text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><Bot size={19} /></span><p className="mt-3 text-[14px] font-semibold text-slate-800">今天想了解什么？</p><p className="mt-1 text-[12px] leading-5 text-slate-500">可快速查看事件、热区与机器人状态。</p></div><QuickPrompts pageContext={pageContext} disabled={busy} /></div>}{busy && <p className="flex items-center gap-1.5 text-[12px] text-slate-500"><LoaderCircle size={14} className="animate-spin" />正在发送并等待运营助手响应…</p>}{error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-800">{customerAgentMessage(error)}</p>}</div>;
+  return <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">{session.messages.length ? session.messages.map((message) => message.role === "user" ? <article key={message.id} className="ml-auto w-fit max-w-[calc(100%-2.5rem)] break-words rounded-2xl bg-slate-900 px-3.5 py-2.5 text-[13px] leading-6 text-white shadow-sm">{customerAgentMessage(message.content)}</article> : <article key={message.id} className="mr-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm"><div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400"><Bot size={13} />AI运营助手</div><StructuredAssistantMessage content={message.content} /></article>) : <div className="flex min-h-full flex-col justify-center py-8"><div className="mx-auto mb-6 max-w-[300px] text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><Bot size={19} /></span><p className="mt-3 text-[14px] font-semibold text-slate-800">今天想了解什么？</p><p className="mt-1 text-[12px] leading-5 text-slate-500">可快速查看事件、热区与机器人状态。</p></div><QuickPrompts pageContext={pageContext} disabled={busy} /></div>}{busy && <p className="flex items-center gap-1.5 text-[12px] text-slate-500"><LoaderCircle size={14} className="animate-spin" />正在发送并等待运营助手响应…</p>}{error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-800">{customerAgentMessage(error)}</p>}</div>;
 }
 
 function Composer({ pageContext }: { pageContext: PageContext }) {
@@ -54,11 +57,26 @@ function Composer({ pageContext }: { pageContext: PageContext }) {
 }
 
 export function RobotOperationsChat({ pageContext, className = "" }: { pageContext: PageContext; className?: string }) {
-  return <section className={`flex min-h-0 flex-col bg-white ${className}`} aria-label="Robot Operations Agent 对话"><Messages pageContext={pageContext} /><Composer pageContext={pageContext} /></section>;
+  return <section className={`flex min-h-0 flex-1 flex-col bg-white ${className}`} aria-label="Robot Operations Agent 对话"><Messages pageContext={pageContext} /><Composer pageContext={pageContext} /></section>;
+}
+
+function HistoryButton({ onOpen, dark = false }: { onOpen: () => void; dark?: boolean }) {
+  return <button type="button" onClick={onOpen} className={`rounded-lg p-2 ${dark ? "text-slate-300 hover:bg-white/10 hover:text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"}`} aria-label="查看历史聊天记录" title="历史聊天记录"><MoreHorizontal size={19} /></button>;
+}
+
+function ChatHistoryDrawer({ onClose }: { onClose: () => void }) {
+  const [sessions, setSessions] = useState<ChatHistorySummary[]>([]);
+  const [selected, setSelected] = useState<ChatHistoryRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { let active = true; void fetch("/api/robot-operations/sessions/history").then(async (response) => { if (!response.ok) throw new Error(`history ${response.status}`); return response.json() as Promise<{ sessions: ChatHistorySummary[] }>; }).then((payload) => { if (active) setSessions(payload.sessions); }).catch(() => { if (active) setError("历史聊天暂不可用，请稍后重试。"); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  const openSession = async (session: ChatHistorySummary) => { setLoading(true); setError(null); try { const response = await fetch(`/api/robot-operations/sessions/${encodeURIComponent(session.id)}/history`); if (!response.ok) throw new Error(`history ${response.status}`); setSelected(await response.json() as ChatHistoryRecord); } catch { setError("无法读取这段历史聊天。"); } finally { setLoading(false); } };
+  return <div className="fixed inset-0 z-[90] bg-slate-900/25 p-4 sm:p-6" role="presentation" onMouseDown={onClose}><section role="dialog" aria-modal="true" aria-label="历史聊天记录" className="ml-auto flex h-full w-full max-w-[440px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onMouseDown={(event) => event.stopPropagation()}><header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3"><div className="flex items-center gap-2 text-slate-900"><History size={17} /><p className="text-sm font-semibold">历史聊天记录</p></div><button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="关闭历史聊天记录"><X size={18} /></button></header><div className="grid min-h-0 flex-1 grid-cols-[146px_minmax(0,1fr)]"><nav className="overflow-y-auto border-r border-slate-200 bg-slate-50 p-2" aria-label="已保存会话">{loading && !sessions.length ? <p className="p-2 text-xs text-slate-400">正在读取…</p> : sessions.length ? sessions.map((session) => <button key={session.id} type="button" onClick={() => void openSession(session)} className={`mb-1 w-full rounded-lg px-2 py-2 text-left text-xs ${selected?.id === session.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:bg-white"}`}><p className="max-h-10 overflow-hidden leading-5">{customerAgentMessage(session.preview || "运营助手会话")}</p><p className="mt-1 text-[10px] text-slate-400">{new Date(session.updated_at || session.created_at).toLocaleString()} · {session.message_count} 条</p></button>) : <p className="p-2 text-xs leading-5 text-slate-400">暂无已保存会话。</p>}</nav><div className="min-h-0 overflow-y-auto p-4">{error ? <p role="alert" className="text-xs text-amber-700">{error}</p> : selected ? <div className="space-y-3">{selected.messages.map((message) => message.role === "user" ? <article key={message.id} className="ml-auto w-fit max-w-full break-words rounded-2xl bg-slate-900 px-3 py-2 text-xs leading-5 text-white">{customerAgentMessage(message.content)}</article> : <article key={message.id} className="rounded-xl border border-slate-200 p-3"><StructuredAssistantMessage content={message.content} /></article>)}</div> : <div className="flex h-full items-center justify-center text-center text-xs leading-5 text-slate-400">从左侧选择一段已保存的会话查看。<br />历史记录仅供查阅，不能继续发送。</div>}</div></div></section></div>;
 }
 
 export function FloatingRobotOperationsAgent({ pageContext }: { pageContext: PageContext }) {
-  const [expanded, setExpanded] = useState(() => readStorage(FLOATING_EXPANDED_KEY) === "true");
+  const [expanded, setExpanded] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const drag = useRef<{ pointerId: number; offsetX: number; offsetY: number; moved: boolean } | null>(null);
   const justDragged = useRef(false);
@@ -80,13 +98,14 @@ export function FloatingRobotOperationsAgent({ pageContext }: { pageContext: Pag
   };
   const stopDrag = (event: ReactPointerEvent<HTMLElement>) => { if (drag.current?.pointerId === event.pointerId) { justDragged.current = drag.current.moved; drag.current = null; } };
   if (!position) return null;
-  const toggleExpanded = () => setExpanded((value) => { const next = !value; writeStorage(FLOATING_EXPANDED_KEY, String(next)); return next; });
+  const toggleExpanded = () => setExpanded((value) => !value);
   const panelPosition = clampFloatingPosition(position, { width: window.innerWidth, height: window.innerHeight }, FLOATING_CHAT_SIZE);
   if (!expanded) return <button type="button" onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag} onClick={(event) => { if (!justDragged.current) toggleExpanded(); justDragged.current = false; event.stopPropagation(); }} className="fixed z-[70] flex h-14 w-14 touch-none items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,.28)] transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-sky-200 active:cursor-grabbing" style={{ left: position.x, top: position.y }} aria-label="打开园区运营助手"><MessageCircle size={25} /><span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" /></button>;
-  return <section className="fixed z-[70] flex h-[min(560px,calc(100dvh-32px))] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" style={{ left: panelPosition.x, top: panelPosition.y }} aria-label="AI运营助手完整对话窗口"><header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-900 px-4 py-3 text-white"><div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-400 text-slate-900"><Bot size={19} /></span><div><p className="text-[14px] font-semibold">AI运营助手</p><p className="text-[11px] text-slate-300">协助查询事件与执行进度</p></div></div><button type="button" onClick={toggleExpanded} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="收起为 AI 悬浮球"><X size={18} /></button></header><RobotOperationsChat pageContext={pageContext} /></section>;
+  return <><section className="fixed z-[70] flex h-[min(560px,calc(100dvh-32px))] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" style={{ left: panelPosition.x, top: panelPosition.y }} aria-label="AI运营助手完整对话窗口"><header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-900 px-4 py-3 text-white"><div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-400 text-slate-900"><Bot size={19} /></span><div><p className="text-[14px] font-semibold">AI运营助手</p><p className="text-[11px] text-slate-300">协助查询事件与执行进度</p></div></div><div className="flex items-center"><HistoryButton dark onOpen={() => setHistoryOpen(true)} /><button type="button" onClick={toggleExpanded} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="收起为 AI 悬浮球"><X size={18} /></button></div></header><RobotOperationsChat pageContext={pageContext} /></section>{historyOpen && <ChatHistoryDrawer onClose={() => setHistoryOpen(false)} />}</>;
 }
 export function AnalyticsAgentChat({ pageContext }: { pageContext: PageContext }) {
-  return <aside className="sticky top-0 flex h-[calc(100dvh-54px)] min-h-[560px] flex-col border-l border-slate-200 bg-white" aria-label="AI运营助手固定对话"><header className="border-b border-slate-200 px-4 py-4"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white"><Bot size={16} /></span><div><p className="text-[14px] font-semibold text-slate-900">AI运营助手</p><p className="text-[11px] text-slate-400">面向园区的快速运营问答</p></div></div></header><RobotOperationsChat pageContext={pageContext} /></aside>;
+  const [historyOpen, setHistoryOpen] = useState(false);
+  return <><aside className="sticky top-0 flex h-[calc(100dvh-54px)] min-h-[560px] flex-col border-l border-slate-200 bg-white" aria-label="AI运营助手固定对话"><header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-4"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white"><Bot size={16} /></span><div><p className="text-[14px] font-semibold text-slate-900">AI运营助手</p><p className="text-[11px] text-slate-400">面向园区的快速运营问答</p></div></div><HistoryButton onOpen={() => setHistoryOpen(true)} /></header><RobotOperationsChat pageContext={pageContext} /></aside>{historyOpen && <ChatHistoryDrawer onClose={() => setHistoryOpen(false)} />}</>;
 }
 
 function adviceCardLines(item: AdviceItem): [string, string] {

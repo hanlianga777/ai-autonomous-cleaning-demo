@@ -36,6 +36,16 @@ def create_show_session():
     return {"show_session": repo.begin_show_session()}
 
 
+@router.get("/sessions/history")
+def history_index():
+    return repo.session_history_index()
+
+
+@router.get("/sessions/{session_id}/history")
+def history(session_id: str):
+    return guarded(repo.session_history, session_id)
+
+
 @router.get("/sessions/{session_id}")
 def session(session_id: str):
     result = guarded(repo.snapshot, session_id)

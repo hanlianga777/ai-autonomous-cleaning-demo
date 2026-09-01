@@ -178,7 +178,7 @@ export function projectBackendRoute(
   _target: EventTarget | null | undefined,
 ): CanvasPoint[] {
   const visualPath = plan?.visual_path;
-  if (plan?.visual_route_version === 4 && Array.isArray(visualPath) && visualPath.length > 1 && visualPath.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))) {
+  if (plan?.visual_route_version === 5 && Array.isArray(visualPath) && visualPath.length > 1 && visualPath.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y))) {
     return compactRoutePoints(visualPath.map((point) => {
       const { node_id, progress_label, ...canvasPoint } = point as CanvasPoint & { node_id?: string; progress_label?: string };
       const progressLabel = canvasPoint.progressLabel ?? progress_label;

@@ -38,3 +38,14 @@ test("analytics keeps its insight surface separate from a completed demo event",
   assert.doesNotMatch(analytics, /本次演示的运营价值|RecentDemoInsight/);
   assert.match(analytics, /<AnalyticsAdviceCards \/>/);
 });
+
+test("the fixed heatmap uses deterministic organic multicolor density areas without contour rings", () => {
+  assert.match(analytics, /function HistoricalHeatmapOverlay/);
+  const overlay = analytics.slice(analytics.indexOf("function HistoricalHeatmapOverlay"), analytics.indexOf("function KpiCard"));
+  assert.match(overlay, /<path d="M19 58/);
+  assert.match(overlay, /heatmap-red/);
+  assert.match(overlay, /heatmap-blue/);
+  assert.match(overlay, /heatmap-gold/);
+  assert.doesNotMatch(overlay, /<ellipse/);
+  assert.doesNotMatch(overlay, /strokeDasharray/);
+});

@@ -44,7 +44,7 @@ class SpatialEngineTests(unittest.TestCase):
         self.assertEqual(path[0]["node_id"], "B_1F")
         self.assertEqual([point["node_id"] for point in path[1:-1]], ["B_ELEVATOR_1F", "B_ELEVATOR_2F", "SKYBRIDGE_B"])
         self.assertEqual(path[-1]["node_id"], "A_2F")
-        self.assertEqual(VISUAL_ROUTE_VERSION, 4)
+        self.assertEqual(VISUAL_ROUTE_VERSION, 5)
         self.assertEqual(set(tuple(style.items()) for style in ROBOT_ROUTE_STYLES.values()), {
             (("route", "#b91c1c"), ("opacity", 0.45), ("stroke_width", 5), ("dasharray", "7 5")),
         })
@@ -55,7 +55,13 @@ class SpatialEngineTests(unittest.TestCase):
         self.assertEqual(robot_visual_endpoint("robot-a"), ROBOT_ROUTE_VISUALS["robot-a"][-1])
         self.assertEqual(robot_visual_endpoint("robot-c"), path[-1])
         self.assertEqual(path[1]["x"], path[2]["x"], "Demo03 elevator remains vertically aligned")
-        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][-1]["y"], 64.1)
+        self.assertEqual(ROBOT_ROUTE_VISUALS["robot-a"][-1]["y"], 63.7)
+        self.assertAlmostEqual(
+            (ROBOT_ROUTE_VISUALS["robot-a"][0]["y"] - ROBOT_ROUTE_VISUALS["robot-a"][-1]["y"])
+            / (ROBOT_ROUTE_VISUALS["robot-a"][0]["x"] - ROBOT_ROUTE_VISUALS["robot-a"][-1]["x"]),
+            16.3 / 34.4,
+            msg="Demo01 remains parallel to the white-model road center dashes",
+        )
         self.assertEqual(path[-1]["y"], 27.4)
         self.assertAlmostEqual((path[-1]["y"] - path[-2]["y"]) / (path[-1]["x"] - path[-2]["x"]), 9.1 / 23)
         route = calibrated_visual_route("robot-c", ["B_1F", "B_ELEVATOR_1F", "B_ELEVATOR_2F", "B_2F", "SKYBRIDGE_B", "SKYBRIDGE_A", "A_2F"])
