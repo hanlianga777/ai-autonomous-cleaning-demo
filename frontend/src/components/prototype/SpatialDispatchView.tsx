@@ -120,7 +120,6 @@ export function SpatialDispatchView({ event, presentation }: SpatialDispatchView
     <MapCanvas imageSrc="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区空间白模" className="min-h-[248px] bg-[#eef2f5]">
       <>
         <RouteLayer points={routePoints} style={plan?.visual_style} />
-        {routeReady && <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2 opacity-70" style={{ left: `${routePoints.at(-1)?.x}%`, top: `${routePoints.at(-1)?.y}%` }} aria-label="已定位事件位置"><span className="block h-3 w-3 rounded-full border border-rose-500 bg-rose-100/80" /><span className="absolute left-1/2 top-4 -translate-x-1/2 whitespace-nowrap text-xs font-normal text-rose-600 scale-[0.92]">事件位置</span></div>}
         {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId ? (robotPosition ?? idlePresentationPosition(robot)) : idlePresentationPosition(robot); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
         {isNavigating && !paused && isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white/80 px-2 py-1 text-xs font-normal text-slate-700 shadow-sm" style={{ left: `${robotPosition?.x ?? 50}%`, top: `${robotPosition?.y ?? 50}%` }}>乘梯中</div>}
       </>

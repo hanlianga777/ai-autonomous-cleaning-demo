@@ -54,7 +54,8 @@ test("only the workbench fleet list uses the four supplied replacement photos", 
   assert.match(source, /\/visual-assets\/robots\/\$\{robot\.id\}\.png/);
 });
 
-test("event marker uses the visual route endpoint rather than the business SLAM coordinate", () => {
-  assert.match(source, /routePoints\.at\(-1\)/);
+test("map route and robot presentation contain no endpoint event marker", () => {
+  assert.doesNotMatch(source, /已定位事件位置|>事件位置</);
+  assert.doesNotMatch(source, /rounded-full border border-rose-500 bg-rose-100/);
   assert.match(source, /overview_position/);
 });
