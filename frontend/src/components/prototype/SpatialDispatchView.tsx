@@ -61,6 +61,11 @@ function RouteLayer({ points, style }: { points: CanvasPoint[]; style?: Navigati
   </svg>;
 }
 
+function RouteEndpointRing({ point, style }: { point?: CanvasPoint; style?: NavigationPlan["visual_style"] }) {
+  if (!point) return null;
+  return <span aria-label="已识别垃圾点" className="pointer-events-none absolute z-40 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px]" style={{ left: `${point.x}%`, top: `${point.y}%`, borderColor: style?.route ?? "#b91c1c", opacity: style?.opacity ?? 0.45 }} />;
+}
+
 function FleetSummary({ robot, translucent = false, workbenchList = false }: { robot: FleetRobot; translucent?: boolean; workbenchList?: boolean }) {
   const status = statusCopy[robot.status] ?? robot.status;
   const asset = FLEET_LIST_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
@@ -81,7 +86,7 @@ function RobotMarker({ robot, point, active }: { robot: FleetRobot; point: Canva
   const asset = ROBOT_ASSET_OFFSETS[robot.id] ?? { x: 0, scale: 1 };
   const isIndoor = robot.id === "robot-b" || robot.id === "robot-c";
   const expandInward = point.x > 68;
-  return <div className="group absolute z-30 -translate-x-1/2 -translate-y-1/2 outline-none" style={{ left: `${point.x}%`, top: `${point.y}%` }} tabIndex={0} aria-label={`${robot.name} 地图机器人`}><div className="relative flex flex-col items-center"><span className="pointer-events-none absolute bottom-[calc(100%-1px)] left-1/2 flex h-4 w-[104px] -translate-x-1/2 items-center justify-center whitespace-nowrap border border-white/80 bg-white/55 px-1 text-xs font-normal text-slate-700 shadow-sm backdrop-blur-[1px] scale-[0.92]">{robot.name}</span><span className="flex h-8 w-11 items-center justify-center"><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className={`h-8 w-11 object-contain drop-shadow-sm ${isIndoor ? "opacity-60" : "opacity-100"}`} style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span><span className={`absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${active ? "bg-[#b91c1c]" : "bg-slate-600"}`} /></div><div className={`pointer-events-none absolute top-1/2 z-50 hidden w-[136px] -translate-y-1/2 group-hover:block group-focus:block ${expandInward ? "right-full mr-3" : "left-full ml-3"}`}><FleetSummary robot={robot} translucent /></div></div>;
+  return <div className="group absolute z-30 -translate-x-1/2 -translate-y-1/2 outline-none" style={{ left: `${point.x}%`, top: `${point.y}%` }} tabIndex={0} aria-label={`${robot.name} 地图机器人`}><div className="relative flex flex-col items-center"><span className="pointer-events-none absolute bottom-[calc(100%-1px)] left-1/2 flex h-4 w-[104px] -translate-x-1/2 items-center justify-center whitespace-nowrap border border-white/80 bg-white/55 px-1 text-xs font-normal text-slate-700 shadow-sm backdrop-blur-[1px] scale-[0.92]">{robot.name}</span><span className="flex h-8 w-11 items-center justify-center"><img src={`/visual-assets/robots/${robot.id}.png`} alt={robot.name} className={`h-8 w-11 object-contain drop-shadow-sm ${isIndoor ? "opacity-60" : "opacity-100"}`} style={{ transform: `translateX(${asset.x}px) scale(${asset.scale})` }} /></span>{!active && <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-slate-600" />}</div><div className={`pointer-events-none absolute top-1/2 z-50 hidden w-[136px] -translate-y-1/2 group-hover:block group-focus:block ${expandInward ? "right-full mr-3" : "left-full ml-3"}`}><FleetSummary robot={robot} translucent /></div></div>;
 }
 
 function idlePresentationPosition(robot: FleetRobot): CanvasPoint {
@@ -120,6 +125,7 @@ export function SpatialDispatchView({ event, presentation }: SpatialDispatchView
     <MapCanvas imageSrc="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区空间白模" className="min-h-[248px] bg-[#eef2f5]">
       <>
         <RouteLayer points={routePoints} style={plan?.visual_style} />
+        {routeReady && <RouteEndpointRing point={routePoints.at(-1)} style={plan?.visual_style} />}
         {displayedFleet.map((robot) => { const position = robot.id === selectedRobotId ? (robotPosition ?? idlePresentationPosition(robot)) : idlePresentationPosition(robot); return <RobotMarker key={robot.id} robot={robot} point={position} active={robot.id === selectedRobotId} />; })}
         {isNavigating && !paused && isElevatorPause && <div className="absolute z-40 -translate-x-1/2 -translate-y-full border border-slate-300 bg-white/80 px-2 py-1 text-xs font-normal text-slate-700 shadow-sm" style={{ left: `${robotPosition?.x ?? 50}%`, top: `${robotPosition?.y ?? 50}%` }}>乘梯中</div>}
       </>

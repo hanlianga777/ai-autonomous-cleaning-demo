@@ -54,8 +54,13 @@ test("only the workbench fleet list uses the four supplied replacement photos", 
   assert.match(source, /\/visual-assets\/robots\/\$\{robot\.id\}\.png/);
 });
 
-test("map route and robot presentation contain no endpoint event marker", () => {
+test("map route endpoint has one visual-style hollow ring without a position label or robot red dot", () => {
   assert.doesNotMatch(source, /已定位事件位置|>事件位置</);
-  assert.doesNotMatch(source, /rounded-full border border-rose-500 bg-rose-100/);
+  assert.match(source, /aria-label="已识别垃圾点"/);
+  assert.match(source, /borderColor: style\?\.route/);
+  assert.match(source, /opacity: style\?\.opacity/);
+  assert.match(source, /routeReady && <RouteEndpointRing point=\{routePoints\.at\(-1\)\}/);
+  assert.match(source, /\{!active && <span className="absolute bottom-0/);
+  assert.doesNotMatch(source, /active \? "bg-\[\#b91c1c\]"/);
   assert.match(source, /overview_position/);
 });
