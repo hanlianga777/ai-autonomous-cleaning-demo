@@ -207,10 +207,10 @@ class DemoV1Tests(unittest.TestCase):
             plan = start_navigation(event_id)["navigation_plan"]
         observation = plan["patrol_observation"]
         self.assertEqual(observation["trigger_node_id"], "SKYBRIDGE_B")
-        self.assertEqual(observation["location"], "B栋2F连廊入口消防栓")
-        self.assertEqual(observation["finding"], "消防栓防火门未关闭")
+        self.assertEqual(observation["location"], "B栋2F连廊入口")
+        self.assertEqual(observation["finding"], "垃圾桶满溢")
         self.assertEqual(observation["source"], "CONTROLLED_RGBD_DEMO")
-        self.assertTrue(observation["asset_url"].endswith("door-ajar-rgbd.png"))
+        self.assertTrue(observation["asset_url"].endswith("overflowing-bin-rgbd.png"))
         self.assertEqual(get_event(event_id)["demo_v1"]["navigation_plan"]["patrol_observation"], observation)
 
     def test_demo04_reaches_human_fallback_only_after_capability_evaluation(self) -> None:

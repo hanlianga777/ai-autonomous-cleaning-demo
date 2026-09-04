@@ -726,11 +726,11 @@ def start_navigation(event_id: str) -> dict[str, Any]:
     if stored["demo_v1"].get("demo_id") == "demo03":
         plan["patrol_observation"] = {
             "trigger_node_id": "SKYBRIDGE_B",
-            "location": "B栋2F连廊入口消防栓",
-            "finding": "消防栓防火门未关闭",
+            "location": "B栋2F连廊入口",
+            "finding": "垃圾桶满溢",
             "notice": "已提示物业复核",
             "source": "CONTROLLED_RGBD_DEMO",
-            "asset_url": "/demo-assets/ROBOT-SC50-RGBD-01/event-indoor-can-003/door-ajar-rgbd.png",
+            "asset_url": "/demo-assets/ROBOT-SC50-RGBD-01/event-indoor-can-003/overflowing-bin-rgbd.png",
         }
     update_fleet_robot(robot_id, status="navigating", active_event_id=event_id)
     return _save_stage(stored, "NAVIGATING", {"navigation_plan": plan}, navigation_plan=plan, fleet_snapshot=get_fleet_state(), reason="机器人已按 Dijkstra 园区拓扑路线前往目标区域。")
