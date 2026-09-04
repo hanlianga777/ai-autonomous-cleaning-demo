@@ -726,8 +726,8 @@ def start_navigation(event_id: str) -> dict[str, Any]:
     if stored["demo_v1"].get("demo_id") == "demo03":
         plan["patrol_observation"] = {
             "trigger_node_id": "SKYBRIDGE_B",
-            "location": "B栋2F连廊入口",
-            "finding": "单元门未关闭",
+            "location": "B栋2F连廊入口消防栓",
+            "finding": "消防栓防火门未关闭",
             "notice": "已提示物业复核",
             "source": "CONTROLLED_RGBD_DEMO",
             "asset_url": "/demo-assets/ROBOT-SC50-RGBD-01/event-indoor-can-003/door-ajar-rgbd.png",
