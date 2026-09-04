@@ -73,6 +73,15 @@ vite_pid=$!; SERVER_PIDS+=("$vite_pid")
 for _ in {1..30}; do runtime_port_in_use 18104 && break; sleep 0.1; done
 vite_command="$(runtime_process_command "$(runtime_listener_pid 18104)")"
 runtime_command_is_expected frontend 18104 "$vite_command" || fail "actual Vite argv was not recognized"
+(cd "$PROJECT_DIR/frontend" && "$PROJECT_DIR/frontend/node_modules/.bin/vite" --host 127.0.0.1 --port 18106 --strictPort >/dev/null 2>&1) &
+absolute_vite_pid=$!; SERVER_PIDS+=("$absolute_vite_pid")
+for _ in {1..30}; do runtime_port_in_use 18106 && break; sleep 0.1; done
+locale_record="$TMP_DIR/locale-vite.pid"
+LC_ALL=C LANG=C runtime_write_pid_record "$locale_record" frontend 18106 "$(runtime_listener_pid 18106)" "$PROJECT_DIR/frontend" || fail "C locale could not write Vite record"
+if ! LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 bash -c 'source "$1/scripts/runtime_launcher_lib.sh"; runtime_record_matches_listener "$2" frontend 18106 "$3/frontend"' _ "$PROJECT_DIR" "$locale_record" "$PROJECT_DIR"; then
+  fail "UTF-8 locale rejected the same Vite listener"
+fi
+pass "launcher ownership records survive locale changes"
 set +e
 DEMO_LOG_DIR="$TMP_DIR/no-record-vite" DEMO_BACKEND_PORT=18105 DEMO_FRONTEND_PORT=18104 DEMO_NO_OPEN=1 "$PROJECT_DIR/start_demo.command" >"$TMP_DIR/start-unknown-vite.txt" 2>&1
 start_status=$?

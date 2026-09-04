@@ -16,13 +16,13 @@ runtime_listener_pid() {
 }
 
 runtime_port_in_use() { [[ -n "$(runtime_listener_pids "$1")" ]]; }
-runtime_process_command() { ps -p "$1" -o command= 2>/dev/null | sed 's/^[[:space:]]*//'; }
+runtime_process_command() { LC_ALL=C ps -p "$1" -o command= 2>/dev/null | sed 's/^[[:space:]]*//'; }
 runtime_process_cwd() {
   # macOS lsof escapes non-ASCII path bytes (for example 项目) as literal
   # `\xNN` sequences. Decode its field before comparing against $PWD; without
   # this a legitimately launched process can never receive an ownership record.
   local cwd
-  cwd="$(lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1)"
+  cwd="$(LC_ALL=C lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1)"
   printf '%b\n' "$cwd"
 }
 runtime_process_started_at() { ps -p "$1" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
