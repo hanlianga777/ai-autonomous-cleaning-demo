@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 自主清洁与移动巡检技术架构</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f5f5f5; color: #2d3142; }
+    main { max-width: 1280px; margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+    .sans { font-family: Geist, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", sans-serif; }
+    .mono { font-family: "Geist Mono", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", monospace; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg viewBox="0 0 1280 720" role="img" aria-labelledby="technical-architecture-title technical-architecture-desc">
+      <title id="technical-architecture-title">AI 自主清洁与移动巡检技术架构</title>
+      <desc id="technical-architecture-desc">固定与移动双感知经过边缘与云端 AI 研判后进入统一事件层，并由空间服务、确定性调度、机器人集成和物业工作流完成受控处置与运营治理。</desc>
+      <defs>
+        <pattern id="technical-architecture-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="12" cy="12" r="1" fill="rgba(45,49,66,0.08)"/></pattern>
+        <marker id="technical-architecture-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4f5d75"/></marker>
+        <marker id="technical-architecture-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#eb6c36"/></marker>
+      </defs>
+
+      <rect width="1280" height="720" fill="#f5f5f5"/>
+      <rect width="1280" height="720" fill="url(#technical-architecture-dots)" opacity="0.52"/>
+      <text x="48" y="48" class="mono" font-size="12" font-weight="600" letter-spacing="2" fill="#4f5d75">面试架构 · 技术总览</text>
+      <text x="48" y="88" class="sans" font-size="32" font-weight="600" fill="#2d3142">AI 自主清洁与移动巡检技术架构</text>
+      <text x="48" y="116" class="sans" font-size="16" fill="#4f5d75">双感知、边云研判、统一事件事实与确定性执行的受控架构</text>
+
+      <!-- zones -->
+      <rect x="48" y="160" width="256" height="400" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.18)" stroke-dasharray="5,4"/>
+      <rect x="64" y="152" width="96" height="16" rx="2" fill="#f5f5f5"/><text x="112" y="164" class="mono" font-size="10" text-anchor="middle" letter-spacing="1" fill="#4f5d75">现场感知</text>
+      <rect x="336" y="160" width="256" height="400" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.18)" stroke-dasharray="5,4"/>
+      <rect x="352" y="152" width="112" height="16" rx="2" fill="#f5f5f5"/><text x="408" y="164" class="mono" font-size="10" text-anchor="middle" letter-spacing="1" fill="#4f5d75">边云 AI 研判</text>
+      <rect x="624" y="160" width="608" height="400" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.18)" stroke-dasharray="5,4"/>
+      <rect x="640" y="152" width="176" height="16" rx="2" fill="#f5f5f5"/><text x="728" y="164" class="mono" font-size="10" text-anchor="middle" letter-spacing="1" fill="#4f5d75">事件、执行与运营</text>
+
+      <!-- connectors are drawn before nodes -->
+      <path d="M 264,264 H 328 Q 336,264 336,272 V 296" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#technical-architecture-arrow)"/>
+      <path d="M 264,432 H 304 Q 312,432 312,424 V 360 H 336" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#technical-architecture-arrow)"/>
+      <path d="M 512,296 H 584 Q 592,296 592,288 V 264 H 656" fill="none" stroke="#eb6c36" stroke-width="1.6" marker-end="url(#technical-architecture-arrow-accent)"/>
+      <path d="M 512,432 H 576 Q 584,432 584,424 V 312 H 656" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#technical-architecture-arrow)"/>
+      <path d="M 736,328 V 360 Q 736,368 744,368 H 752" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#technical-architecture-arrow)"/>
+      <line x1="816" y1="264" x2="864" y2="264" stroke="#eb6c36" stroke-width="1.6" marker-end="url(#technical-architecture-arrow-accent)"/>
+      <path d="M 816,400 H 856 Q 864,400 864,392 V 328" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#technical-architecture-arrow)"/>
+      <line x1="1024" y1="264" x2="1056" y2="264" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#technical-architecture-arrow)"/>
+      <path d="M 944,328 V 432" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#technical-architecture-arrow)"/>
+      <path d="M 512,432 H 616" fill="none" stroke="#eb6c36" stroke-width="1" stroke-dasharray="5,4"/>
+      <line x1="612" y1="416" x2="628" y2="448" stroke="#eb6c36" stroke-width="2"/>
+      <rect x="520" y="452" width="144" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="592" y="464" class="mono" font-size="10" text-anchor="middle" fill="#eb6c36">禁止：VLM 直接调度</text>
+
+      <!-- nodes -->
+      <g class="sans">
+        <rect x="88" y="216" width="176" height="96" rx="8" fill="#ffffff" stroke="rgba(45,49,66,0.30)"/>
+        <rect x="100" y="228" width="48" height="16" rx="4" fill="rgba(79,93,117,0.12)"/><text x="124" y="240" class="mono" font-size="8" text-anchor="middle" fill="#4f5d75">输入</text>
+        <text x="176" y="268" font-size="16" font-weight="600" text-anchor="middle">固定摄像头</text><text x="176" y="292" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">持续环境证据</text>
+
+        <rect x="88" y="384" width="176" height="96" rx="8" fill="#ffffff" stroke="rgba(45,49,66,0.30)"/>
+        <rect x="100" y="396" width="48" height="16" rx="4" fill="rgba(79,93,117,0.12)"/><text x="124" y="408" class="mono" font-size="8" text-anchor="middle" fill="#4f5d75">输入</text>
+        <text x="176" y="432" font-size="16" font-weight="600" text-anchor="middle">机器人 RGB + Edge Box</text><text x="176" y="456" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">移动感知与设备状态</text>
+
+        <rect x="336" y="248" width="176" height="96" rx="8" fill="#ffffff" stroke="rgba(45,49,66,0.30)"/>
+        <rect x="348" y="260" width="48" height="16" rx="4" fill="rgba(79,93,117,0.12)"/><text x="372" y="272" class="mono" font-size="8" text-anchor="middle" fill="#4f5d75">边缘</text>
+        <text x="424" y="300" font-size="16" font-weight="600" text-anchor="middle">Edge CV 与规则</text><text x="424" y="324" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">高频发现、筛选与预处理</text>
+
+        <rect x="336" y="384" width="176" height="96" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.24)" stroke-dasharray="5,4"/>
+        <rect x="348" y="396" width="48" height="16" rx="4" fill="rgba(79,93,117,0.12)"/><text x="372" y="408" class="mono" font-size="8" text-anchor="middle" fill="#4f5d75">云端</text>
+        <text x="424" y="436" font-size="16" font-weight="600" text-anchor="middle">Cloud VLM</text><text x="424" y="460" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">长尾与语义歧义研判</text>
+
+        <rect x="656" y="216" width="160" height="112" rx="8" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.6"/>
+        <rect x="668" y="228" width="48" height="16" rx="4" fill="rgba(235,108,54,0.20)"/><text x="692" y="240" class="mono" font-size="8" text-anchor="middle" fill="#eb6c36">核心</text>
+        <text x="736" y="272" font-size="16" font-weight="600" text-anchor="middle">统一 AI 事件层</text><text x="736" y="296" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">唯一事件事实与证据链</text>
+
+        <rect x="656" y="368" width="160" height="96" rx="8" fill="#ffffff" stroke="rgba(45,49,66,0.30)"/>
+        <rect x="668" y="380" width="48" height="16" rx="4" fill="rgba(79,93,117,0.12)"/><text x="692" y="392" class="mono" font-size="8" text-anchor="middle" fill="#4f5d75">空间</text>
+        <text x="736" y="420" font-size="16" font-weight="600" text-anchor="middle">空间服务</text><text x="736" y="444" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">定位、地图与可达性</text>
+
+        <rect x="864" y="216" width="160" height="112" rx="8" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.6"/>
+        <rect x="876" y="228" width="48" height="16" rx="4" fill="rgba(235,108,54,0.20)"/><text x="900" y="240" class="mono" font-size="8" text-anchor="middle" fill="#eb6c36">受控</text>
+        <text x="944" y="272" font-size="16" font-weight="600" text-anchor="middle">能力与确定性调度</text><text x="944" y="296" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">能力、路线、策略共同约束</text>
+
+        <rect x="1056" y="216" width="144" height="112" rx="8" fill="#ffffff" stroke="rgba(45,49,66,0.30)"/>
+        <rect x="1068" y="228" width="48" height="16" rx="4" fill="rgba(79,93,117,0.12)"/><text x="1092" y="240" class="mono" font-size="8" text-anchor="middle" fill="#4f5d75">执行</text>
+        <text x="1128" y="272" font-size="16" font-weight="600" text-anchor="middle">机器人集成</text><text x="1128" y="296" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">设备接口与物业工作流</text>
+
+        <rect x="864" y="432" width="336" height="72" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.24)"/>
+        <rect x="876" y="444" width="64" height="16" rx="4" fill="rgba(79,93,117,0.12)"/><text x="908" y="456" class="mono" font-size="8" text-anchor="middle" fill="#4f5d75">治理</text>
+        <text x="1032" y="476" font-size="16" font-weight="600" text-anchor="middle">运营分析、审计与数据治理</text><text x="1032" y="496" class="mono" font-size="10" text-anchor="middle" fill="#4f5d75">租户隔离 · 权限 · 成本 · 可观测性</text>
+      </g>
+
+      <line x1="48" y1="640" x2="1232" y2="640" stroke="rgba(45,49,66,0.20)"/>
+      <text x="48" y="676" class="mono" font-size="12" letter-spacing="1" fill="#4f5d75">架构边界</text>
+      <text x="208" y="676" class="sans" font-size="14" fill="#2d3142">Robot 不由 LLM 调度</text>
+      <text x="512" y="676" class="sans" font-size="14" fill="#2d3142">Perception ≠ Execution</text>
+      <text x="824" y="676" class="sans" font-size="14" fill="#2d3142">Patrol 事件分流，不新增 Agent</text>
+    </svg>
+  </main>
+</body>
+</html>
