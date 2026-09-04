@@ -10,8 +10,8 @@ LOG_DIR="${DEMO_LOG_DIR:-$PROJECT_DIR/.demo-logs}"
 PID_FILE="$PROJECT_DIR/.demo-pids"
 BACKEND_PID_FILE="$LOG_DIR/backend.pid"
 FRONTEND_PID_FILE="$LOG_DIR/frontend.pid"
-BACKEND_PORT="${DEMO_BACKEND_PORT:-8000}"
-FRONTEND_PORT="${DEMO_FRONTEND_PORT:-5173}"
+BACKEND_PORT="${DEMO_BACKEND_PORT:-8002}"
+FRONTEND_PORT="${DEMO_FRONTEND_PORT:-5176}"
 
 # shellcheck source=scripts/runtime_launcher_lib.sh
 source "$PROJECT_DIR/scripts/runtime_launcher_lib.sh"
@@ -96,7 +96,7 @@ ensure_frontend() {
     cd "$FRONTEND_DIR"
     # Keep the browser's same-origin `/api` contract when the launcher is
     # intentionally run on non-default ports during a safe local verification.
-    # The normal double-click path still resolves to 127.0.0.1:8000.
+    # The normal double-click path uses the managed 127.0.0.1:8002 runtime.
     VITE_API_PROXY_TARGET="http://127.0.0.1:$BACKEND_PORT" \
       nohup "$FRONTEND_DIR/node_modules/.bin/vite" --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort >"$LOG_DIR/frontend.log" 2>&1 &
     echo $! > "$LOG_DIR/frontend.spawn.pid"

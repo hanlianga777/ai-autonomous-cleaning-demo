@@ -9,8 +9,8 @@ LOG_DIR="${DEMO_LOG_DIR:-$PROJECT_DIR/.demo-logs}"
 BACKEND_PID_FILE="$LOG_DIR/backend.pid"
 FRONTEND_PID_FILE="$LOG_DIR/frontend.pid"
 PID_FILE="$PROJECT_DIR/.demo-pids"
-BACKEND_PORT="${DEMO_BACKEND_PORT:-8000}"
-FRONTEND_PORT="${DEMO_FRONTEND_PORT:-5173}"
+BACKEND_PORT="${DEMO_BACKEND_PORT:-8002}"
+FRONTEND_PORT="${DEMO_FRONTEND_PORT:-5176}"
 
 # shellcheck source=scripts/runtime_launcher_lib.sh
 source "$PROJECT_DIR/scripts/runtime_launcher_lib.sh"
