@@ -76,9 +76,9 @@ function FleetSummary({ robot, translucent = false, workbenchList = false }: { r
 }
 
 function FleetAssetCard({ robot, active }: { robot: FleetRobot; active: boolean }) {
-  return <article className={`group relative border transition-colors ${active ? "border-slate-500 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+  return <article className={`surface-inset group relative border transition-colors ${active ? "border-slate-500 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
     <FleetSummary robot={robot} workbenchList />
-    <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-52 border border-slate-300 bg-white p-3 text-[12px] leading-5 text-slate-600 shadow-lg group-hover:block"><p className="font-semibold text-slate-800">{robot.name}</p><p>{robot.location}</p><p className="mt-1 border-t border-slate-100 pt-1"><span className="text-slate-400">服务范围：</span>{robot.role ?? robot.zone ?? "园区服务区域"}</p><p><span className="text-slate-400">适用范围：</span>{robot.product_capability ?? robot.capabilities?.join(" / ") ?? "未配置"}</p></div>
+    <div className="surface-inset pointer-events-none absolute left-full top-0 z-50 ml-2 hidden w-52 border border-slate-300 bg-white p-3 text-[12px] leading-5 text-slate-600 shadow-lg group-hover:block"><p className="font-semibold text-slate-800">{robot.name}</p><p>{robot.location}</p><p className="mt-1 border-t border-slate-100 pt-1"><span className="text-slate-400">服务范围：</span>{robot.role ?? robot.zone ?? "园区服务区域"}</p><p><span className="text-slate-400">适用范围：</span>{robot.product_capability ?? robot.capabilities?.join(" / ") ?? "未配置"}</p></div>
   </article>;
 }
 
@@ -120,7 +120,7 @@ export function SpatialDispatchView({ event, presentation }: SpatialDispatchView
   }, []);
 
   const displayedFleet = useMemo(() => fleetFromEvent(event, apiFleet), [apiFleet, event]);
-  return <section className="grid min-h-[248px] grid-cols-[152px_minmax(0,1fr)] overflow-hidden border border-slate-200 bg-[#f6f8f9]" aria-label="园区空间调度">
+  return <section className="surface-card grid min-h-[248px] grid-cols-[152px_minmax(0,1fr)] overflow-hidden border border-slate-200 bg-[#f6f8f9]" aria-label="园区空间调度">
     <aside className="z-40 overflow-visible border-r border-slate-200 bg-[#fbfcfd] p-2" aria-label="机器人状态"><div className="mb-2 border-b border-slate-200 pb-2"><p className="text-[12px] font-semibold text-slate-700">园区空间调度</p><p className="mt-0.5 text-[12px] text-slate-400">当前机器人状态</p></div><div className="space-y-1.5">{displayedFleet.map((robot) => <FleetAssetCard key={robot.id} robot={robot} active={robot.id === selectedRobotId || Boolean(robot.active_task_id)} />)}{!displayedFleet.length && <p className="py-4 text-center text-[12px] text-slate-400">机器人信息暂不可用</p>}</div></aside>
     <MapCanvas imageSrc="/visual-assets/campus/campus-white-model.png" alt="A栋与B栋园区空间白模" className="min-h-[248px] bg-[#eef2f5]">
       <>

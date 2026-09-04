@@ -30,7 +30,7 @@ export function EventDetailPanel({ event, mode = "live", navigationPresentation,
   const start = timestampMs(event?.liveResult?.created_at);
   const end = mode === "history" || terminal ? timestampMs(event?.liveResult?.updated_at) : now;
   const elapsed = Number.isFinite(start) && Number.isFinite(end) ? `${Math.max(0, (end - start) / 1000).toFixed(0)} 秒` : "—";
-  return <aside data-testid="event-detail-panel" data-mode={mode} className="relative flex h-full min-h-0 flex-col border border-slate-200 bg-white">
+  return <aside data-testid="event-detail-panel" data-mode={mode} className="surface-card relative flex h-full min-h-0 flex-col overflow-hidden border border-slate-200 bg-white">
     <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
       <p className="text-sm font-semibold">{mode === "history" ? "事件处置详情" : "当前事件处置详情"}</p>
     </div>

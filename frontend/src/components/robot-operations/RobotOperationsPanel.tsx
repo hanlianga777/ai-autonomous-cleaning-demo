@@ -1,7 +1,7 @@
 import { ArrowUpRight, Bot, History, LoaderCircle, MessageCircle, MoreHorizontal, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useRobotOperations } from "./RobotOperationsProvider";
-import { FLOATING_BALL_SIZE, FLOATING_CHAT_SIZE, FLOATING_POSITION_KEY, clampFloatingPosition, customerAgentMessage, defaultFloatingPosition, parseStoredPosition, readStorage, writeStorage, type AdviceItem } from "./robotOperationsModel";
+import { FLOATING_BALL_SIZE, FLOATING_CHAT_SIZE, FLOATING_POSITION_KEY, clampFloatingPosition, customerAgentMessage, defaultFloatingPosition, parseStoredPosition, readStorage, writeStorage, type AdviceItem, type AgentMessage } from "./robotOperationsModel";
 
 type PageContext = Record<string, unknown>;
 
@@ -27,10 +27,37 @@ function conciseCustomerReply(content: string): string {
 
 function StructuredAssistantMessage({ content }: { content: string }) {
   const sections = conciseCustomerReply(content).split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
+  const labels = ["结论", "建议", "提示"];
   return <div className="space-y-2.5">{sections.map((section, index) => {
     const match = section.match(/^([^：:]{1,14})[：:]\s*(.+)$/s);
-    return match ? <div key={`${match[1]}-${index}`} className="grid grid-cols-[74px_minmax(0,1fr)] gap-2 border-b border-slate-100 pb-2 last:border-0 last:pb-0"><span className="text-[11px] font-medium text-slate-400">{match[1]}</span><p className="text-[12px] leading-5 text-slate-700">{match[2]}</p></div> : <p key={`${section}-${index}`} className="text-[12px] leading-5 text-slate-700">{section}</p>;
+    const label = match?.[1] ?? labels[index] ?? "提示";
+    const body = match?.[2] ?? section;
+    return <div key={`${label}-${index}`} className="grid grid-cols-[74px_minmax(0,1fr)] gap-2 border-b border-slate-100 pb-2 last:border-0 last:pb-0"><span className="text-[11px] font-medium text-slate-400">{label}</span><p className="text-[12px] leading-5 text-slate-700">{body}</p></div>;
   })}</div>;
+}
+
+function responseDurationLabel(duration?: number) { return typeof duration === "number" ? `${Math.max(0.1, duration / 1000).toFixed(1)} 秒` : null; }
+
+function useTypewriter(content: string, animate: boolean) {
+  const [visible, setVisible] = useState(animate ? "" : content);
+  useEffect(() => {
+    if (!animate) { setVisible(content); return; }
+    let index = 0;
+    setVisible("");
+    const timer = window.setInterval(() => {
+      index += 1;
+      setVisible(content.slice(0, index));
+      if (index >= content.length) window.clearInterval(timer);
+    }, 18);
+    return () => window.clearInterval(timer);
+  }, [animate, content]);
+  return visible;
+}
+
+function AssistantMessage({ message, animate }: { message: AgentMessage; animate: boolean }) {
+  const content = useTypewriter(customerAgentMessage(message.content), animate && typeof message.response_duration_ms === "number");
+  const duration = responseDurationLabel(message.response_duration_ms);
+  return <article className="mr-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm"><div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400"><Bot size={13} />AI运营助手{duration && <span className="ml-auto font-normal text-slate-400">回答用时 {duration}</span>}</div><StructuredAssistantMessage content={content} /></article>;
 }
 
 function QuickPrompts({ pageContext, disabled }: { pageContext: PageContext; disabled: boolean }) {
@@ -45,7 +72,8 @@ function Messages({ pageContext }: { pageContext: PageContext }) {
   if (loading) return <div className="flex flex-1 items-center justify-center px-3 text-[11px] text-slate-500">正在连接运营助手…</div>;
   if (!session) return <div className="flex flex-1 items-center justify-center px-3 text-center text-[11px] leading-5 text-amber-700">{error ?? "运营助手暂不可用。"}</div>;
   const busy = pending || Boolean(session.busy);
-  return <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">{session.messages.length ? session.messages.map((message) => message.role === "user" ? <article key={message.id} className="ml-auto w-fit max-w-[calc(100%-2.5rem)] break-words rounded-2xl bg-slate-900 px-3.5 py-2.5 text-[13px] leading-6 text-white shadow-sm">{customerAgentMessage(message.content)}</article> : <article key={message.id} className="mr-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-3 shadow-sm"><div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400"><Bot size={13} />AI运营助手</div><StructuredAssistantMessage content={message.content} /></article>) : <div className="flex min-h-full flex-col justify-center py-8"><div className="mx-auto mb-6 max-w-[300px] text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><Bot size={19} /></span><p className="mt-3 text-[14px] font-semibold text-slate-800">今天想了解什么？</p><p className="mt-1 text-[12px] leading-5 text-slate-500">可快速查看事件、热区与机器人状态。</p></div><QuickPrompts pageContext={pageContext} disabled={busy} /></div>}{busy && <p className="flex items-center gap-1.5 text-[12px] text-slate-500"><LoaderCircle size={14} className="animate-spin" />正在发送并等待运营助手响应…</p>}{error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-800">{customerAgentMessage(error)}</p>}</div>;
+  const latestAssistantId = [...session.messages].reverse().find((message) => message.role === "assistant")?.id;
+  return <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">{session.messages.length ? session.messages.map((message) => message.role === "user" ? <article key={message.id} className="ml-auto w-fit max-w-[calc(100%-2.5rem)] break-words rounded-2xl bg-slate-900 px-3.5 py-2.5 text-[13px] leading-6 text-white shadow-sm">{customerAgentMessage(message.content)}</article> : <AssistantMessage key={message.id} message={message} animate={message.id === latestAssistantId} />) : <div className="flex min-h-full flex-col justify-center py-8"><div className="mx-auto mb-6 max-w-[300px] text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><Bot size={19} /></span><p className="mt-3 text-[14px] font-semibold text-slate-800">今天想了解什么？</p><p className="mt-1 text-[12px] leading-5 text-slate-500">可快速查看事件、热区与机器人状态。</p></div><QuickPrompts pageContext={pageContext} disabled={busy} /></div>}{busy && <p className="flex items-center gap-1.5 text-[12px] text-slate-500"><LoaderCircle size={14} className="animate-spin" />正在发送并等待运营助手响应…</p>}{error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-800">{customerAgentMessage(error)}</p>}</div>;
 }
 
 function Composer({ pageContext }: { pageContext: PageContext }) {
@@ -101,7 +129,7 @@ export function FloatingRobotOperationsAgent({ pageContext }: { pageContext: Pag
   const toggleExpanded = () => setExpanded((value) => !value);
   const panelPosition = clampFloatingPosition(position, { width: window.innerWidth, height: window.innerHeight }, FLOATING_CHAT_SIZE);
   if (!expanded) return <button type="button" onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag} onClick={(event) => { if (!justDragged.current) toggleExpanded(); justDragged.current = false; event.stopPropagation(); }} className="fixed z-[70] flex h-14 w-14 touch-none items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,.28)] transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-sky-200 active:cursor-grabbing" style={{ left: position.x, top: position.y }} aria-label="打开园区运营助手"><MessageCircle size={25} /><span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" /></button>;
-  return <><section className="fixed z-[70] flex h-[min(560px,calc(100dvh-32px))] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" style={{ left: panelPosition.x, top: panelPosition.y }} aria-label="AI运营助手完整对话窗口"><header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-900 px-4 py-3 text-white"><div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-400 text-slate-900"><Bot size={19} /></span><div><p className="text-[14px] font-semibold">AI运营助手</p><p className="text-[11px] text-slate-300">协助查询事件与执行进度</p></div></div><div className="flex items-center"><HistoryButton dark onOpen={() => setHistoryOpen(true)} /><button type="button" onClick={toggleExpanded} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="收起为 AI 悬浮球"><X size={18} /></button></div></header><RobotOperationsChat pageContext={pageContext} /></section>{historyOpen && <ChatHistoryDrawer onClose={() => setHistoryOpen(false)} />}</>;
+  return <><section className="surface-card fixed z-[70] flex h-[min(560px,calc(100dvh-32px))] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl" style={{ left: panelPosition.x, top: panelPosition.y }} aria-label="AI运营助手完整对话窗口"><header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-900 px-4 py-3 text-white"><div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-400 text-slate-900"><Bot size={19} /></span><div><p className="text-[14px] font-semibold">AI运营助手</p><p className="text-[11px] text-slate-300">协助查询事件与执行进度</p></div></div><div className="flex items-center"><HistoryButton dark onOpen={() => setHistoryOpen(true)} /><button type="button" onClick={toggleExpanded} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="收起为 AI 悬浮球"><X size={18} /></button></div></header><RobotOperationsChat pageContext={pageContext} /></section>{historyOpen && <ChatHistoryDrawer onClose={() => setHistoryOpen(false)} />}</>;
 }
 export function AnalyticsAgentChat({ pageContext }: { pageContext: PageContext }) {
   const [historyOpen, setHistoryOpen] = useState(false);

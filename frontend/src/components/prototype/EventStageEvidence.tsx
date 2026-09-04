@@ -4,7 +4,7 @@ import type { ActiveEvent, Camera } from "./types";
 import type { NavigationPresentation } from "./navigationPresentation";
 
 const percent = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? `${Math.round(value * 100)}%` : "—";
-const card = "mt-2 space-y-1.5 border border-slate-200 bg-slate-50 p-2 text-[12px] leading-5 text-slate-600";
+const card = "surface-inset mt-2 space-y-1.5 border border-slate-200 bg-slate-50 p-2 text-[12px] leading-5 text-slate-600";
 
 function CameraEvidence({ event, cameraId, after = false, detections = false }: { event: ActiveEvent; cameraId?: string; after?: boolean; detections?: boolean }) {
   const camera = eventCamera(event, after ? "after" : "before", cameraId);
@@ -51,7 +51,7 @@ function patrolObservation(value: unknown): PatrolObservation | null {
 
 function PatrolObservationCard({ observation }: { observation: PatrolObservation }) {
   const camera: Camera = { id: "ROBOT-SC50-RGBD-01", location: observation.location ?? "沿途巡检", image: observation.asset_url ?? "" };
-  return <div className="mt-2 border border-indigo-100 bg-indigo-50/40 p-2.5"><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[12px] font-semibold text-slate-800">沿途巡检提示</p><span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[12px] text-indigo-700">受控 RGB-D 样例</span></div><CameraViewport camera={camera} compact presentationLabel={`${observation.location} 巡检画面`} /><p className="mt-2 text-[12px] text-slate-700"><strong>{observation.location}</strong> · 发现：{observation.finding}</p><p className="text-[12px] text-slate-500">{observation.notice ?? "已提示物业复核"}</p></div>;
+  return <div className="surface-inset mt-2 border border-indigo-100 bg-indigo-50/40 p-2.5"><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[12px] font-semibold text-slate-800">沿途巡检提示</p><span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[12px] text-indigo-700">受控 RGB-D 样例</span></div><CameraViewport camera={camera} compact presentationLabel={`${observation.location} 巡检画面`} /><p className="mt-2 text-[12px] text-slate-700"><strong>{observation.location}</strong> · 发现：{observation.finding}</p><p className="text-[12px] text-slate-500">{observation.notice ?? "已提示物业复核"}</p></div>;
 }
 
 function TerminalFleet({ result }: { result: RecordValue }) {

@@ -43,12 +43,14 @@ export function RobotOperationsProvider({ children }: { children: ReactNode }) {
   const requestId = useRef(0);
   const mutationId = useRef(0);
   const pendingRef = useRef(false);
+  const responseDurations = useRef<Record<string, number>>({});
 
   useEffect(() => { pendingRef.current = pending; }, [pending]);
 
   const applySnapshot = useCallback((value: unknown) => {
     if (!isSnapshot(value)) throw new Error("服务返回的 Agent Session 结构无效");
-    setSession(value); writeStorage(SESSION_STORAGE_KEY, value.id);
+    const snapshot = { ...value, messages: value.messages.map((message) => responseDurations.current[message.id] === undefined ? message : { ...message, response_duration_ms: responseDurations.current[message.id] }) };
+    setSession(snapshot); writeStorage(SESSION_STORAGE_KEY, snapshot.id);
     if (value.error?.message) setError(`${value.error.code ?? "AGENT_ERROR"}：${value.error.message}`);
     else setError(null);
   }, []);
@@ -104,8 +106,10 @@ export function RobotOperationsProvider({ children }: { children: ReactNode }) {
     if (!session || !text.trim() || pending) return false;
     const submittedText = text.trim();
     const optimisticId = `local-${Date.now()}`;
+    const knownMessageIds = new Set(session.messages.map((message) => message.id));
     mutationId.current += 1;
     setPending(true); setError(null);
+    const requestStartedAt = Date.now();
     setSession((current) => current ? {
       ...current,
       messages: [...current.messages, { id: optimisticId, role: "user", content: submittedText, created_at: new Date().toISOString(), delivery: "sending" }],
@@ -113,6 +117,10 @@ export function RobotOperationsProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(`/api/robot-operations/sessions/${encodeURIComponent(session.id)}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: submittedText, page_context: pageContext }) });
       const body = await responseJson(response);
+      if (isSnapshot(body)) {
+        const reply = [...body.messages].reverse().find((message) => message.role === "assistant" && !knownMessageIds.has(message.id));
+        if (reply) responseDurations.current[reply.id] = Date.now() - requestStartedAt;
+      }
       applySnapshot(body);
       return isSnapshot(body) && !body.error;
     } catch (reason) {

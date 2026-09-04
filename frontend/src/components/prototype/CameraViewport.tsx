@@ -22,7 +22,7 @@ export function CameraViewport({ camera, showDetections = false, compact = false
     return () => observer.disconnect();
   }, [fill, compact]);
   useEffect(() => { const close = (event: KeyboardEvent) => event.key === "Escape" && setZoomed(false); window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
-  const frame = <div ref={container} className={`relative flex w-full items-center justify-center overflow-hidden bg-slate-950 ${fill ? "h-full" : compact ? "aspect-[4/3]" : "aspect-video"}`}>
+  const frame = <div ref={container} className={`camera-rectangle relative flex w-full items-center justify-center overflow-hidden bg-slate-950 ${fill ? "h-full" : compact ? "aspect-[4/3]" : "aspect-video"}`}>
     <div data-testid="camera-image-plane" className="relative shrink-0" style={size}>
       <img src={camera.image} alt={presentationLabel ?? camera.location} className="absolute inset-0 h-full w-full object-contain" />
       {showDetections && camera.overlay?.map((item, index) => {

@@ -10,6 +10,10 @@
 }
 
 @layer components {
+  .surface-card { @apply rounded-2xl; }
+  .surface-inset { @apply rounded-xl; }
+  .surface-control { @apply rounded-xl; }
+  .camera-rectangle { @apply rounded-none; }
   .section-kicker { @apply text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400; }
   .metric-value { @apply text-xl font-semibold tracking-tight text-slate-900; }
   .metric-label { @apply mt-0.5 text-[11px] text-slate-500; }
@@ -19,6 +23,8 @@
   .skybridge-sweep { animation: skybridge-sweep 1.3s ease-in-out infinite; display: inline-block; }
   .mapping-pulse { animation: mapping-pulse 1s ease-in-out infinite; display: inline-block; color: #2563eb; }
 }
+
+.soft-surface :is(button, input, select, textarea):not(.rounded-full) { border-radius: 0.75rem; }
 
 @keyframes robot-marker { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(3px); } }
 @keyframes elevator-motion { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(2px); } }
