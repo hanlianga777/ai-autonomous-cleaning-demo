@@ -197,6 +197,22 @@ class DemoV1Tests(unittest.TestCase):
         self.assertIn("SKYBRIDGE_B", plan["node_path"])
         self.assertGreater(plan["total_cost"], 0)
 
+    def test_demo03_persists_one_controlled_skybridge_patrol_observation(self) -> None:
+        with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_event_qwen_vl", return_value=_review("can")):
+            event_id = create_demo_event("demo03")["event_id"]
+            edge_review(event_id)
+            cloud_review(event_id)
+            locate_event(event_id)
+            assign_event(event_id)
+            plan = start_navigation(event_id)["navigation_plan"]
+        observation = plan["patrol_observation"]
+        self.assertEqual(observation["trigger_node_id"], "SKYBRIDGE_B")
+        self.assertEqual(observation["location"], "B栋2F连廊入口")
+        self.assertEqual(observation["finding"], "单元门未关闭")
+        self.assertEqual(observation["source"], "CONTROLLED_RGBD_DEMO")
+        self.assertTrue(observation["asset_url"].endswith("door-ajar-rgbd.png"))
+        self.assertEqual(get_event(event_id)["demo_v1"]["navigation_plan"]["patrol_observation"], observation)
+
     def test_demo04_reaches_human_fallback_only_after_capability_evaluation(self) -> None:
         with patch("demo_v1.service.get_runtime", return_value=SimpleNamespace(qwen_ready=True, qwen_model="qwen-vl-max")), patch("demo_v1.service.run_event_qwen_vl", return_value=_review("large_object")):
             event_id = create_demo_event("demo04")["event_id"]

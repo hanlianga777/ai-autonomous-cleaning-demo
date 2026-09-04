@@ -19,3 +19,12 @@ test("one rAF presentation drives the map and live event location copy", () => {
   assert.match(evidence, /实时行驶位置/);
   assert.match(evidence, /aria-live="polite"/);
 });
+
+test("Demo3 patrol evidence shares the navigation presentation clock", () => {
+  assert.match(presentation, /patrolObservation/);
+  assert.match(presentation, /isPatrolObservationVisible/);
+  assert.match(presentation, /trigger_node_id/);
+  assert.match(evidence, /沿途巡检提示/);
+  assert.match(evidence, /observation\.finding/);
+  assert.match(evidence, /CONTROLLED_RGBD_DEMO/);
+});

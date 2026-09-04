@@ -28,6 +28,14 @@ export type NavigationPlan = {
   visual_style?: { route?: string; opacity?: number; stroke_width?: number; dasharray?: string };
   segments?: RouteSegment[];
   total_cost?: number;
+  patrol_observation?: {
+    trigger_node_id?: string;
+    location?: string;
+    finding?: string;
+    notice?: string;
+    source?: string;
+    asset_url?: string;
+  };
 };
 
 export type MotionPlan = {

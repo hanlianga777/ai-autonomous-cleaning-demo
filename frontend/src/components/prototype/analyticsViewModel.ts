@@ -37,6 +37,12 @@ export type AnalyticsOverview = {
   event_structure: Array<{ event_type: string; label: string; count: number }>;
   source_counts: Record<string, number>;
   metric_definitions: Record<string, string>;
+  prediction_plan: {
+    source: string;
+    disclaimer: string;
+    prepositioning: Array<{ signal: string; risk: string; time: string; robot_id: string; robot_name: string; location: string; action: string }>;
+    cleaning_playbooks: Array<{ object: string; action: string; guardrail: string }>;
+  };
 };
 
 export const DEFAULT_ANALYTICS_FILTERS: AnalyticsFilters = { eventType: "", since: "", until: "", timeSlot: "" };

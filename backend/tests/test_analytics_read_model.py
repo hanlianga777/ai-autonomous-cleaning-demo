@@ -118,6 +118,16 @@ class AnalyticsReadModelTests(unittest.TestCase):
             self.assertIsNone(overview["kpis"][key])
         self.assertEqual(overview["heatmap"], [])
 
+    def test_prediction_plan_is_deterministic_and_read_only(self):
+        fleet = deepcopy(db.get_fleet_state())
+        first = analytics_overview(now=NOW)["prediction_plan"]
+        second = analytics_overview(now=NOW)["prediction_plan"]
+        self.assertEqual(first, second)
+        self.assertEqual(first["source"], "FIXED_DEMO_SCENARIO")
+        self.assertEqual([item["robot_id"] for item in first["prepositioning"]], ["robot-a", "robot-b", "robot-b"])
+        self.assertEqual([item["object"] for item in first["cleaning_playbooks"]], ["易拉罐", "未压碎榕树果实", "已污染残留"])
+        self.assertEqual(db.get_fleet_state(), fleet)
+
     def test_customer_analytics_excludes_engineering_records_without_deleting_them(self):
         customer = fixture("customer")
         engineering = fixture("acceptance")

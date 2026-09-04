@@ -16,6 +16,8 @@ export type NavigationPresentation = {
   robotPosition: CanvasPoint | null;
   progressLabel?: string;
   isElevatorPause: boolean;
+  patrolObservation: NavigationPlan["patrol_observation"] | undefined;
+  isPatrolObservationVisible: boolean;
 };
 
 type Transition = { state?: string; created_at?: string };
@@ -60,6 +62,10 @@ export function useNavigationPresentation(event: ActiveEvent | null): Navigation
   const routeReady = routePoints.length > 1;
   const displayedTravel = isNavigating ? playback.travelledDistance : playback.totalDistance;
   const waypoint = routeWaypointAtDistance(routePoints, displayedTravel);
+  const patrolObservation = plan?.patrol_observation;
+  const patrolNodeIndex = routePoints.findIndex((point) => point.nodeId === patrolObservation?.trigger_node_id);
+  const waypointIndex = routePoints.findIndex((point) => point.nodeId === waypoint?.nodeId);
+  const isPatrolObservationVisible = Boolean(patrolObservation && patrolNodeIndex >= 0 && (!isNavigating || waypointIndex >= patrolNodeIndex));
   const progressLabel = isNavigating && routeReady
     ? (playback.isElevatorPause ? "正在乘坐 B 栋电梯前往 B 栋 2F" : waypoint?.progressLabel ?? waypoint?.label)
     : undefined;
@@ -80,5 +86,7 @@ export function useNavigationPresentation(event: ActiveEvent | null): Navigation
     robotPosition,
     progressLabel,
     isElevatorPause: playback.isElevatorPause,
+    patrolObservation,
+    isPatrolObservationVisible,
   };
 }

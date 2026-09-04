@@ -227,6 +227,23 @@ def utilization(rows, start, end):
     return sorted(result, key=lambda row: row["utilization"] or 0, reverse=True)
 
 
+def prediction_plan():
+    return {
+        "source": "FIXED_DEMO_SCENARIO",
+        "disclaimer": "固定演示预案：基于过去 30 天热点与端侧 RGB-D 占用趋势样例；非实时天气、实机遥测或自动派单。",
+        "prepositioning": [
+            {"signal": "华南初秋落叶窗口", "risk": "外围道路落叶与果实污染", "time": "05:40 前", "robot_id": "robot-a", "robot_name": "赛特净界 S5", "location": "园区东侧道路", "action": "前置吸扫，轮组避压"},
+            {"signal": "强降雨风险", "risk": "入口与主大堂积水", "time": "降雨前", "robot_id": "robot-b", "robot_name": "高仙 Omnie", "location": "A栋1F入口及主大堂", "action": "强吸水 + 高压拖洗"},
+            {"signal": "高峰通行预测", "risk": "入口响应距离增加", "time": "高峰前", "robot_id": "robot-b", "robot_name": "高仙 Omnie", "location": "A栋1F入口", "action": "待命并保持通行区"},
+        ],
+        "cleaning_playbooks": [
+            {"object": "易拉罐", "action": "先强吸回收", "guardrail": "不切换拖地"},
+            {"object": "未压碎榕树果实", "action": "前置吸扫，轮组避压", "guardrail": "避免压碎污染"},
+            {"object": "已污染残留", "action": "刷洗 + 高压拖洗", "guardrail": "加强去污"},
+        ],
+    }
+
+
 def analytics_overview(*, event_type=None, since=None, until=None, hour=None, now=None, time_slot=None):
     now = now or datetime.now(timezone.utc)
     start, end = window(now, since, until)
@@ -245,4 +262,4 @@ def analytics_overview(*, event_type=None, since=None, until=None, hour=None, no
         "heatmap": points, "unlocated_events": len(rows) - sum(point["count"] for point in points),
         "time_distribution": [{"hour": hour, "label": f"{hour:02d}:00", "count": hours[hour]} for hour in range(24)],
         "event_structure": [{"event_type": key, "label": TYPE_LABELS.get(key, "待研判"), "count": count} for key, count in structure.items()],
-        "robot_utilization": utilization(carried, start, end), "top_hotspots": points[:3]}
+        "robot_utilization": utilization(carried, start, end), "top_hotspots": points[:3], "prediction_plan": prediction_plan()}

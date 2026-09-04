@@ -17,3 +17,12 @@ test("Analytics keeps advice in the left story and caps it at three cards", asyn
   assert.match(panel, /const items = advice\?\.items\.slice\(0, 3\)/);
   assert.match(panel, /const \{ advice, adviceError, adviceLoading, loadAdvice \} = useRobotOperations\(\)/);
 });
+
+test("Analytics presents fixed predictive prepositioning before the AI advice cards", () => {
+  assert.match(source, /AI 预测与预部署/);
+  assert.match(source, /固定演示预案/);
+  assert.match(source, /输入信号/);
+  assert.match(source, /风险预判/);
+  assert.match(source, /建议待命/);
+  assert.match(source, /<PredictiveDeployment[\s\S]*?<AnalyticsAdviceCards/);
+});
