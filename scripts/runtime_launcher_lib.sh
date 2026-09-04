@@ -25,7 +25,7 @@ runtime_process_cwd() {
   cwd="$(LC_ALL=C lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1)"
   printf '%b\n' "$cwd"
 }
-runtime_process_started_at() { ps -p "$1" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
+runtime_process_started_at() { LC_ALL=C ps -p "$1" -o lstart= 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
 runtime_command_signature() { printf '%s' "$1" | LC_ALL=C shasum -a 256 | awk '{print $1}'; }
 
 runtime_command_is_expected() {
